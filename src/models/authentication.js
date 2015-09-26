@@ -7,6 +7,8 @@ const authenticationSchema = new Schema({
   'hash': { 'type': String, 'required': true },
   'salt': { 'type': String, 'required': true },
   'validated': { 'type': Boolean, 'default': false }
+}, {
+  'minimize': false
 });
 
 export default mongoose.model('Authentication', authenticationSchema);

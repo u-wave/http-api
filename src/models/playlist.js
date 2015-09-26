@@ -1,16 +1,16 @@
 import mongoose from 'mongoose';
-import {escaper, validator} from '../plugins/escaper';
 const Schema = mongoose.Schema;
 
 const playlistSchema = new Schema({
   'created': { 'type': Date, 'default': Date.now },
-  'name': { 'type': String, 'min': 0, 'max': 128, 'escape': true, 'validate': validator, 'required': true },
-  'description': { 'type': String, 'min': 0, 'max': 512, 'escape': true, 'validate': validator, 'required': true },
+  'name': { 'type': String, 'min': 0, 'max': 128, 'required': true },
+  'description': { 'type': String, 'min': 0, 'max': 512, 'required': true },
   'author': { 'type': Schema.Types.ObjectId, 'required': true },
   'private': { 'type': Boolean, 'default': true },
   'nsfw': { 'type': Boolean, 'default': false },
   'media': [Number]
+}, {
+  'minimize': false
 });
 
-playlistSchema.plugin(escaper);
 export default mongoose.model('Playlist', playlistSchema);

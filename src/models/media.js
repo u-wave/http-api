@@ -1,10 +1,9 @@
 import mongoose from 'mongoose';
-import {escaper, validator} from '../plugins/escaper';
 const Schema = mongoose.Schema;
 
 const mediaSchema = new Schema({
-  'artist': { 'type': String, 'max': 128, 'escape': true, 'validate': validator, 'required': true },
-  'title': { 'type': String, 'max': 128, 'escape': true, 'validate': validator, 'required': true },
+  'artist': { 'type': String, 'max': 128, 'required': true },
+  'title': { 'type': String, 'max': 128, 'required': true },
   'duration': { 'type': Number, 'min': 0, 'default': 0 },
   'thumbnail': { 'type': String, 'max': 256, 'default': '' },
   'sourceID': { 'type': String, 'max': 128, 'required': true },
@@ -15,5 +14,4 @@ const mediaSchema = new Schema({
   'minimize': false
 });
 
-mediaSchema.plugin(escaper);
 export default mongoose.model('Media', mediaSchema);

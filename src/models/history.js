@@ -9,6 +9,8 @@ const historySchema = new Schema({
   'upvotes': [Number],
   'downvotes': [Number],
   'favorites': [Number]
+}, {
+  'minimize': false
 });
 
 export default mongoose.model('History', historySchema);
