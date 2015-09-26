@@ -1,5 +1,5 @@
 {
-  "name": "üwave API v1",
+  "name": "uwave-api-v1",
   "version": "0.0.0",
   "description": "V1 API for üwave.",
   "license": "MIT",
@@ -18,6 +18,7 @@
     "bluebird": "^2.10.0",
     "debug": "^2.2.0",
     "express": "^4.13.3",
+    "html-entities": "^1.1.3",
     "ioredis": "^1.9.0",
     "jsonwebtoken": "^5.0.5",
     "mongoose": "^4.1.6",
