@@ -108,4 +108,4 @@ export default function authenticate(router) {
     })
     .catch(e => handleError(res, e, log));
   });
-}
+};

@@ -14,13 +14,13 @@ export const getBooth = function getBooth(redis) {
       resolve(booth);
     });
   });
-}
+};
 
 export const skipBooth = function skipBooth(redis) {
   getBooth(redis)
   .then(booth => {
     // TODO: websocket events
-  })
+  });
 };
 
 export const replaceBooth = function replaceBooth(id, redis) {
@@ -55,4 +55,4 @@ export const favorite = function favorite(data, redis) {
     playlist.media.push(data.mediaID);
     return playlist.save();
   });
-}
+};

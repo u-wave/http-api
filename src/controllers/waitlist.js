@@ -109,8 +109,6 @@ export const leaveWaitlist = function leaveWaitlist(id, redis) {
 };
 
 export const clearWaitlist = function clearWaitlist(redis) {
-  let _locked = false;
-
   redis.del('waitlist');
   return redis.lrange('waitlist', 0, -1)
   .then(waitlist => {
@@ -121,8 +119,8 @@ export const clearWaitlist = function clearWaitlist(redis) {
         reject(new GenericError(500, 'couldn\'t clear waitlist'));
       }
     });
-  })
-}
+  });
+};
 
 // TODO: decide whether to remove clear here or not
 export const lockWaitlist = function lockWaitlist(lock, clear, redis) {
@@ -131,7 +129,7 @@ export const lockWaitlist = function lockWaitlist(lock, clear, redis) {
   if (lock) {
     redis.set('waitlist:lock', lock);
   } else {
-    redis.del('waitlist:lock')
+    redis.del('waitlist:lock');
   }
 
   return redis.get('waitlist:lock')

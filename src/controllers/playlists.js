@@ -14,7 +14,7 @@ export const createPlaylist = function createPlaylist(data, user, mediaArray) {
   return playlist.validate()
   .then(playlist => {
     let pending = mediaArray.length;
-    const cb = (err, media) {
+    const cb = (err, media) => {
       if (err) {
         playlist.remove();
         throw new GenericError(500, 'database error');
@@ -24,6 +24,7 @@ export const createPlaylist = function createPlaylist(data, user, mediaArray) {
       playlist.media.push(media.id);
       if (!pending) {
         return playlist.save();
+      }
     };
 
     if (!pending) return playlist.save();

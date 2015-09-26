@@ -47,7 +47,7 @@ export default function playlists(router) {
 
     const _name = String(req.body.name);
 
-    controller.renamePlaylist(_name req.user, req.params.id)
+    controller.renamePlaylist(_name, req.user, req.params.id)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });

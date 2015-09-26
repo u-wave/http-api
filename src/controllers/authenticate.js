@@ -16,7 +16,30 @@ const log = debug('uwave:api:v1:auth');
 const pbkdf2 = Promise.promisify(crypto.pbkdf2);
 const randomBytes = Promise.promisify(crypto.randomBytes);
 
-export function createUser(data) {
+export const generateHash = function generateHashPair(password, length) {
+  const hashPair = {
+    hash: null,
+    salt: null
+  };
+
+  return new Promise((resolve, reject) => {
+    return randomBytes(length)
+    .then(buf => {
+      hashPair.salt = buf.toString('hex');
+      return pbkdf2(password, hashPair.salt, PASS_ITERATIONS, length, PASS_HASH);
+    })
+    .then(salted => {
+      hashPair.hash = salted.toString('hex');
+      resolve(hashPair);
+    })
+    .catch(e => {
+      log(e);
+      reject(new GenericError(402, 'couldn\'t create password'));
+    });
+  });
+};
+
+export const createUser = function createUser(data) {
   const User = mongoose.model('User');
   const Authentication = mongoose.model('Authentication');
   let _auth = null;
@@ -37,10 +60,10 @@ export function createUser(data) {
     });
     return _auth.save();
   })
-  .then(auth => {
+  .then(() => {
     return user.save();
   })
-  .then(user => {
+  .then(() => {
     // better to keep the routes clean and solve the duplicate error here
     return new Promise(resolve => resolve(user));
   },
@@ -52,11 +75,11 @@ export function createUser(data) {
   });
 };
 
-export function login(email, password, redis) {
+export const login = function login(email, password, redis) {
   const Authentication = mongoose.model('Authentication');
   let _auth = null;
 
-  return Authentication.findOne({'email':email}).populate('user').exec()
+  return Authentication.findOne({ 'email': email }).populate('user').exec()
   .then(auth => {
     if (!auth) throw new GenericError(404, 'no user found');
 
@@ -82,10 +105,10 @@ export function login(email, password, redis) {
   });
 };
 
-export function reset(email, redis) {
+export const reset = function reset(email, redis) {
   const Authentication = mongoose.model('Authentication');
 
-  return Authentication.findOne({'email':email})
+  return Authentication.findOne({ 'email': email })
   .then(auth => {
     if (!auth) throw new GenericError(404, 'no user found');
     return randomBytes(64);
@@ -100,7 +123,7 @@ export function reset(email, redis) {
   });
 };
 
-export function changePassword(data, reset, redis) {
+export const changePassword = function changePassword(data, reset, redis) {
   const Authentication = mongoose.model('Authentication');
 
   return redis.get(`reset:${data.email}`)
@@ -130,34 +153,11 @@ export function changePassword(data, reset, redis) {
   });
 };
 
-export function removeSession(id, token, redis) {
+export const removeSession = function removeSession(id, token, redis) {
   const Authentication = mongoose.model('Authentication');
   return Authentication.findOne(ObjectId(id))
   .then(auth => {
     redis.del(`user:${token}`);
     return redis.hgetall(`user:${token}`);
-  });
-};
-
-export function generateHashPair(password, length) {
-  const hashPair = {
-    hash: null,
-    salt: null
-  };
-
-  return new Promise((resolve, reject) => {
-    return randomBytes(length)
-    .then(buf => {
-      hashPair.salt = buf.toString('hex');
-      return pbkdf2(password, hashPair.salt, PASS_ITERATIONS, length, PASS_HASH);
-    })
-    .then(salted => {
-      hashPair.hash = salted.toString('hex');
-      resolve(hashPair);
-    })
-    .catch(e => {
-      log(e);
-      reject(new GenericError(402, 'couldn\'t create password'));
-    });
   });
 };

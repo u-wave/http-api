@@ -10,7 +10,6 @@ export default function waitlist(router) {
   router.route('/waitlist')
   /* ========== WAITLIST[GET] ========== */
   .get((req, res) => {
-
     controller.getWaitlist(req.uwave.redis)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));

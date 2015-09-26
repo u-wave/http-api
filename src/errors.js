@@ -7,7 +7,7 @@ export class PasswordError extends Error {
     this.name = 'PasswordError';
     this.message = str;
   }
-};
+}
 
 export class TokenError extends Error {
   constructor(str) {
@@ -16,7 +16,7 @@ export class TokenError extends Error {
     this.name = 'TokenError';
     this.message = str;
   }
-};
+}
 
 export class GenericError extends Error {
   constructor(status, str) {
@@ -26,7 +26,7 @@ export class GenericError extends Error {
     this.status = status;
     this.message = str;
   }
-};
+}
 
 export const handleError = function handleError(res, e, log) {
   log && log(e);
