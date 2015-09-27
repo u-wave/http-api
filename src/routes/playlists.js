@@ -10,34 +10,35 @@ export default function playlists(router) {
   router.route('/playlists')
   .get((req, res) => {
 
-    controller.getPlaylists()
+    controller.getPlaylists(req.user, req.uwave.mongo)
     .then(playlists => res.status(200).json(playlists))
     .catch(e => handleError(res, e, log));
   })
 
   .post((req, res) => {
-    if (!checkFields(req.body, res, ['name', 'description', 'private'])) return;
+    if (!checkFields(req.body, res, ['name', 'description', 'shared'])) return;
 
     const data = {
-      'name': String(name),
-      'description': String(description),
-      'private': Boolean(private)
+      'name': String(req.body.name),
+      'description': String(req.body.description),
+      'shared': Boolean(req.body.shared),
+      'author': req.user.id
     };
 
-    controller.createPlaylist(data, req.user, [])
+    controller.createPlaylist(data, [], req.uwave.mongo)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
 
   router.route('/playlists/:id')
   .get((req, res) => {
-    controller.getPlaylist(req.params.id)
+    controller.getPlaylist(req.user, req.params.id, false, req.uwave.mongo)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   })
 
   .delete((req, res) => {
-    controller.deletePlaylist(req.user, req.params.id, req.query.token, req.uwave.redis)
+    controller.deletePlaylist(req.user, req.params.id, req.query.token, req.uwave.mongo, req.uwave.redis)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
@@ -47,7 +48,7 @@ export default function playlists(router) {
 
     const _name = String(req.body.name);
 
-    controller.renamePlaylist(_name, req.user, req.params.id)
+    controller.renamePlaylist(req.user, req.params.id, _name, req.uwave.mongo)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
@@ -57,13 +58,13 @@ export default function playlists(router) {
 
     const _share = Boolean(req.body.share);
 
-    controller.sharePlaylist(req.user, req.params.id, _share)
+    controller.sharePlaylist(req.user, req.params.id, _share, req.uwave.mongo)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
 
   router.put('/playlists/:id/activate', (req, res) => {
-    controller.activatePlaylist(req.user, req.params.id, req.query.token, req.uwave.redis)
+    controller.activatePlaylist(req.user, req.params.id, req.query.token, req.uwave.mongo, req.uwave.redis)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
@@ -74,8 +75,8 @@ export default function playlists(router) {
 
     const _playlistID = String(req.body.playlistID);
 
-    controller.getMedia(req.user, _playlistID, true)
-    .then(mediaArray => res.status(200).json(mediaArray))
+    controller.getPlaylist(req.user, _playlistID, true, req.uwave.mongo)
+    .then(playlist => res.status(200).json(playlist.media))
     .catch(e => handleError(res, e, log));
   })
 
@@ -89,16 +90,16 @@ export default function playlists(router) {
       'end': Number(req.body.end)
     };
 
-    const _mediaID = String(req.body.mediaID);
+    // TODO: add and validate source
 
-    controller.createMedia(data, req.user, req.params.id, _mediaID)
+    controller.createMedia(req.user, req.params.id, data, req.uwave.mongo)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   });
 
   router.route('/playlists/:id/media/:mediaID')
   .get((req, res) => {
-    controller.getMedia(req.user, req.params.id, req.params.mediaID)
+    controller.getMedia(req.user, req.params.id, req.params.mediaID, req.uwave.mongo)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   })
@@ -113,13 +114,13 @@ export default function playlists(router) {
       'end': Number(req.body.end)
     };
 
-    controller.updateMedia(data, req.user, req.params.id, req.params.mediaID)
+    controller.updateMedia(req.user, req.params.id, req.params.mediaID, data, req.uwave.mongo)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   })
 
   .delete((req, res) => {
-    controller.getMedia(req.user, req.params.id, req.params.mediaID)
+    controller.getMedia(req.user, req.params.id, req.params.mediaID, req.uwave.mongo)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   });
