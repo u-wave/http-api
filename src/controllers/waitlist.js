@@ -19,17 +19,17 @@ export const joinWaitlist = function joinWaitlist(id, position, forceJoin, redis
     return redis.lrange('waitlist', 0, -1);
   })
   .then(waitlist => {
-    return new Promise((resolve, reject) => {
-      const length = waitlist.length;
+    const length = waitlist.length;
 
-      for (let i = length - 1; i >= 0; i--) {
-        if (waitlist[i] === _id) {
-          return reject(new GenericError(403, 'already in waitlist'));
-        }
+    for (let i = length - 1; i >= 0; i--) {
+      if (waitlist[i] === _id) {
+        throw new new GenericError(403, 'already in waitlist');
       }
+    }
 
-      User.findOne(ObjectId(_id))
-      .then(user => {
+    return User.findOne(ObjectId(_id))
+    .then(user => {
+      return new Promise((resolve, reject) => {
         if (!user) return reject(new GenericError(404, 'user not found'));
         if (position) {
           const _position = Math.max(Math.min(position, length), 0);
@@ -52,30 +52,27 @@ export const moveWaitlist = function moveWaitlist(id, position, redis) {
 
   return regis.lrange('waitlist', 0, -1)
   .then(waitlist => {
-    return new Promise((resolve, reject) => {
-      const length = waitlist.length;
+    const length = waitlist.length;
 
-      User.findOne(ObjectId(id.toLowerCase()))
-      .then(user => {
-        if (!user) return reject(new GenericError(404, 'user not found'));
+    return User.findOne(ObjectId(id.toLowerCase()))
+    .then(user => {
+      if (!user) throw new GenericError(404, 'user not found');
 
-        for (let i = (length > 0 ? length - 1 : -1); i >= 0; i--) {
-          if (waitlist[i] === user.id) {
-            const _position = Math.max(Math.min(position, length), 0);
-            const beforeID = length > 0 ? waitlist[_position] : null;
+      for (let i = (length > 0 ? length - 1 : -1); i >= 0; i--) {
+        if (waitlist[i] === user.id) {
+          const _position = Math.max(Math.min(position, length), 0);
+          const beforeID = length > 0 ? waitlist[_position] : null;
 
-            if (beforeID) {
-              redis.linsert('waitlist', 'BEFORE', beforeID, user.id);
-            } else {
-              redis.lpush('waitlist', user.id);
-            }
-
-            waitlist.splice(_position, 0, user.id);
-            return resolve(waitlist);
+          if (beforeID) {
+            redis.linsert('waitlist', 'BEFORE', beforeID, user.id);
+          } else {
+            redis.lpush('waitlist', user.id);
           }
+
+          return redis.lrange('waitlist', 0, -1);
         }
-        reject(new GenericError(404, `user ${id} is not in waitlist`));
-      });
+      }
+      throw new GenericError(404, `user ${id} is not in waitlist`);
     });
   });
 };
@@ -85,25 +82,22 @@ export const leaveWaitlist = function leaveWaitlist(id, redis) {
 
   return redis.lrange('waitlist', 0, -1)
   .then(waitlist => {
-    return new Promise((resolve, reject) => {
-      const length = waitlist.length > 0 ? waitlist.length : 0;
+    const length = waitlist.length > 0 ? waitlist.length : 0;
 
-      if (length === 0) return reject(new GenericError(412, 'waitlist is empty'));
+    if (length === 0) throw new GenericError(412, 'waitlist is empty');
 
-      User.findOne(ObjectId(id.toLowerCase()))
-      .then(user => {
-        if (!user) return reject(new GenericError(404, `no user with id ${id}`));
+    return User.findOne(ObjectId(id.toLowerCase()))
+    .then(user => {
+      if (!user) throw new GenericError(404, `no user with id ${id}`);
 
-        for (let i = length - 1; i >= 0; i--) {
-          if (waitlist[i] === user.id) {
-            redis.lrem('waitlist', i, user.id);
-            waitlist.splice(i, 1);
-            return resolve(waitlist);
-          }
+      for (let i = length - 1; i >= 0; i--) {
+        if (waitlist[i] === user.id) {
+          redis.lrem('waitlist', i, user.id);
+          return redis.lrange('waitlist', 0, -1);
         }
+      }
 
-        reject(new GenericError(404, `user ${user.username} is not in waitlist`));
-      });
+      throw new GenericError(404, `user ${user.username} is not in waitlist`);
     });
   });
 };
@@ -112,13 +106,11 @@ export const clearWaitlist = function clearWaitlist(redis) {
   redis.del('waitlist');
   return redis.lrange('waitlist', 0, -1)
   .then(waitlist => {
-    return new Promise((resolve, reject) => {
-      if (waitlist.length === 0) {
-        resolve('cleared waitlist');
-      } else {
-        reject(new GenericError(500, 'couldn\'t clear waitlist'));
-      }
-    });
+    if (waitlist.length === 0) {
+      redis.lrange('waitlist', 0, -1);
+    } else {
+      throw new GenericError(500, 'couldn\'t clear waitlist');
+    }
   });
 };
 
