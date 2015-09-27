@@ -62,7 +62,7 @@ export default function waitlist(router) {
       return res.status(403).json('you need to be at least a bouncer to do this');
     }
 
-    controller.leaveWaitlist(req.params.id, req.uwave.redis)
+    controller.leaveWaitlist(req.params.id, req.uwave.mongo, req.uwave.redis)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   });
