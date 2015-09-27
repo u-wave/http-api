@@ -11,7 +11,7 @@ export default function authenticator(req, res, next) {
   if (!req.query.token) return res.status(422).json('no token set');
 
   // TODO: should token be static in config or generated every x time units?
-  verify(req.query.token, config.secret || 'test')
+  verify(req.query.token, 'test')
   .then(() => {
     return req.uwave.redis.hgetall(`user:${req.query.token}`);
   })
