@@ -43,7 +43,7 @@ export default function booth(router) {
       'playlistID': String(req.body.playlistID)
     };
 
-    controller.favorite(data, req.uwave.redis)
+    controller.favorite(data, req.uwave.mongo, req.uwave.redis)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });

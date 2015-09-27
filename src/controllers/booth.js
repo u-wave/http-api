@@ -40,9 +40,9 @@ export const replaceBooth = function replaceBooth(id, redis) {
   });
 };
 
-export const favorite = function favorite(data, redis) {
-  const Playlist = mongoose.model('Playlist');
-  const User = mongoose.model('User');
+export const favorite = function favorite(data, mongo, redis) {
+  const Playlist = mongo.model('Playlist');
+  const User = mongo.model('User');
 
   Playlist.findOne(ObjectId(data.playlistID))
   .then(playlist => {
