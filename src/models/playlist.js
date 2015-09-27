@@ -5,10 +5,10 @@ export default function(mongoose) {
     'created': { 'type': Date, 'default': Date.now },
     'name': { 'type': String, 'min': 0, 'max': 128, 'required': true },
     'description': { 'type': String, 'min': 0, 'max': 512, 'required': true },
-    'author': { 'type': Schema.Types.ObjectId, 'required': true },
+    'author': { 'type': Schema.Types.ObjectId, 'ref': 'User', 'required': true },
     'shared': { 'type': Boolean, 'default': false },
     'nsfw': { 'type': Boolean, 'default': false },
-    'media': [Number]
+    'media': [{ 'type': Schema.Types.ObjectId, 'ref': 'Media' }]
   }, {
     'minimize': false
   });
