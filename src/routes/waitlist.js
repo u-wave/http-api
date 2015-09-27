@@ -26,7 +26,7 @@ export default function waitlist(router) {
     const _userID = String(req.body.userID);
     const _position = req.body.position ? parseInt(req.body.position, 10) : null;
 
-    controller.joinWaitlist(_userID, _position, req.user.role >= 3, req.uwave.redis)
+    controller.joinWaitlist(_userID, _position, req.user.role >= 3, req.uwave.mongo, req.uwave.redis)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   })
@@ -36,7 +36,7 @@ export default function waitlist(router) {
     if (req.user.role < 3) return res.status(403).json('you need to be at least a manager to do this');
 
     controller.clearWaitlist(req.uwave.redis)
-    .then(state => res.status(200).json(state))
+    .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   });
 
@@ -51,7 +51,7 @@ export default function waitlist(router) {
     const _userID = String(req.body.userID);
     const _position = parseInt(req.body.position, 10);
 
-    controller.moveWaitlist(_userID, _position, req.uwave.redis)
+    controller.moveWaitlist(_userID, _position, req.uwave.mongo, req.uwave.redis)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   });
