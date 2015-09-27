@@ -22,7 +22,7 @@ export class GenericError extends Error {
   constructor(status, str) {
     super();
     Error.captureStackTrace(this);
-    this.name = 'TokenError';
+    this.name = 'GenericError';
     this.status = status;
     this.message = str;
   }
