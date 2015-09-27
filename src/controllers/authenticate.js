@@ -16,7 +16,7 @@ const log = debug('uwave:api:v1:auth');
 const pbkdf2 = Promise.promisify(crypto.pbkdf2);
 const randomBytes = Promise.promisify(crypto.randomBytes);
 
-export const generateHash = function generateHashPair(password, length) {
+export const generateHashPair = function generateHashPair(password, length) {
   const hashPair = {
     hash: null,
     salt: null
@@ -39,9 +39,9 @@ export const generateHash = function generateHashPair(password, length) {
   });
 };
 
-export const createUser = function createUser(data) {
-  const User = mongoose.model('User');
-  const Authentication = mongoose.model('Authentication');
+export const createUser = function createUser(data, mongo) {
+  const User = mongo.model('User');
+  const Authentication = mongo.model('Authentication');
   let _auth = null;
 
   log(`creating new user ${data.username}`);
@@ -75,11 +75,11 @@ export const createUser = function createUser(data) {
   });
 };
 
-export const login = function login(email, password, redis) {
-  const Authentication = mongoose.model('Authentication');
+export const login = function login(email, password, mongo, redis) {
+  const Authentication = mongo.model('Authentication');
   let _auth = null;
 
-  return Authentication.findOne({ 'email': email }).populate('user').exec()
+  return Authentication.findOne({'email': email}).populate('user').exec()
   .then(auth => {
     if (!auth) throw new GenericError(404, 'no user found');
 
@@ -105,10 +105,10 @@ export const login = function login(email, password, redis) {
   });
 };
 
-export const reset = function reset(email, redis) {
-  const Authentication = mongoose.model('Authentication');
+export const reset = function reset(email, mongo, redis) {
+  const Authentication = mongo.model('Authentication');
 
-  return Authentication.findOne({ 'email': email })
+  return Authentication.findOne({'email': email})
   .then(auth => {
     if (!auth) throw new GenericError(404, 'no user found');
     return randomBytes(64);
@@ -123,8 +123,8 @@ export const reset = function reset(email, redis) {
   });
 };
 
-export const changePassword = function changePassword(data, reset, redis) {
-  const Authentication = mongoose.model('Authentication');
+export const changePassword = function changePassword(data, reset, mongo, redis) {
+  const Authentication = mongo.model('Authentication');
 
   return redis.get(`reset:${data.email}`)
   .then(token => {
@@ -153,8 +153,8 @@ export const changePassword = function changePassword(data, reset, redis) {
   });
 };
 
-export const removeSession = function removeSession(id, token, redis) {
-  const Authentication = mongoose.model('Authentication');
+export const removeSession = function removeSession(id, token, mongo, redis) {
+  const Authentication = mongo.model('Authentication');
   return Authentication.findOne(ObjectId(id))
   .then(auth => {
     redis.del(`user:${token}`);
