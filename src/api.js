@@ -1,6 +1,7 @@
 import express from 'express';
 import debug from 'debug';
 
+// routes
 import authenticate from './routes/authenticate';
 import playlist from './routes/playlists';
 import waitlist from './routes/waitlist';
@@ -8,42 +9,47 @@ import booth from './routes/booth';
 import users from './routes/users';
 import chat from './routes/chat';
 
-import Authentications from './models/authentication';
+// models
+import Authentication from './models/authentication';
+import User from './models/user';
 import Playlist from './models/playlist';
 import History from './models/history';
 import Media from './models/media';
-import User from './models/user';
+
+// middleware
+import authenticator from './middleware/authenticator';
 
 const log = debug('uwave:api:v1');
 
 /**
  * creates a router for version 1 of the api
  *
- * @param {Object[]} middleware - all middleware that should be injected
- * @param {Object} wareOpts - middleware config, for more information see src/config/middleware.json.example
- * @param {Object} routerOpts - router config, for more information see {@link http://expressjs.com/4x/api.html#router}
+ * @param {Object} options - router config, for more information see {@link http://expressjs.com/4x/api.html#router}
  **/
-export default function createV1(middleware, options = {}) {
-  const router = express.Router(options);
+export default class V1 {
+  constructor(options = {}) {
+    this.router = express.Router(options);
 
-  middleware.forEach((item, index) => {
-    if (typeof item === 'function') {
-      router.use(item);
-      log(`registered middleware ${item.name}`);
-    } else if (typeof item === 'object') {
-      router.use(item.path, item.ware);
-      log(`registered middleware ${item.middleware.name}`);
-    } else {
-      log(`problem with registering middleware at index: ${index}`);
-    }
-  });
+    this.router.use(authenticator);
 
-  authenticate(router);
-  playlist(router);
-  waitlist(router);
-  booth(router);
-  users(router);
-  chat(router);
+    authenticate(this.router);
+    playlist(this.router);
+    waitlist(this.router);
+    booth(this.router);
+    users(this.router);
+    chat(this.router);
+  }
 
-  return router;
+  getRouter() {
+    return this.router;
+  }
+
+  registerModels(server) {
+    const mongoose = server.getMongoose();
+    Authentication(mongoose);
+    Playlist(mongoose);
+    History(mongoose);
+    Media(mongoose);
+    User(mongoose);
+  }
 }
