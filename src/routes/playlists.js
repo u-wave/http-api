@@ -54,7 +54,7 @@ export default function playlists(router) {
   });
 
   router.put('/playlists/:id/share', (req, res) => {
-    if (!req.body.share) return res.status(422).json('share is not set');
+    if (typeof req.body.share === 'undefined') return res.status(422).json('share is not set');
 
     const _share = Boolean(req.body.share);
 
@@ -71,20 +71,16 @@ export default function playlists(router) {
 
   router.route('/playlists/:id/media')
   .get((req, res) => {
-    if (!checkFields(req.body, res, ['playlistID'])) return;
-
-    const _playlistID = String(req.body.playlistID);
-
-    controller.getPlaylist(req.user, _playlistID, true, req.uwave.mongo)
+    controller.getPlaylist(req.user, req.params.id, true, req.uwave.mongo)
     .then(playlist => res.status(200).json(playlist.media))
     .catch(e => handleError(res, e, log));
   })
 
   .post((req, res) => {
-    if (!checkFields(req.body, res, ['id', 'name', 'title', 'start', 'end', 'mediaID'])) return;
+    if (!checkFields(req.body, res, ['artist', 'title', 'start', 'end'])) return;
 
     const data = {
-      'name': String(req.body.name),
+      'artist': String(req.body.name),
       'title': String(req.body.title),
       'start': Number(req.body.start),
       'end': Number(req.body.end)
@@ -105,10 +101,10 @@ export default function playlists(router) {
   })
 
   .put((req, res) => {
-    if (!checkFields(req.body, res, ['name', 'title', 'start', 'end'])) return;
+    if (!checkFields(req.body, res, ['artist', 'title', 'start', 'end'])) return;
 
     const data = {
-      'name': String(req.body.name),
+      'artist': String(req.body.name),
       'title': String(req.body.title),
       'start': Number(req.body.start),
       'end': Number(req.body.end)
@@ -120,7 +116,7 @@ export default function playlists(router) {
   })
 
   .delete((req, res) => {
-    controller.getMedia(req.user, req.params.id, req.params.mediaID, req.uwave.mongo)
+    controller.deleteMedia(req.user, req.params.id, req.params.mediaID, req.uwave.mongo)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   });
