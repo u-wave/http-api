@@ -1,9 +1,11 @@
 import mongoose from 'mongoose';
 import Promise from 'bluebird';
+import debug from 'debug';
 
 import { GenericError } from '../errors';
 
 const ObjectId = mongoose.Types.ObjectId;
+const log = debug('uwave:api:v1:playlists');
 
 export const createPlaylist = function createPlaylist(data, mediaArray, mongo) {
   const Playlist = mongo.model('Playlist');
@@ -49,11 +51,12 @@ export const getPlaylist = function getPlaylist(user, id, populate, mongo) {
     Playlist.findOne(ObjectId(id)).populate('media')
   )
   .then(playlist => {
-    if (user.id !== playlist.author && playlist.shared) {
+    if (!playlist) throw new GenericError(404, `playlist with ID ${id} not found`);
+    if (user.id !== playlist.author.toString() && playlist.shared) {
       throw new GenericError(403, 'this playlist is private');
     }
 
-    return playlist.populate('media').execPopulate;
+    return playlist.populate('media');
   });
 };
 
@@ -61,14 +64,14 @@ export const deletePlaylist = function deletePlaylist(user, id, token, mongo, re
   const Playlist = mongo.model('Playlist');
   let _active = null;
 
-  return redis.hget(`user:${token}`, 'activePlaylist')
+  return redis.get(`playlist:${user.email}`)
   .then(active => {
     _active = active;
     return Playlist.findOne(ObjectId(id));
   })
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${id} not found`);
-    if (user.id !== playlist.author) {
+    if (user.id !== playlist.author.toString()) {
       throw new GenericError(403, 'you can\'t delete the playlist of another user');
     }
     if (_active && _active === playlist.id) {
@@ -85,7 +88,7 @@ export const renamePlaylist = function renamePlaylist(user, id, name, mongo) {
   return Playlist.findOne(ObjectId(id))
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${id} not found`);
-    if (user.id !== playlist.author) {
+    if (user.id !== playlist.author.toString()) {
       throw new GenericError(403, 'you can\'t rename the playlist of another user');
     }
 
@@ -100,7 +103,7 @@ export const sharePlaylist = function sharePlaylist(user, id, shared, mongo) {
   return Playlist.findOne(ObjectId(id))
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${id} not found`);
-    if (user.id !== playlist.author) {
+    if (user.id !== playlist.author.toString()) {
       throw new GenericError(403, 'you can\'t share the playlist of another user');
     }
 
@@ -111,7 +114,6 @@ export const sharePlaylist = function sharePlaylist(user, id, shared, mongo) {
 
 export const activatePlaylist = function activatePlaylist(user, id, token, mongo, redis) {
   const Playlist = mongo.model('Playlist');
-
   return Playlist.findOne(ObjectId(id)).populate('author')
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${id} not found`);
@@ -119,8 +121,8 @@ export const activatePlaylist = function activatePlaylist(user, id, token, mongo
       throw new GenericError(403, `${playlist.author.username} has made ${playlist.name} private`);
     }
 
-    redis.hset(`user:${token}`, 'activePlaylist', playlist.id);
-    return redis.hget(`user:${token}`, 'activePlaylist');
+    redis.set(`playlist:${user.email}`, playlist.id);
+    return redis.get(`playlist:${user.email}`);
   });
 };
 
@@ -135,7 +137,8 @@ export const createMedia = function createMedia(user, id, data, mongo) {
     return Playlist.findOne(ObjectId(id));
   },
   e => {
-    media.remove()
+    log(e);
+    media.remove();
     throw new GenericError(500, 'couldn\'t save media');
   })
   .then(playlist => {
@@ -143,7 +146,8 @@ export const createMedia = function createMedia(user, id, data, mongo) {
     return playlist.save();
   },
   e => {
-    media.remove()
+    log(e);
+    media.remove();
     throw new GenericError(500, 'couldn\'t save media');
   });
 };
@@ -154,7 +158,7 @@ export const getMedia = function getMedia(user, id, mongo) {
   return Playlist.findOne(ObjectId(id)).populate('media')
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${id} not found`);
-    if (user.id !== playlist.author && playlist.shared) {
+    if (user.id !== playlist.author.toString() && playlist.shared) {
       throw new GenericError(403, 'this playlist is private');
     }
 
@@ -176,13 +180,13 @@ export const updateMedia = function updateMedia(user, id, mediaID, metadata, mon
   return Playlist.findOne(ObjectId(id))
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${id} not found`);
-    if (user.id !== playlist.author && playlist.shared) {
+    if (user.id !== playlist.author.toString() && playlist.shared) {
       throw new GenericError(403, 'playlist is private');
     }
 
     for (let i = playlist.media.length - 1; i >= 0; i--) {
-      if (playlist.media[i] === mediaID) {
-        return Media.findOneAndUpdate(ObjectId(playlist.media[i]), metadata).exec();
+      if (playlist.media[i].toString() === mediaID) {
+        return Media.findOneAndUpdate(playlist.media[i], metadata, { 'new': true });
       }
     }
 
@@ -197,15 +201,15 @@ export const deleteMedia = function deleteMedia(user, id, mediaID, mongo) {
   return Playlist.findOne(ObjectId(id))
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${id} not found`);
-    if (user.id !== playlist.author) {
+    if (user.id !== playlist.author.toString()) {
       throw new GenericError(403, 'playlist is private');
     }
 
     for (let i = playlist.media.length - 1; i >= 0; i--) {
-      if (playlist.media[i].id === mediaID) {
-        playlist.media.splice(i, 1);
+      if (playlist.media[i].toString() === mediaID) {
+        Media.findOneAndRemove(playlist.media[i]);
 
-        Media.findOneAndRemove(ObjectId(playlist.media[i].id));
+        playlist.media.splice(i, 1);
         return playlist.save();
       }
     }
