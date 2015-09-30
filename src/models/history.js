@@ -5,7 +5,7 @@ export default function(mongoose) {
     'user': { 'type': Schema.Types.ObjectId, 'ref': 'User', 'required': true },
     'media': { 'type': Schema.Types.ObjectId, 'ref': 'Media', 'required': true },
     'playlist': { 'type': Schema.Types.ObjectId, 'ref': 'Playlist', 'required': true },
-    'played': { 'type': Date, 'default': Date.now, 'required': true },
+    'played': { 'type': Date, 'default': Date.now },
     'upvotes': [Number],
     'downvotes': [Number],
     'favorites': [Number]
