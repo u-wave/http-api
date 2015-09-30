@@ -26,7 +26,7 @@ export default function waitlist(router) {
     const _userID = String(req.body.userID);
     const _position = req.body.position ? parseInt(req.body.position, 10) : null;
 
-    controller.joinWaitlist(_userID, _position, req.user.role >= 3, req.uwave.mongo, req.uwave.redis)
+    controller.joinWaitlist(req.user.id, _userID, _position, req.user.role >= 3, req.uwave.mongo, req.uwave.redis)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   })
@@ -35,7 +35,7 @@ export default function waitlist(router) {
   .delete((req, res) => {
     if (req.user.role < 3) return res.status(403).json('you need to be at least a manager to do this');
 
-    controller.clearWaitlist(req.uwave.redis)
+    controller.clearWaitlist(req.user.id, req.uwave.redis)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   });
@@ -51,7 +51,7 @@ export default function waitlist(router) {
     const _userID = String(req.body.userID);
     const _position = parseInt(req.body.position, 10);
 
-    controller.moveWaitlist(_userID, _position, req.uwave.mongo, req.uwave.redis)
+    controller.moveWaitlist(req.user.id, _userID, _position, req.uwave.mongo, req.uwave.redis)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   });
@@ -62,7 +62,7 @@ export default function waitlist(router) {
       return res.status(403).json('you need to be at least a bouncer to do this');
     }
 
-    controller.leaveWaitlist(req.params.id, req.uwave.mongo, req.uwave.redis)
+    controller.leaveWaitlist(req.user.id, req.params.id, req.uwave.mongo, req.uwave.redis)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   });
@@ -77,7 +77,7 @@ export default function waitlist(router) {
     const _lock = req.body.lock ? true : false;
     const _clear = req.body.clear ? true : false;
 
-    controller.lockWaitlist(_lock, _clear, req.uwave.redis)
+    controller.lockWaitlist(req.user.id, _lock, _clear, req.uwave.redis)
     .then(state => res.status(200).json(state))
     .catch(e => handleError(res, e, log));
   });

@@ -1,7 +1,9 @@
 import mongoose from 'mongoose';
 import Promise from 'bluebird';
 
+import { createCommand } from '../sockets';
 import { GenericError } from '../errors';
+import advance from '../advance';
 
 const ObjectId = mongoose.Types.ObjectId;
 
@@ -16,27 +18,36 @@ export const getBooth = function getBooth(redis) {
   });
 };
 
-export const skipBooth = function skipBooth(redis) {
-  getBooth(redis)
-  .then(booth => {
-    // TODO: websocket events
-  });
+export const skipBooth = function skipBooth(moderatorID, id, reason, mongo, redis) {
+  advance(mongo, redis);
+  redis.publish('v1', createCommand('skip', {
+    'moderatorID': moderatorID,
+    'userID': id,
+    'reason': reason
+  }));
 };
 
-export const replaceBooth = function replaceBooth(id, redis) {
+export const replaceBooth = function replaceBooth(moderatorID, id, mongo, redis) {
+  let next = null;
+
   redis.lrange('waitlist')
   .then(waitlist => {
-    return new Promise((resolve, reject) => {
-      if (waitlist.length === 0) return reject(new GenericError(404, 'waitlist is empty'));
+    if (!waitlist.length) throw new GenericError(404, 'waitlist is empty');
 
-      for (let i = waitlist.length - 1; i >= 0; i--) {
-        if (waitlist[i] === id) {
-          // TODO: replace dj with user, do the appropiate websocket events
-          return resolve(booth);
-        }
+    for (let i = waitlist.length - 1; i >= 0; i--) {
+      if (waitlist[i] === id) {
+        redis.lrem('waitlist', 1, id);
+        return redis.lpush('waitlist', id);
       }
-      reject(new GenericError(404, 'user not found'));
-    });
+    }
+  })
+  .then(waitlist => {
+    advance(mongo, redis);
+    redis.publish('v1', createCommand('boothReplace', {
+      'moderatorID': moderatorID,
+      'userID': id
+    }));
+    return new Promise(resolve => resolve(waitlist));
   });
 };
 

@@ -16,9 +16,12 @@ export default function booth(router) {
   router.post('/booth/skip', (req, res) => {
     if (req.user.role < 3) return res.status(412).json('you need to be at least bouncer to do this');
 
-    const _userID = String(req.body.userID);
+    if (!checkFields(req.body, res, ['userID', 'reason'])) return;
 
-    controller.skipBooth(_userID, req.uwave.redis)
+    const _userID = String(req.body.userID);
+    const _reason = String(req.body.reason);
+
+    controller.skipBooth(req.user.id, _userID, _reason, req.uwave.mongo, req.uwave.redis)
     .then(skipped => res.status(200).json(skipped))
     .catch(e => handleError(res, e, log));
   });
@@ -28,7 +31,7 @@ export default function booth(router) {
 
     const _userID = String(req.body.userID);
 
-    controller.replaceBooth(_userID, req.uwave.redis)
+    controller.replaceBooth(req.user.id, _userID, req.uwave.mongo, req.uwave.redis)
     .then(replaced => res.status(200).json(replaced))
     .catch(e => handleError(res, e, log));
   });
