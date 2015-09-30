@@ -18,6 +18,7 @@ import Media from './models/media';
 
 // middleware
 import authenticator from './middleware/authenticator';
+import WSServer from './sockets';
 
 const log = debug('uwave:api:v1');
 
@@ -29,6 +30,7 @@ const log = debug('uwave:api:v1');
 export default class V1 {
   constructor(options = {}) {
     this.router = express.Router(options);
+    this.wsserver = null;
 
     this.router.use(authenticator);
 
@@ -44,12 +46,26 @@ export default class V1 {
     return this.router;
   }
 
-  registerModels(server) {
-    const mongoose = server.getMongoose();
+  registerModels(uwave) {
+    const mongoose = uwave.getMongoose();
     Authentication(mongoose);
     Playlist(mongoose);
     History(mongoose);
     Media(mongoose);
     User(mongoose);
+  }
+
+  registerWSServer(uwave) {
+    if (!this.wsserver) {
+      this.wsserver = new WSServer(uwave.getServer(), uwave.getRedis(), uwave.getConfig());
+    } else {
+      this.log('wsserver is already registered');
+    }
+  }
+
+  destroy() {
+    this.wsserver.destroy();
+    this.wsserver = null;
+    this.router = null;
   }
 }
