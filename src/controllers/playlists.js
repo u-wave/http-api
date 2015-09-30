@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Promise from 'bluebird';
 import debug from 'debug';
 
+import { createCommand } from '../sockets';
 import { GenericError } from '../errors';
 
 const ObjectId = mongoose.Types.ObjectId;
@@ -64,7 +65,7 @@ export const deletePlaylist = function deletePlaylist(user, id, token, mongo, re
   const Playlist = mongo.model('Playlist');
   let _active = null;
 
-  return redis.get(`playlist:${user.email}`)
+  return redis.get(`playlist:${user.id}`)
   .then(active => {
     _active = active;
     return Playlist.findOne(ObjectId(id));
@@ -121,8 +122,8 @@ export const activatePlaylist = function activatePlaylist(user, id, token, mongo
       throw new GenericError(403, `${playlist.author.username} has made ${playlist.name} private`);
     }
 
-    redis.set(`playlist:${user.email}`, playlist.id);
-    return redis.get(`playlist:${user.email}`);
+    redis.set(`playlist:${user.id}`, playlist.id);
+    return redis.get(`playlist:${user.id}`);
   });
 };
 
