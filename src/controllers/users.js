@@ -81,7 +81,7 @@ export const changeRole = function changeRole(moderatorID, id, role, mongo, redi
   .then(user => {
     if (!user) throw new GenericError(404, `user with ID ${id} not found`);
 
-    user.role = Math.min(Math.max(role, 6), 0);
+    user.role = Math.max(Math.min(role, 6), 0);
 
     redis.publish('v1', createCommand('roleChange', {
       'moderatorID': moderatorID,
@@ -115,19 +115,9 @@ export const changeUsername = function changeUsername(moderatorID, id, name, mon
   });
 };
 
-export const setStatus = function setStatus(id, status, mongo, redis) {
-  const User = mongo.model('User');
-
-  return User.findOne(ObjectId(id))
-  .then(user => {
-    if (!user) throw new GenericError(404, `user with ID ${id} not found`);
-
-    user.status = Math.min(Math.max(status, 3), 0);
-
-    redis.publish('v1', createCommand('statusChange', {
+export const setStatus = function setStatus(id, status, redis) {
+  redis.publish('v1', createCommand('statusChange', {
       'userID': id,
-      'status': user.status
+      'status': Math.max(Math.min(status, 3), 0)
     }));
-    return user.save();
-  });
 };
