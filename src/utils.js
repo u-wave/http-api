@@ -1,9 +1,18 @@
-export const checkFields = function checkFields(data, res, fields = []) {
+export const checkFields = function checkFields(data, res, fields = [], types = []) {
   const errors = [];
+  const fieldLen = fields.length;
+  const typeLen = types.length;
 
-  for (let i = fields.length - 1; i >= 0; i--) {
+  for (let i = 0; i < fieldLen; i++) {
     if (typeof data[fields[i]] === 'undefined') {
       errors.push(`${fields[i]} is not set`);
+      continue;
+    }
+
+    if (typeLen > i) {
+      if (typeof data[fields[i]] !== types[i]) {
+        errors.push(`${data[fields[i]]} has to be of type ${types[i]}`);
+      }
     }
   }
 
