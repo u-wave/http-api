@@ -64,6 +64,8 @@ export default function users(router) {
     if (req.user.role < 3) return res.status(403).json('you need to be at least bouncer to do this');
 
     const _role = parseInt(req.body.role, 10);
+
+    if (_role === NaN) return res.status(422).json('role has to be a number');
     if (req.user.role < _role) return res.status(403).json('you can\'t promote users above your own level');
 
     controller.changeRole(req.user.id, req.params.id, _role, req.uwave.mongo, req.uwave.redis)
@@ -76,6 +78,7 @@ export default function users(router) {
     if (req.user.id !== req.params.id && req.user.role < 5) return res.status(403).json('you need to be at least cohost to do this');
 
     const _username = String(req.body.username);
+
     controller.changeUsername(req.user.id, req.params.id, _username, req.uwave.mongo, req.uwave.redis)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
@@ -90,7 +93,10 @@ export default function users(router) {
   router.put('/users/:id/status', (req, res) => {
     if (typeof req.body.status === 'undefined') return res.status(422).json('status is not set');
 
-    const _status = Number(req.body.status);
+    const _status = parseInt(req.body.status, 10);
+
+    if (_status === NaN) return res.status(422).json('status has to be a number');
+
     controller.setStatus(req.user.id, _status, req.uwave.redis)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
