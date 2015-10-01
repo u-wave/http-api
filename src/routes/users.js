@@ -91,7 +91,7 @@ export default function users(router) {
     if (typeof req.body.status === 'undefined') return res.status(422).json('status is not set');
 
     const _status = Number(req.body.status);
-    controller.setStatus(req.user.id, _status, req.uwave.mongo, req.uwave.redis)
+    controller.setStatus(req.user.id, _status, req.uwave.redis)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });
