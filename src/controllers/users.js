@@ -20,8 +20,8 @@ export const getUser = function getUser(id, mongo) {
   return User.findOne(ObjectId(id));
 };
 
-export const banUser = function banUser(moderatorID, id, time, exiled, mongo, redis) {
-  const User = mongo.model('User');
+export const banUser = function banUser(moderatorID, id, time, exiled, uwave) {
+  const User = uwave.mongo.model('User');
 
   return User.findOne(ObjectId(id))
   .then(user => {
@@ -42,7 +42,7 @@ export const banUser = function banUser(moderatorID, id, time, exiled, mongo, re
       }
 
       if (time !== 0) {
-        redis.publish('v1', createCommand('ban', {
+        uwave.redis.publish('v1', createCommand(time > 0 ? 'ban' : 'unban', {
           'moderatorID': moderatorID,
           'userID': user.id,
           'banned': user.banned,
@@ -54,17 +54,17 @@ export const banUser = function banUser(moderatorID, id, time, exiled, mongo, re
   });
 };
 
-export const muteUser = function muteUser(moderatorID, id, time, mongo, redis) {
-  const User = mongo.model('User');
+export const muteUser = function muteUser(moderatorID, id, time, uwave) {
+  const User = uwave.mongo.model('User');
 
   return User.findOne(ObjectId(id))
   .then(user => {
     if (!user) throw new GenericError(404, `user with ID ${id} not found`);
 
-    redis.set(`mute:${id}`, 'expire', Date.now() + time);
+    uwave.redis.set(`mute:${id}`, 'expire', Date.now() + time);
 
     return new Promise(resolve => {
-      redis.publish('v1', createCommand(time > 0 ? 'mute' : 'unmute', {
+      uwave.redis.publish('v1', createCommand(time > 0 ? 'mute' : 'unmute', {
         'moderatorID': moderatorID,
         'userID': id,
         'expires': time
@@ -74,8 +74,8 @@ export const muteUser = function muteUser(moderatorID, id, time, mongo, redis) {
   });
 };
 
-export const changeRole = function changeRole(moderatorID, id, role, mongo, redis) {
-  const User = mongo.model('User');
+export const changeRole = function changeRole(moderatorID, id, role, uwave) {
+  const User = uwave.mongo.model('User');
 
   return User.findOne(ObjectId(id))
   .then(user => {
@@ -83,7 +83,7 @@ export const changeRole = function changeRole(moderatorID, id, role, mongo, redi
 
     user.role = Math.max(Math.min(role, 6), 0);
 
-    redis.publish('v1', createCommand('roleChange', {
+    uwave.redis.publish('v1', createCommand('roleChange', {
       'moderatorID': moderatorID,
       'userID': user.id,
       'role': user.role
@@ -92,8 +92,8 @@ export const changeRole = function changeRole(moderatorID, id, role, mongo, redi
   });
 };
 
-export const changeUsername = function changeUsername(moderatorID, id, name, mongo, redis) {
-  const User = mongo.model('User');
+export const changeUsername = function changeUsername(moderatorID, id, name, uwave) {
+  const User = uwave.mongo.model('User');
 
   return User.findOne(ObjectId(id))
   .then(user => {
@@ -105,7 +105,7 @@ export const changeUsername = function changeUsername(moderatorID, id, name, mon
     user.username = name;
     user.slug = name.toLowerCase();
 
-    redis.publish('v1', createCommand('nameChange', {
+    uwave.redis.publish('v1', createCommand('nameChange', {
       'moderatorID': moderatorID,
       'userID': id,
       'username': user.username
