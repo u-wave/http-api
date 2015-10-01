@@ -7,9 +7,17 @@ import handleError from '../errors';
 const log = debug('uwave:api:v1:users');
 
 export default function users(router) {
+  router.get('/users', (req, res) => {
+    if (req.user.role < 4) return res.status(403).json('you need to be at least manager to do this');
+
+    controller.getUsers(req.uwave.mongo)
+    .then(users => res.status(200).json(users))
+    .catch(e => handleError(res, e, log));
+  });
+
   router.get('/users/:id', (req, res) => {
     controller.getUser(req.params.id, req.uwave.mongo)
-    .then(users => res.status(200).json(users))
+    .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });
 
@@ -118,6 +126,10 @@ export default function users(router) {
 
     if (typeof req.body.status !== 'number' || req.body.status === NaN) {
       return res.status(422).json('status has to be a number and not NaN');
+    }
+
+    if (req.user.id !== req.params.id) {
+      return res.status(403).json('you can\'t change the status of another user');
     }
 
     controller.setStatus(req.user.id, req.body.status, req.uwave.redis)
