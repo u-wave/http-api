@@ -7,8 +7,9 @@ import handleError from '../errors';
 const log = debug('uwave:api:v1:booth');
 
 export default function booth(router) {
+  // TODO: might remove/modify this since the client should know about it already
   router.get('/booth', (req, res) => {
-    controller.getBooth()
+    controller.getBooth(req.uwave.redis)
     .then(booth => res.status(200).json(booth))
     .catch(e => handleError(res, e, log));
   });
@@ -16,12 +17,9 @@ export default function booth(router) {
   router.post('/booth/skip', (req, res) => {
     if (req.user.role < 3) return res.status(412).json('you need to be at least bouncer to do this');
 
-    if (!checkFields(req.body, res, ['userID', 'reason'])) return;
+    if (!checkFields(req.body, res, ['userID', 'reason'], 'string')) return;
 
-    const _userID = String(req.body.userID);
-    const _reason = String(req.body.reason);
-
-    controller.skipBooth(req.user.id, _userID, _reason, req.uwave.mongo, req.uwave.redis)
+    controller.skipBooth(req.user.id, req.body.userID, req.body.reason, req.uwave)
     .then(skipped => res.status(200).json(skipped))
     .catch(e => handleError(res, e, log));
   });
@@ -29,24 +27,21 @@ export default function booth(router) {
   router.post('/booth/replace', (req, res) => {
     if (req.user.role < 3) return res.status(412).json('you need to be at least bouncer to do this');
 
-    const _userID = String(req.body.userID);
+    if (typeof req.body.userID === 'undefined') return res.status(422).json('userID is not set');
 
-    controller.replaceBooth(req.user.id, _userID, req.uwave.mongo, req.uwave.redis)
+    if (typeof req.body.userID !== 'string') return res.status(422).json('userID has to be of type string');
+
+    controller.replaceBooth(req.user.id, req.body.userID, req.uwave)
     .then(replaced => res.status(200).json(replaced))
     .catch(e => handleError(res, e, log));
   });
 
   router.post('/booth/favorite', (req, res) => {
-    if (!checkFields(req.body, res, ['mediaID', 'historyID', 'playlistID'])) return;
+    if (typeof req.body.historyID === 'undefined') return res.status(422).json('historyID is not set');
 
-    const data = {
-      'user': req.user,
-      'mediaID': String(req.body.mediaID),
-      'historyID': String(req.body.historyID),
-      'playlistID': String(req.body.playlistID)
-    };
+    if (typeof req.body.historyID !== 'string') return res.status(422).json('historyID has to be of type string');
 
-    controller.favorite(data, req.uwave.mongo, req.uwave.redis)
+    controller.favorite(req.user.id, req.body.historyID, req.uwave)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
