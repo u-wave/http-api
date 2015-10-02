@@ -17,16 +17,15 @@ export default function waitlist(router) {
 
   /* ========== WAITLIST[POST] ========== */
   .post((req, res) => {
+    if (!checkFields(req.body, res, ['userID', 'position'], ['string', 'number'])) return;
+
     if (!req.body.userID) return res.status(422).json('userID is not set');
 
     if (req.user.id !== req.body.userID && req.user.role < 3) {
       return res.status(403).json('you need to be at least a bouncer to do this');
     }
 
-    const _userID = String(req.body.userID);
-    const _position = req.body.position ? parseInt(req.body.position, 10) : null;
-
-    controller.joinWaitlist(req.user.id, _userID, _position, req.user.role >= 3, req.uwave.mongo, req.uwave.redis)
+    controller.joinWaitlist(req.user.id, req.body.userID, req.body.position, req.user.role >= 3, req.uwave)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   })
@@ -42,16 +41,13 @@ export default function waitlist(router) {
 
   /* ========== WAITLIST MOVE ========== */
   router.put('/waitlist/move', (req, res) => {
-    if (!checkFields(req.body, res, ['userID', 'position'])) return;
+    if (!checkFields(req.body, res, ['userID', 'position'], ['string', 'number'])) return;
 
     if (req.user.role < 3) {
       return res.status(403).json('you need to be at least a bouncer to do this');
     }
 
-    const _userID = String(req.body.userID);
-    const _position = parseInt(req.body.position, 10);
-
-    controller.moveWaitlist(req.user.id, _userID, _position, req.uwave.mongo, req.uwave.redis)
+    controller.moveWaitlist(req.user.id, req.body.userID, req.body.position, req.uwave)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   });
@@ -62,22 +58,19 @@ export default function waitlist(router) {
       return res.status(403).json('you need to be at least a bouncer to do this');
     }
 
-    controller.leaveWaitlist(req.user.id, req.params.id, req.uwave.mongo, req.uwave.redis)
+    controller.leaveWaitlist(req.user.id, req.params.id, req.uwave)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   });
 
   /* ========== WAITLIST LOCK ========== */
   router.put('/waitlist/lock', (req, res) => {
-    if (!checkFields(req.body, res, ['lock', 'clear'])) return;
+    if (!checkFields(req.body, res, ['lock', 'clear'], 'boolean')) return;
     if (req.user.role < 3) {
       return res.status(403).json('you need to be at least a bouncer to do this');
     }
 
-    const _lock = req.body.lock ? true : false;
-    const _clear = req.body.clear ? true : false;
-
-    controller.lockWaitlist(req.user.id, _lock, _clear, req.uwave.redis)
+    controller.lockWaitlist(req.user.id, req.body.lock, req.body.clear, req.uwave.redis)
     .then(state => res.status(200).json(state))
     .catch(e => handleError(res, e, log));
   });

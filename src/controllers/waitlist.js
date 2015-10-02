@@ -10,19 +10,18 @@ export const getWaitlist = function getWaitlist(redis) {
   return redis.lrange('waitlist', 0, -1);
 };
 
-export const joinWaitlist = function joinWaitlist(moderatorID, id, position, forceJoin, mongo, redis) {
-  const User = mongo.model('User');
-  const _id = id.toLowerCase();
+export const joinWaitlist = function joinWaitlist(moderatorID, id, position, forceJoin, uwave) {
+  const User = uwave.mongo.model('User');
   let beforeID = null;
 
-  return redis.get('waitlist:lock')
+  return uwave.redis.get('waitlist:lock')
   .then(lock => {
     if (lock || !forceJoin) throw new GenericError(403, 'waitlist is locked');
-    return redis.lrange('waitlist', 0, -1);
+    return uwave.redis.lrange('waitlist', 0, -1);
   })
   .then(waitlist => {
     for (let i = waitlist.length - 1; i >= 0; i--) {
-      if (waitlist[i] === _id) {
+      if (waitlist[i] === id) {
         throw new GenericError(403, 'already in waitlist');
       }
 
@@ -31,32 +30,32 @@ export const joinWaitlist = function joinWaitlist(moderatorID, id, position, for
       }
     }
 
-    return User.findOne(ObjectId(_id)).exec();
+    return User.findOne(ObjectId(id)).exec();
   })
   .then(user => {
     if (!user) throw new GenericError(404, 'user not found');
 
     if (beforeID) {
-      redis.linsert('waitlist', 'BEFORE', beforeID, user.id);
+      uwave.redis.linsert('waitlist', 'BEFORE', beforeID, user.id);
     } else {
-      redis.lpush('waitlist', user.id);
+      uwave.redis.lpush('waitlist', user.id);
     }
 
-    return redis.lrange('waitlist', 0, -1);
+    return uwave.redis.lrange('waitlist', 0, -1);
   })
   .then(waitlist => {
     return new Promise((resolve, reject) => {
       for (let i = waitlist.length - 1; i >= 0; i--) {
         if (waitlist[i] === id) {
           if (moderatorID !== id) {
-            redis.publish('v1', createCommand('waitlistAdd', {
+            uwave.redis.publish('v1', createCommand('waitlistAdd', {
               'userID': id,
               'moderatorID': moderatorID,
               'position': i || waitlist.length - 1,
               'waitlist': waitlist
             }));
           } else {
-            redis.publish('v1', createCommand('waitlistJoin', {
+            uwave.redis.publish('v1', createCommand('waitlistJoin', {
               'userID': id,
               'waitlist': waitlist
             }));
@@ -69,12 +68,12 @@ export const joinWaitlist = function joinWaitlist(moderatorID, id, position, for
   });
 };
 
-export const moveWaitlist = function moveWaitlist(moderatorID, id, position, mongo, redis) {
-  const User = mongo.model('User');
+export const moveWaitlist = function moveWaitlist(moderatorID, id, position, uwave) {
+  const User = uwave.mongo.model('User');
   let beforeID = null;
   let _position = null;
 
-  return regis.lrange('waitlist', 0, -1)
+  return uwave.redis.lrange('waitlist', 0, -1)
   .then(waitlist => {
     const length = waitlist.length;
 
@@ -93,15 +92,15 @@ export const moveWaitlist = function moveWaitlist(moderatorID, id, position, mon
     if (!user) throw new GenericError(404, 'user not found');
 
     if (beforeID) {
-      redis.linsert('waitlist', 'BEFORE', beforeID, user.id);
+      uwave.redis.linsert('waitlist', 'BEFORE', beforeID, user.id);
     } else {
-      redis.lpush('waitlist', user.id);
+      uwave.redis.lpush('waitlist', user.id);
     }
 
-    return redis.lrange('waitlist', 0, -1);
+    return uwave.redis.lrange('waitlist', 0, -1);
   })
   .then(waitlist => {
-    redis.publish('v1', createCommand('waitlistAdd', {
+    uwave.redis.publish('v1', createCommand('waitlistAdd', {
       'userID': id,
       'moderatorID': moderatorID,
       'position': _position,
@@ -112,11 +111,11 @@ export const moveWaitlist = function moveWaitlist(moderatorID, id, position, mon
   });
 };
 
-export const leaveWaitlist = function leaveWaitlist(moderatorID, id, mongo, redis) {
-  const User = mongo.model('User');
+export const leaveWaitlist = function leaveWaitlist(moderatorID, id, uwave) {
+  const User = uwave.mongo.model('User');
   let _waitlist = null;
 
-  return redis.lrange('waitlist', 0, -1)
+  return uwave.redis.lrange('waitlist', 0, -1)
   .then(waitlist => {
     const length = waitlist.length > 0 ? waitlist.length : 0;
 
@@ -130,8 +129,8 @@ export const leaveWaitlist = function leaveWaitlist(moderatorID, id, mongo, redi
 
     for (let i = length - 1; i >= 0; i--) {
       if (_waitlist[i] === user.id) {
-        redis.lrem('waitlist', i, user.id);
-        return redis.lrange('waitlist', 0, -1);
+        uwave.redis.lrem('waitlist', i, user.id);
+        return uwave.redis.lrange('waitlist', 0, -1);
       }
     }
 
@@ -139,13 +138,13 @@ export const leaveWaitlist = function leaveWaitlist(moderatorID, id, mongo, redi
   })
   .then(waitlist => {
     if (moderatorID !== id) {
-      redis.publish('v1', createCommand('waitlistRemove', {
+      uwave.redis.publish('v1', createCommand('waitlistRemove', {
         'userID': id,
         'moderatorID': moderatorID,
         'waitlist': waitlist
       }));
     } else {
-      redis.publish('v1', createCommand('waitlistLeave', {
+      uwave.redis.publish('v1', createCommand('waitlistLeave', {
         'userID': id,
         'waitlist': waitlist
       }));
