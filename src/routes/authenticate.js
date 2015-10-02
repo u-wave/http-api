@@ -5,7 +5,7 @@ import { checkFields, handleDuplicate } from '../utils';
 import handleError from '../errors';
 
 const log = debug('uwave:api:v1:auth');
-const rx = /<>\"\'$/;
+const rx = /\s|%20/;
 
 export default function authenticate(router) {
   /* ========== REGISTER ========== */
@@ -15,14 +15,14 @@ export default function authenticate(router) {
       'username',
       'password',
       'passwordRepeat'
-    ])) return;
+    ], 'string')) return;
 
     if (req.body.password !== req.body.passwordRepeat) {
       return res.status(422).json('passwords don\'t match');
     }
 
     if (rx.test(req.body.username)) {
-      return res.status(422).json('username contains invalid characters');
+      return res.status(422).json('username contains invalid characters e.g. space');
     }
 
     if (req.query.token) {
@@ -31,13 +31,7 @@ export default function authenticate(router) {
       );
     }
 
-    const data = {
-      'email': String(req.body.email),
-      'username': String(req.body.username),
-      'password': String(req.body.password)
-    };
-
-    controller.createUser(data, req.uwave.mongo)
+    controller.createUser(req.body.email, req.body.username, req.body.password, req.uwave.mongo)
     .then(user => res.status(200).json(user))
     .catch(e => {
       if (!e.errmsg || !handleDuplicate(res, e.errmsg, ['email', 'username'])) {
@@ -51,7 +45,7 @@ export default function authenticate(router) {
     if (!checkFields(req.body, res, [
       'email',
       'password'
-    ])) return;
+    ], 'string')) return;
 
     if (req.query.token) {
       return res.status(418).json(
@@ -59,10 +53,7 @@ export default function authenticate(router) {
       );
     }
 
-    const _email = String(req.body.email);
-    const _password = String(req.body.password);
-
-    controller.login(_email, _password, req.uwave.mongo, req.uwave.redis)
+    controller.login(req.body.email, req.body.password, req.uwave)
     .then(token => res.status(200).json(token))
     .catch(e => handleError(res, e, log));
   });
@@ -70,10 +61,9 @@ export default function authenticate(router) {
   /* ========== PASSWORD RESET ========== */
   router.post('/auth/password/reset', (req, res) => {
     if (!req.body.email) return res.status(422).json('email is not set');
+    if (typeof req.body.email !== 'string') return res.status(422).json('email has to be of type string');
 
-    const _email = String(req.body.email);
-
-    controller.reset(_email, req.uwave.mongo, req.uwave.redis)
+    controller.reset(req.body.email, req.uwave)
     .then(token => res.status(200).json(token))
     .catch(e => handleError(res, e, log));
   });
@@ -84,18 +74,13 @@ export default function authenticate(router) {
       'email',
       'password',
       'passwordRepeat'
-    ])) return;
+    ], 'string')) return;
 
     if (req.body.password !== req.body.passwordRepeat) {
       return res.status(422).json('passwords don\'t match');
     }
 
-    const data = {
-      'email': String(req.body.email),
-      'password': String(req.body.password)
-    };
-
-    controller.changePassword(data, req.params.reset, req.uwave.mongo, req.uwave.redis)
+    controller.changePassword(req.body.email, req.body.password, req.params.reset, req.uwave)
     .then(auth => res.status(200).json(auth))
     .catch(e => handleError(res, e, log));
   });
@@ -106,10 +91,13 @@ export default function authenticate(router) {
       return res.status(403).json('you need to be at least a manager to do this');
     }
 
-    controller.removeSession(req.params.id, req.query.token, req.uwave.mongo, req.uwave.redis)
+    controller.removeSession(req.params.id, req.query.token, req.uwave)
     .then(user => {
-      if (!Object.keys(user).length) return res.status(200).json('logged out');
-      res.status(500).json('couldn\'t delete session');
+      if (!Object.keys(user).length) {
+        res.status(200).json('logged out');
+      } else {
+        res.status(500).json('couldn\'t delete session');
+      }
     })
     .catch(e => handleError(res, e, log));
   });

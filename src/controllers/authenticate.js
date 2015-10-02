@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import debug from 'debug';
 
+import { createCommand } from '../sockets';
 import { PasswordError, TokenError, GenericError } from '../errors';
 
 const PASS_LENGTH = 256;
@@ -39,22 +40,22 @@ export const generateHashPair = function generateHashPair(password, length) {
   });
 };
 
-export const createUser = function createUser(data, mongo) {
+export const createUser = function createUser(email, username, password, mongo) {
   const User = mongo.model('User');
   const Authentication = mongo.model('Authentication');
   let _auth = null;
 
-  log(`creating new user ${data.username}`);
-  const user = new User({'username': data.username});
+  log(`creating new user ${username}`);
+  const user = new User({'username': username});
 
   return user.validate()
   .then(() => {
-    return generateHashPair(data.password, PASS_LENGTH);
+    return generateHashPair(password, PASS_LENGTH);
   })
   .then(hashPair => {
     _auth = new Authentication({
       'user': user.id,
-      'email': data.email,
+      'email': email,
       'hash': hashPair.hash,
       'salt': hashPair.salt
     });
@@ -64,19 +65,19 @@ export const createUser = function createUser(data, mongo) {
     return user.save();
   })
   .then(() => {
-    // better to keep the routes clean and solve the duplicate error here
+    // better to keep the routes clean and solve the userless auth here
     return new Promise(resolve => resolve(user));
   },
   e => {
-    log(`did not create user ${data.username}. Err: ${e}`);
+    log(`did not create user ${username}. Err: ${e}`);
     if (_auth) _auth.remove();
     user.remove();
     throw e;
   });
 };
 
-export const login = function login(email, password, mongo, redis) {
-  const Authentication = mongo.model('Authentication');
+export const login = function login(email, password, uwave) {
+  const Authentication = uwave.mongo.model('Authentication');
   let _auth = null;
 
   return Authentication.findOne({'email': email}).populate('user').exec()
@@ -90,13 +91,13 @@ export const login = function login(email, password, mongo, redis) {
     return new Promise((resolve, reject) => {
       if (_auth.hash === hash.toString('hex')) {
         const token = jwt.sign(_auth.user.id, SECRET);
-        redis.hmset(
+        uwave.redis.hmset(
           `user:${token}`,
           'id', _auth.user.id,
           'username', _auth.user.username,
           'role', _auth.user.role
         );
-        redis.expire(`user:${token}`, 30*24*60*60);
+        uwave.redis.expire(`user:${token}`, 30*24*60*60);
         resolve(token);
       } else {
         reject(new PasswordError('password is incorrect'));
@@ -105,8 +106,8 @@ export const login = function login(email, password, mongo, redis) {
   });
 };
 
-export const reset = function reset(email, mongo, redis) {
-  const Authentication = mongo.model('Authentication');
+export const reset = function reset(email, uwave) {
+  const Authentication = uwave.mongo.model('Authentication');
 
   return Authentication.findOne({'email': email})
   .then(auth => {
@@ -116,25 +117,25 @@ export const reset = function reset(email, mongo, redis) {
   .then(buf => {
     return new Promise(resolve => {
       const token = buf.toString('hex');
-      redis.set(`reset:${email}`, token);
-      redis.expire(`reset${email}`, 24*60*60);
+      uwave.redis.set(`reset:${email}`, token);
+      uwave.redis.expire(`reset${email}`, 24*60*60);
       resolve(token);
     });
   });
 };
 
-export const changePassword = function changePassword(data, reset, mongo, redis) {
-  const Authentication = mongo.model('Authentication');
+export const changePassword = function changePassword(email, password, reset, uwave) {
+  const Authentication = uwave.mongo.model('Authentication');
 
-  return redis.get(`reset:${data.email}`)
+  return uwave.redis.get(`reset:${email}`)
   .then(token => {
     if (!token || token !== reset) throw new TokenError('reset token invalid');
 
-    return generateHashPair(data.password, PASS_LENGTH);
+    return generateHashPair(password, PASS_LENGTH);
   })
   .then(hashPair => {
     return Authentication.findOneAndUpdate(
-      { 'email': data.email },
+      { 'email': email },
       {
         'salt': hashPair.salt,
         'hash': hashPair.hash
@@ -144,20 +145,21 @@ export const changePassword = function changePassword(data, reset, mongo, redis)
   .then(auth => {
     return new Promise((resolve, reject) => {
       if (!auth) {
-        reject(new GenericError(404, `no user with email ${data.email} found`));
+        reject(new GenericError(404, `no user with email ${email} found`));
       } else {
-        redis.del(`reset:${data.email}`);
-        resolve(`updated password for ${data.email}`);
+        uwave.redis.del(`reset:${email}`);
+        resolve(`updated password for ${email}`);
       }
     });
   });
 };
 
-export const removeSession = function removeSession(id, token, mongo, redis) {
-  const Authentication = mongo.model('Authentication');
+export const removeSession = function removeSession(id, token, uwave) {
+  const Authentication = uwave.mongo.model('Authentication');
   return Authentication.findOne(ObjectId(id))
   .then(auth => {
-    redis.del(`user:${token}`);
-    return redis.hgetall(`user:${token}`);
+    uwave.redis.del(`user:${token}`);
+    uwave.redis.publish('v1p', createCommand('closeSocket', id));
+    return uwave.redis.hgetall(`user:${token}`);
   });
 };
