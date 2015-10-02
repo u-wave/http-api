@@ -1,7 +1,14 @@
 export const checkFields = function checkFields(data, res, fields = [], types = []) {
   const errors = [];
   const fieldLen = fields.length;
-  const typeLen = types.length;
+  let typeLen = 0;
+
+  // this will avoid redundancy when you have an array of fields of the same type
+  if (Array.isArray(types)) {
+    typeLen = types.length;
+  } else if (typeof types === 'string') {
+    typeLen = -1;
+  }
 
   for (let i = 0; i < fieldLen; i++) {
     if (typeof data[fields[i]] === 'undefined') {
@@ -12,6 +19,10 @@ export const checkFields = function checkFields(data, res, fields = [], types = 
     if (typeLen > i) {
       if (typeof data[fields[i]] !== types[i]) {
         errors.push(`${data[fields[i]]} has to be of type ${types[i]}`);
+      }
+    } else if (typeLen === -1) {
+      if (typeof data[fields[i]] !== types) {
+        errors.push(`${data[fields[i]]} has to be of type ${types}`);
       }
     }
   }
