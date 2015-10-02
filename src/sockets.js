@@ -32,7 +32,7 @@ export default class WSServer {
 
     this.heartbeatInt = setInterval(this._heartbeat.bind(this), 30*1000);
 
-    this.sub.on('ready', () => this.sub.subscribe('v1'));
+    this.sub.on('ready', () => this.sub.subscribe('v1', 'v1p'));
     this.sub.on('message', this._handleMessage.bind(this));
 
     this.wss.on('connection', this._onConnection.bind(this));
@@ -66,7 +66,14 @@ export default class WSServer {
 
   _onConnection(conn) {
     conn.on('message', msg => this._authenticate(conn, msg));
-    conn.on('close', code => this._close(conn.id, code));
+    conn.on('close', code => {
+      const client = this.clients[conn.id];
+
+      if (client && client.id.length > 0) {
+        this.broadcast(createCommand('leave', client.id));
+      }
+      this._close(conn.id, code);
+    });
 
     conn.id = this.generateID();
 
@@ -110,6 +117,7 @@ export default class WSServer {
       });
 
       this.clients[conn.id].id = id;
+      this.broadcast(createCommand('join', id));
     })
     .catch(e => {
       log(e);
@@ -149,13 +157,19 @@ export default class WSServer {
   }
 
   _handleMessage(channel, command) {
-    if (channel === 'v1') this.broadcast(command);
+    if (channel === 'v1') {
+      this.broadcast(command);
+    } else if (channel === 'v1p') {
+      if (command.command === 'closeSocket') {
+        this._close(command.data, CLOSE_NORMAL);
+      }
+    }
   }
 
   destroy() {
     clearInterval(this.heartbeatInt);
     this.sub.removeAllListeners();
-    this.sub.unsubscribe('v1');
+    this.sub.unsubscribe('v1', 'v1p');
     this.sub.close();
     this.wss.shutdown();
   }
