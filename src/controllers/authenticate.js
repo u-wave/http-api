@@ -98,7 +98,10 @@ export const login = function login(email, password, uwave) {
           'role', _auth.user.role
         );
         uwave.redis.expire(`user:${token}`, 30*24*60*60);
-        resolve(token);
+        resolve({
+          'jwt': token,
+          'user': _auth.user
+        });
       } else {
         reject(new PasswordError('password is incorrect'));
       }
