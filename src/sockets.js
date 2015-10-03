@@ -2,6 +2,8 @@ import Redis from 'ioredis';
 import WebSocket from 'ws';
 import debug from 'debug';
 
+import advance from './advance';
+
 const OFFSET_NOAUTH = 20*1000;
 
 // websocket error codes
@@ -18,12 +20,11 @@ export const createCommand = function createCommand(key, value) {
 }
 
 export default class WSServer {
-  constructor(server, redis, config) {
+  constructor(uwave, config) {
+    this.uwave = uwave;
     this.sub = new Redis(config.redis.port, config.redis.host, config.redis.options);
-    // TODO: remove second redis instance.
-    this.redis = redis;
     this.wss = new WebSocket.Server({
-      'server': server,
+      'server': uwave.getServer(),
       'clientTracking': false
     });
 
@@ -31,6 +32,7 @@ export default class WSServer {
     this.ID = 0;
 
     this.heartbeatInt = setInterval(this._heartbeat.bind(this), 30*1000);
+    this.advanceTimer = null;
 
     this.sub.on('ready', () => this.sub.subscribe('v1', 'v1p'));
     this.sub.on('message', this._handleMessage.bind(this));
@@ -98,7 +100,7 @@ export default class WSServer {
   }
 
   _authenticate(conn, token) {
-    return this.redis.hget(`user:${token}`, 'id')
+    return this.uwave.redis.hget(`user:${token}`, 'id')
     .then(id => {
       if (!Object.keys(id).length) throw new Error('violated policy');
 
@@ -160,7 +162,24 @@ export default class WSServer {
     if (channel === 'v1') {
       this.broadcast(command);
     } else if (channel === 'v1p') {
-      if (command.command === 'closeSocket') {
+      if (command.command === 'advance') {
+        clearTimeout(this.advanceTimer);
+        this.advanceTimer = null;
+
+        advance(this.uwave.getMongo(), this.uwave.getRedis())
+        .then(booth => {
+          this.broadcast(createCommand('advance', booth));
+          this.advanceTimer = setTimeout(
+            advance,
+            booth.media.duration * 1000,
+            this.uwave.getMongo(), this.uwave.getRedis()
+          );
+        })
+        .catch(e => {
+          this.broadcast(createCommand('advance', null));
+          log(e);
+        });
+      } else if (command.command === 'closeSocket') {
         this._close(command.data, CLOSE_NORMAL);
       }
     }
