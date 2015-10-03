@@ -57,7 +57,7 @@ export default class V1 {
 
   registerWSServer(uwave) {
     if (!this.wsserver) {
-      this.wsserver = new WSServer(uwave.getServer(), uwave.getRedis(), uwave.getConfig());
+      this.wsserver = new WSServer(uwave, uwave.getConfig());
     } else {
       this.log('wsserver is already registered');
     }
