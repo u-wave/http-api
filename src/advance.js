@@ -41,14 +41,12 @@ export default function advance(mongo, redis) {
   })
   .then(history => {
     if (!history) throw new GenericError(404, 'couldn\'t create history entry');
-
-    redis.publish('v1', createCommand('advance', {
+    return new Promise(resolve => resolve({
       'historyID': history.id,
       'userID': user.id,
       'media': media,
       'playlistID': playlist.id,
       'played': Date.now()
     }));
-    return new Promise(resolve => resolve(history));
   });
 }
