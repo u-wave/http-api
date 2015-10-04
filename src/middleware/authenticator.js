@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import debug from 'debug';
 
 const verify = bluebird.promisify(jwt.verify);
-const noauth = RegExp(/\/auth\/(login|register|password|now.*)$/, 'i');
+const noauth = RegExp(/\/auth\/(login|register|password.*|now)$/, 'i');
 
 const log = debug('uwave:v1:authenticator');
 
