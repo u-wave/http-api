@@ -7,9 +7,8 @@ import handleError from '../errors';
 const log = debug('uwave:api:v1:booth');
 
 export default function booth(router) {
-  // TODO: might remove/modify this since the client should know about it already
   router.get('/booth', (req, res) => {
-    controller.getBooth(req.uwave.redis)
+    controller.getBooth(req.uwave)
     .then(booth => res.status(200).json(booth))
     .catch(e => handleError(res, e, log));
   });
