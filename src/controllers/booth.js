@@ -18,7 +18,7 @@ export const getBooth = function getBooth(uwave) {
     'stats': {
       'upvotes': 0,
       'downvotes': 0,
-      'grabs': 0
+      'favorite': 0
     }
   };
 
@@ -43,10 +43,10 @@ export const getBooth = function getBooth(uwave) {
   })
   .then(downvotes => {
     booth.stats.downvotes = downvotes;
-    return uwave.redis.llen('booth:grabs');
+    return uwave.redis.llen('booth:favorite');
   })
-  .then(grabs => {
-    booth.stats.grabs = grabs;
+  .then(favorite => {
+    booth.stats.favorite = favorite;
     return booth;
   });
 };
@@ -97,8 +97,8 @@ export const favorite = function favorite(id, playlistID, uwave) {
 
     // TODO: evaluate Media ID
     //playlist.media.push(...);
-    this.redis.lrem('booth:grabs', 0, id);
-    this.redis.lpush('booth:grabs', id);
+    this.redis.lrem('booth:favorite', 0, id);
+    this.redis.lpush('booth:favorite', id);
     uwave.redis.publish('v1', createCommand('favorite', {
       'userID': id,
       'playlistID': playlistID
