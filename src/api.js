@@ -8,6 +8,7 @@ import waitlist from './routes/waitlist';
 import booth from './routes/booth';
 import users from './routes/users';
 import chat from './routes/chat';
+import now from './routes/now';
 
 // models
 import Authentication from './models/authentication';
@@ -40,6 +41,7 @@ export default class V1 {
     booth(this.router);
     users(this.router);
     chat(this.router);
+    now(this.router);
   }
 
   getRouter() {

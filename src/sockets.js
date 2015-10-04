@@ -52,6 +52,24 @@ export default class WSServer {
     return payload;
   }
 
+  _removeUser(id) {
+    this.uwave.redis.lrem('users', 0, id);
+    this.uwave.redis.lrange('waitlist', 0, -1)
+    .then(waitlist => {
+      for (let i = waitlist.length - 1; i >= 0; i--) {
+        if (waitlist[i] === id) {
+          waitlist.splice(i, 1);
+          this.uwave.redis.lrem('waitlist', 0, id);
+
+          this.broadcast(createCommand('waitlistLeave', {
+            'userID': id,
+            'waitlist': waitlist
+          }));
+        }
+      }
+    });
+  }
+
   _close(id, code, msg = '') {
     if (code !== CLOSE_NORMAL) log(`connection ${id} closed with error.`);
     delete this.clients[id];
@@ -106,8 +124,11 @@ export default class WSServer {
 
       conn.removeAllListeners();
       conn.on('message', msg => this._handleIncomingCommands(conn, msg));
-      conn.on('close', code => this._close(conn.id, code));
       conn.on('error', e => log(e));
+      conn.on('close', code => {
+        this._removeUser(this.clients[conn.id].id);
+        this._close(conn.id, code);
+      });
 
       conn.on('ping', () => {
         conn.pong();
@@ -119,6 +140,7 @@ export default class WSServer {
       });
 
       this.clients[conn.id].id = id;
+      this.uwave.redis.lpush('users', id);
       this.broadcast(createCommand('join', id));
     })
     .catch(e => {
