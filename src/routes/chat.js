@@ -1,7 +1,6 @@
 import debug from 'debug';
 
 import * as controller from '../controllers/chat';
-import handleError from '../errors';
 
 const log = debug('uwave:api:v1:chat');
 
