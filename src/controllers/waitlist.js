@@ -178,7 +178,6 @@ export const clearWaitlist = function clearWaitlist(moderatorID, redis) {
   });
 };
 
-// TODO: decide whether to remove clear here or not
 export const lockWaitlist = function lockWaitlist(moderatorID, lock, clear, redis) {
   if (clear) redis.del('waitlist');
 
@@ -194,9 +193,12 @@ export const lockWaitlist = function lockWaitlist(moderatorID, lock, clear, redi
       if (Boolean(locked) === lock) {
         redis.publish('v1', createCommand('waitlistLock', {
           'moderatorID': moderatorID,
-          'locked': lock,
-          'cleared': clear
+          'locked': locked
         }));
+
+        if (clear) {
+          redis.publish('v1', createCommand('waitlistClear', { 'moderatorID': moderatorID }));
+        }
         resolve({
           'locked': lock,
           'cleared': clear
