@@ -190,6 +190,10 @@ export default class WSServer {
       break;
 
       case 'vote':
+        this.redis.lrem('booth:upvotes', 0, user.id);
+        this.redis.lrem('booth:downvotes', 0, user.id);
+        this.redis.lpush(payload.data > 0 ? 'booth:upvotes' : 'booth:downvotes', user.id);
+
         this.broadcast(createCommand('vote', {
           'id': user.id,
           'value': payload.data
