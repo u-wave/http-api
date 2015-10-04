@@ -6,14 +6,48 @@ import { GenericError } from '../errors';
 
 const ObjectId = mongoose.Types.ObjectId;
 
-export const getBooth = function getBooth(redis) {
-  return redis.get('booth')
-  .then(booth => {
-    return new Promise((resolve, reject) => {
-      if (!Object.keys(booth).length) return reject(new GenericError(404, 'booth is empty'));
+export const getBooth = function getBooth(uwave) {
+  const History = uwave.mongo.model('History');
 
-      resolve(booth);
-    });
+  const booth = {
+    'historyID': null,
+    'playlistID': null,
+    'played': 0,
+    'userID': null,
+    'media': null,
+    'stats': {
+      'upvotes': 0,
+      'downvotes': 0,
+      'grabs': 0
+    }
+  };
+
+  return uwave.redis.get('booth:historyID')
+  .then(historyID => {
+    booth.historyID = historyID;
+    return History.findOne(ObjectId(historyID)).populate('media');
+  })
+  .then(entry => {
+    if (entry) {
+      booth.userID = entry.user.toString();
+      booth.playlistID = entry.playlist.toString();
+      booth.played = entry.played;
+      booth.media = entry.media;
+    }
+
+    return uwave.redis.llen('booth:upvotes');
+  })
+  .then(upvotes => {
+    booth.stats.upvotes = upvotes;
+    return uwave.redis.llen('booth:downvotes');
+  })
+  .then(downvotes => {
+    booth.stats.downvotes = downvotes;
+    return uwave.redis.llen('booth:grabs');
+  })
+  .then(grabs => {
+    booth.stats.grabs = grabs;
+    return booth;
   });
 };
 
@@ -46,7 +80,7 @@ export const replaceBooth = function replaceBooth(moderatorID, id, uwave) {
       'userID': id
     }));
     uwave.redis.publish('v1p', createCommand('advance', null));
-    return new Promise(resolve => resolve(waitlist));
+    return waitlist;
   });
 };
 
@@ -63,6 +97,8 @@ export const favorite = function favorite(id, playlistID, uwave) {
 
     // TODO: evaluate Media ID
     //playlist.media.push(...);
+    this.redis.lrem('booth:grabs', 0, id);
+    this.redis.lpush('booth:grabs', id);
     uwave.redis.publish('v1', createCommand('favorite', {
       'userID': id,
       'playlistID': playlistID
