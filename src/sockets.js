@@ -1,3 +1,6 @@
+import Mongoose from 'mongoose';
+import bluebird from 'bluebird';
+import jwt from 'jsonwebtoken';
 import Redis from 'ioredis';
 import WebSocket from 'ws';
 import debug from 'debug';
@@ -10,7 +13,10 @@ const OFFSET_NOAUTH = 20*1000;
 const CLOSE_NORMAL = 1000;
 const CLOSE_VIOLATED_POLICY = 1008;
 
+const ObjectId = Mongoose.Types.ObjectId;
+
 const log = debug('uwave:api:sockets');
+const verify = bluebird.promisify(jwt.verify);
 
 export const createCommand = function createCommand(key, value) {
   return JSON.stringify({
@@ -20,9 +26,14 @@ export const createCommand = function createCommand(key, value) {
 }
 
 export default class WSServer {
-  constructor(uwave, config) {
-    this.uwave = uwave;
+  constructor(v1, uwave, config) {
+    const mongo = uwave.getMongo();
+    this.User = mongo.model('User');
+
+    this.v1 = v1;
+    this.redis = uwave.getRedis();
     this.sub = new Redis(config.redis.port, config.redis.host, config.redis.options);
+
     this.wss = new WebSocket.Server({
       'server': uwave.getServer(),
       'clientTracking': false
@@ -53,13 +64,13 @@ export default class WSServer {
   }
 
   _removeUser(id) {
-    this.uwave.redis.lrem('users', 0, id);
-    this.uwave.redis.lrange('waitlist', 0, -1)
+    this.redis.lrem('users', 0, id);
+    this.redis.lrange('waitlist', 0, -1)
     .then(waitlist => {
       for (let i = waitlist.length - 1; i >= 0; i--) {
         if (waitlist[i] === id) {
           waitlist.splice(i, 1);
-          this.uwave.redis.lrem('waitlist', 0, id);
+          this.redis.lrem('waitlist', 0, id);
 
           this.broadcast(createCommand('waitlistLeave', {
             'userID': id,
@@ -107,7 +118,7 @@ export default class WSServer {
   _heartbeat() {
     const keys = Object.keys(this.clients);
 
-    for(let i = keys.length - 1; i >= 0; i--) {
+    for (let i = keys.length - 1; i >= 0; i--) {
       const client = this.clients[keys[i]];
       if (client) {
         if (client.heartbeat - Date.now() >= 60*1000) {
@@ -118,10 +129,8 @@ export default class WSServer {
   }
 
   _authenticate(conn, token) {
-    return this.uwave.redis.hget(`user:${token}`, 'id')
-    .then(id => {
-      if (!Object.keys(id).length) throw new Error('violated policy');
-
+    return verify(token, this.v1.getCert())
+    .then(user => {
       conn.removeAllListeners();
       conn.on('message', msg => this._handleIncomingCommands(conn, msg));
       conn.on('error', e => log(e));
@@ -139,9 +148,21 @@ export default class WSServer {
         }
       });
 
-      this.clients[conn.id].id = id;
-      this.uwave.redis.lpush('users', id);
-      this.broadcast(createCommand('join', id));
+      this.clients[conn.id].id = user.id;
+      this.User.findOne(ObjectId(user.id), { '-__v': 0 })
+      .then(user => {
+        if (!user) return conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'unknown user'));
+        this.redis.lpush('users', user.id);
+        this.broadcast(createCommand('join', user));
+      })
+      .catch(e => {
+        log(e);
+        conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'internal server error'));
+      });
+    })
+    .catch(jwt.JsonWebTokenError, e => {
+      log(e);
+      conn.close(CLOSE_VIOLATED_POLICY, 'token was not valid.');
     })
     .catch(e => {
       log(e);
@@ -188,7 +209,7 @@ export default class WSServer {
         clearTimeout(this.advanceTimer);
         this.advanceTimer = null;
 
-        advance(this.uwave.getMongo(), this.uwave.getRedis())
+        advance(this.mongo, this.redis)
         .then(booth => {
           this.broadcast(createCommand('advance', booth));
           this.advanceTimer = setTimeout(
@@ -198,8 +219,8 @@ export default class WSServer {
           );
         })
         .catch(e => {
-          this.broadcast(createCommand('advance', null));
           log(e);
+          this.broadcast(createCommand('advance', null));
         });
       } else if (command.command === 'closeSocket') {
         this._close(command.data, CLOSE_NORMAL);
@@ -218,7 +239,7 @@ export default class WSServer {
   broadcast(command) {
     const keys = Object.keys(this.clients);
 
-    for(let i = keys.length - 1; i >= 0; i--) {
+    for (let i = keys.length - 1; i >= 0; i--) {
       this.clients[keys[i]].conn.send(command);
     }
   }
