@@ -147,11 +147,10 @@ export const changePassword = function changePassword(email, password, reset, uw
   });
 };
 
-export const removeSession = function removeSession(id, token, uwave) {
+export const removeSession = function removeSession(id, uwave) {
   const Authentication = uwave.mongo.model('Authentication');
   return Authentication.findOne(ObjectId(id))
   .then(auth => {
     uwave.redis.publish('v1p', createCommand('closeSocket', id));
-    return uwave.redis.hgetall(`user:${token}`);
   });
 };
