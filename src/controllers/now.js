@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { getBooth } from './booth';
 
 const ObjectId = mongoose.Types.ObjectId;
 
@@ -26,6 +27,10 @@ export const getState = function getState(id, uwave) {
   })
   .then(waitlist => {
     state.waitlist = waitlist;
+    return getBooth(uwave);
+  })
+  .then(booth => {
+    state.booth = booth;
     return state;
   });
 };
