@@ -4,9 +4,13 @@ export default function advance(mongo, redis) {
   const Media = mongo.model('Media');
   const User = mongo.model('User');
 
-  let _user = null;
-  let _playlist = null;
-  let _media = null;
+  const now = {
+    'playlistID': null,
+    'historyID': null,
+    'userID': null,
+    'media': null,
+    'played': null
+  };
 
   return redis.lpop('waitlist')
   .then(next => {
@@ -15,7 +19,7 @@ export default function advance(mongo, redis) {
   })
   .then(user => {
     if (!user) throw new GenericError(404, 'user not found');
-    _user = user;
+    now.userID = user.id;
     return redis.get(`playlist:{user}`);
   })
   .then(playlist => {
@@ -25,28 +29,24 @@ export default function advance(mongo, redis) {
   })
   .then(playlist => {
     if (!playlist) throw new GenericError(404, 'playlist not found');
-    _playlist = playlist;
+    now.playlistID = playlist.id;
 
     return Media.findOne(playlist.media[0]);
   })
   .then(media => {
     if (!media) throw new GenericError(404, 'media not found');
-    _media = media;
+    now.media = media;
 
     return new History({
-      'user': _user.id,
-      'media': _media.id,
-      'playlist': _playlist.id
+      'user': now.userID,
+      'media': now.media.id,
+      'playlist': now.playlistID
     }).save();
   })
   .then(history => {
     if (!history) throw new GenericError(404, 'couldn\'t create history entry');
-    return new Promise(resolve => resolve({
-      'historyID': history.id,
-      'userID': user.id,
-      'media': media,
-      'playlistID': playlist.id,
-      'played': Date.now()
-    }));
+    now.historyID = history.id;
+    now.played = Date.now();
+    return now;
   });
 }
