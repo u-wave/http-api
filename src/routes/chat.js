@@ -2,7 +2,6 @@ import debug from 'debug';
 
 import * as controller from '../controllers/chat';
 import handleError from '../errors';
-import checkFields from '../utils';
 
 const log = debug('uwave:api:v1:chat');
 
@@ -11,14 +10,20 @@ export default function chat(router) {
     if (req.user.role < 4) return res.status(403).json('you need to be at least manager to do this');
 
     controller.chatDelete(req.user, req.uwave.redis);
-    res.status(200).json('ok');
+    res.status(200).json('deleted chat');
+  });
+
+  router.delete('/chat/user/:id', (req, res) => {
+    if (req.user.role < 4) return res.status(403).json('you need to be at least manager to do this');
+
+    controller.chatDeleteByUser(req.user, req.params.id, req.uwave.redis);
+    res.status(200).json(`deleted chat ${req.params.id}`);
   });
 
   router.delete('/chat/:id', (req, res) => {
-    // TODO: identify whom the message is from
     if (req.user.role < 4) return res.status(403).json('you need to be at least manager to do this');
 
-    controller.chatDelete(req.user, req.uwave.redis, req.params.id);
-    res.status(200).json('ok');
+    controller.chatDeleteByID(req.user, req.params.id, req.uwave.redis);
+    res.status(200).json(`deleted chat by user ${req.params.id}`);
   });
 }
