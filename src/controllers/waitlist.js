@@ -14,6 +14,7 @@ export const joinWaitlist = function joinWaitlist(moderatorID, id, position, for
   const User = uwave.mongo.model('User');
   const History = uwave.mongo.model('History');
   let beforeID = null;
+  let _waitlist = null;
 
   return uwave.redis.get('waitlist:lock')
   .then(lock => {
@@ -61,21 +62,18 @@ export const joinWaitlist = function joinWaitlist(moderatorID, id, position, for
           }));
         }
 
-        return new Promise((resolve, reject) => {
-          if (waitlist.length === 1) {
-            History.find().sort({'played': -1}).limit(1).populate('media')
-            .then(lastPlayed => {
-              if (!lastPlayed.length || Date.now() - (lastPlayed.played + lastPlayed.media.duration * 1000) >= 0) {
-                uwave.redis.publish('v1p', createCommand('advance', null));
-                waitlist.shift();
-              }
-              resolve(waitlist);
-            });
-          }
-        });
+        _waitlist = waitlist;
+        return History.find().sort({'played': -1}).limit(1).populate('media');
       }
     }
     throw new Error(`couldn't add user ${id} to waitlist`);
+  })
+  .then(lastPlayed => {
+    if (!lastPlayed.length || Date.now() - (lastPlayed.played + lastPlayed.media.duration * 1000) >= 0) {
+      uwave.redis.publish('v1p', createCommand('advance', null));
+      _waitlist.shift();
+    }
+    return _waitlist;
   });
 };
 
@@ -118,7 +116,7 @@ export const moveWaitlist = function moveWaitlist(moderatorID, id, position, uwa
       'waitlist': waitlist
     }));
 
-    return new Promise(resolve => resolve(waitlist));
+    return waitlist;
   });
 };
 
@@ -140,7 +138,7 @@ export const leaveWaitlist = function leaveWaitlist(moderatorID, id, uwave) {
 
     for (let i = length - 1; i >= 0; i--) {
       if (_waitlist[i] === user.id) {
-        uwave.redis.lrem('waitlist', i, user.id);
+        uwave.redis.lrem('waitlist', 0, user.id);
         return uwave.redis.lrange('waitlist', 0, -1);
       }
     }
@@ -161,7 +159,7 @@ export const leaveWaitlist = function leaveWaitlist(moderatorID, id, uwave) {
       }));
     }
 
-    return new Promise(resolve => resolve(waitlist));
+    return waitlist;
   });
 };
 
@@ -171,7 +169,7 @@ export const clearWaitlist = function clearWaitlist(moderatorID, redis) {
   .then(waitlist => {
     if (waitlist.length === 0) {
       redis.publish('v1', createCommand('waitlistClear', { 'moderatorID': moderatorID }));
-      return new Promise(resolve => resolve(waitlist));
+      return waitlist;
     } else {
       throw new GenericError(500, 'couldn\'t clear waitlist');
     }

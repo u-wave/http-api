@@ -22,20 +22,18 @@ export const generateHashPair = function generateHashPair(password, length) {
     salt: null
   };
 
-  return new Promise((resolve, reject) => {
-    return randomBytes(length)
-    .then(buf => {
-      hashPair.salt = buf.toString('hex');
-      return pbkdf2(password, hashPair.salt, PASS_ITERATIONS, length, PASS_HASH);
-    })
-    .then(salted => {
-      hashPair.hash = salted.toString('hex');
-      resolve(hashPair);
-    })
-    .catch(e => {
-      log(e);
-      reject(new GenericError(402, 'couldn\'t create password'));
-    });
+  return randomBytes(length)
+  .then(buf => {
+    hashPair.salt = buf.toString('hex');
+    return pbkdf2(password, hashPair.salt, PASS_ITERATIONS, length, PASS_HASH);
+  })
+  .then(salted => {
+    hashPair.hash = salted.toString('hex');
+    return hashPair;
+  })
+  .catch(e => {
+    log(e);
+    throw new GenericError(402, 'couldn\'t create password');
   });
 };
 
@@ -86,23 +84,21 @@ export const login = function login(email, password, secret, uwave) {
     return pbkdf2(password, _auth.salt, PASS_ITERATIONS, PASS_LENGTH, PASS_HASH);
   })
   .then(hash => {
-    return new Promise((resolve, reject) => {
-      if (_auth.hash === hash.toString('hex')) {
-        const token = jwt.sign({
-          'id': _auth.user.id,
-          'role': _auth.user.role
-        }, secret, {
-          'expiresIn': '31d'
-        });
+    if (_auth.hash === hash.toString('hex')) {
+      const token = jwt.sign({
+        'id': _auth.user.id,
+        'role': _auth.user.role
+      }, secret, {
+        'expiresIn': '31d'
+      });
 
-        resolve({
-          'jwt': token,
-          'user': _auth.user
-        });
-      } else {
-        reject(new PasswordError('password is incorrect'));
-      }
-    });
+      return {
+        'jwt': token,
+        'user': _auth.user
+      };
+    } else {
+      throw new PasswordError('password is incorrect');
+    }
   });
 };
 
