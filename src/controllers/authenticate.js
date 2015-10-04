@@ -10,7 +10,6 @@ import { PasswordError, TokenError, GenericError } from '../errors';
 const PASS_LENGTH = 256;
 const PASS_ITERATIONS = 2048;
 const PASS_HASH = 'sha256';
-const SECRET = 'test';
 
 const ObjectId = mongoose.Types.ObjectId;
 const log = debug('uwave:api:v1:auth');
@@ -65,18 +64,17 @@ export const createUser = function createUser(email, username, password, mongo) 
     return user.save();
   })
   .then(() => {
-    // better to keep the routes clean and solve the userless auth here
-    return new Promise(resolve => resolve(user));
+    return user;
   },
   e => {
-    log(`did not create user ${username}. Err: ${e}`);
+    log(`did not create user ${username}. Error: ${e}`);
     if (_auth) _auth.remove();
     user.remove();
     throw e;
   });
 };
 
-export const login = function login(email, password, uwave) {
+export const login = function login(email, password, secret, uwave) {
   const Authentication = uwave.mongo.model('Authentication');
   let _auth = null;
 
@@ -90,14 +88,13 @@ export const login = function login(email, password, uwave) {
   .then(hash => {
     return new Promise((resolve, reject) => {
       if (_auth.hash === hash.toString('hex')) {
-        const token = jwt.sign(_auth.user.id, SECRET);
-        uwave.redis.hmset(
-          `user:${token}`,
-          'id', _auth.user.id,
-          'username', _auth.user.username,
-          'role', _auth.user.role
-        );
-        uwave.redis.expire(`user:${token}`, 30*24*60*60);
+        const token = jwt.sign({
+          'id': _auth.user.id,
+          'role': _auth.user.role
+        }, secret, {
+          'expiresIn': '31d'
+        });
+
         resolve({
           'jwt': token,
           'user': _auth.user
@@ -118,12 +115,10 @@ export const reset = function reset(email, uwave) {
     return randomBytes(64);
   })
   .then(buf => {
-    return new Promise(resolve => {
-      const token = buf.toString('hex');
-      uwave.redis.set(`reset:${email}`, token);
-      uwave.redis.expire(`reset${email}`, 24*60*60);
-      resolve(token);
-    });
+    const token = buf.toString('hex');
+    uwave.redis.set(`reset:${email}`, token);
+    uwave.redis.expire(`reset${email}`, 24*60*60);
+    return token;
   });
 };
 
@@ -146,14 +141,9 @@ export const changePassword = function changePassword(email, password, reset, uw
     ).exec();
   })
   .then(auth => {
-    return new Promise((resolve, reject) => {
-      if (!auth) {
-        reject(new GenericError(404, `no user with email ${email} found`));
-      } else {
-        uwave.redis.del(`reset:${email}`);
-        resolve(`updated password for ${email}`);
-      }
-    });
+    if (!auth) throw new GenericError(404, `no user with email ${email} found`);
+    uwave.redis.del(`reset:${email}`);
+    return `updated password for ${email}`;
   });
 };
 
@@ -161,7 +151,6 @@ export const removeSession = function removeSession(id, token, uwave) {
   const Authentication = uwave.mongo.model('Authentication');
   return Authentication.findOne(ObjectId(id))
   .then(auth => {
-    uwave.redis.del(`user:${token}`);
     uwave.redis.publish('v1p', createCommand('closeSocket', id));
     return uwave.redis.hgetall(`user:${token}`);
   });

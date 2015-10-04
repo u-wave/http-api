@@ -7,7 +7,7 @@ import handleError from '../errors';
 const log = debug('uwave:api:v1:auth');
 const rx = /\s|%20/;
 
-export default function authenticate(router) {
+export default function authenticate(v1, router) {
   /* ========== REGISTER ========== */
   router.post('/auth/register', (req, res) => {
     if (!checkFields(req.body, res, [
@@ -53,7 +53,7 @@ export default function authenticate(router) {
       );
     }
 
-    controller.login(req.body.email, req.body.password, req.uwave)
+    controller.login(req.body.email, req.body.password, v1.getCert(), req.uwave)
     .then(token => res.status(200).json(token))
     .catch(e => handleError(res, e, log));
   });

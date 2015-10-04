@@ -1,5 +1,6 @@
 import express from 'express';
 import debug from 'debug';
+import fs from 'fs';
 
 // routes
 import authenticate from './routes/authenticate';
@@ -29,13 +30,16 @@ const log = debug('uwave:api:v1');
  * @param {Object} options - router config, for more information see {@link http://expressjs.com/4x/api.html#router}
  **/
 export default class V1 {
-  constructor(options = {}) {
-    this.router = express.Router(options);
+  constructor(config = {}) {
+    this.router = express.Router(config.router);
+    this.cert = '';
     this.wsserver = null;
 
-    this.router.use(authenticator);
+    this.setCert(config.cert);
 
-    authenticate(this.router);
+    this.router.use(authenticator(this));
+
+    authenticate(this, this.router);
     playlist(this.router);
     waitlist(this.router);
     booth(this.router);
@@ -46,6 +50,17 @@ export default class V1 {
 
   getRouter() {
     return this.router;
+  }
+
+  setCert(filepath) {
+    fs.readFile(filepath, 'UTF8', (err, content) => {
+      if (err) return log(`couldn't load cert. Error: ${err}`);
+      this.cert = content;
+    });
+  }
+
+  getCert() {
+    return this.cert;
   }
 
   registerModels(uwave) {
