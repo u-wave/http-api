@@ -4,9 +4,17 @@ import debug from 'debug';
 
 import { createCommand } from '../sockets';
 import { GenericError } from '../errors';
+import { fetchMedia } from './search';
 
 const ObjectId = mongoose.Types.ObjectId;
 const log = debug('uwave:api:v1:playlists');
+
+const addGlobalMedia = function addGlobalMedia(sourceType, sourceID, keys, GlobalMedia) {
+  return fetchMedia(sourceType, sourceID, keys)
+  .then(media => {
+    return new GlobalMedia(media).save();
+  });
+};
 
 export const getPlaylists = function getPlaylists(id, mongo) {
   const Playlist = mongo.model('Playlist');
@@ -127,32 +135,44 @@ export const activatePlaylist = function activatePlaylist(id, playlistID, uwave)
   });
 };
 
-export const createMedia = function createMedia(id, playlistID, metadata, mongo) {
-  const Playlist = mongo.model('Playlist');
-  const Media = mongo.model('Media');
+export const createMedia = function createMedia(id, playlistID, sourceType, sourceID, uwave) {
+  const GlobalMedia = uwave.mongo.model('GlobalMedia');
+  const Playlist = uwave.mongo.model('Playlist');
+  const Media = uwave.mongo.model('Media');
 
-  const media = new Media(metadata);
+  let _media = null;
 
   const removeOnFailure = e => {
-    log(e);
-    media.remove();
+    if (_media) _media.remove();
     throw new GenericError(500, 'couldn\'t save media');
-  }
+  };
 
-  return media.save()
+  return GlobalMedia.findOne({ 'sourceType': sourceType, 'sourceID': sourceID })
+  .then(gmedia => {
+    if (!gmedia) {
+      return addGlobalMedia(sourceType, sourceID, uwave.keys, GlobalMedia);
+    } else {
+      return gmedia;
+    }
+  })
+  .then(gmedia => {
+    return new Media({
+      'global': gmedia.id,
+      'artist': gmedia.artist,
+      'title': gmedia.title
+    }).save();
+  })
   .then(media => {
+    if (!media) throw new Error('couldn\'t save media');
+    _media = media;
     return Playlist.findOne(ObjectId(playlistID));
   }, removeOnFailure)
   .then(playlist => {
-    if (id !== playlist.author.toString()) {
-      throw new GenericError(403, 'you can\'t add a song to another user\'s playlist');
-    }
+    if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+    if (playlist.author.toString() !== id) throw new GenericError(403, 'you can\'t edit the playlist of another user');
 
-    playlist.media.push(media.id);
+    playlist.media.push(_media.id);
     return playlist.save();
-  }, removeOnFailure)
-  .then(playlist => {
-    return new Promise(resolve => resolve(playlist));
   }, removeOnFailure);
 };
 
