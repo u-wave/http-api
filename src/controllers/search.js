@@ -76,7 +76,7 @@ export const searchYoutube = function searchYoutube(query, key) {
     'videoSyndicated': true,
     'part': 'snippet',
     'order': 'rating',
-    'maxResults': 10,
+    'maxResults': 25,
     'type': 'video'
   });
 
@@ -110,7 +110,8 @@ export const searchYoutube = function searchYoutube(query, key) {
 export const searchSoundcloud = function searchSoundcloud(query, key) {
   const params = queryBuilder({
     'client_id': key,
-    'q': query
+    'q': query,
+    'limit': 25
   });
 
   const opts = {
