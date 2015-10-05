@@ -7,6 +7,7 @@ export default function(mongoose) {
     'description': { 'type': String, 'max': 512 },
     'motd': { 'type': String, 'max': 128 },
     'genre': { 'type': String, 'max': 128 },
+    'maxduration': { 'type': Number, 'default': -1 },
     'host': { 'type': Schema.Types.ObjectId, 'ref': 'User' },
     'media': { 'type': Schema.Types.ObjectId, 'ref': 'Media' }
   }, {
