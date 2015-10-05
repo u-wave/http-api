@@ -2,8 +2,10 @@ import Promise from 'bluebird';
 import debug from 'debug';
 import https from 'https';
 
-const ObjectId = mongoose.Types.ObjectId;
+import { GenericError } from '../errors';
+
 const log = debug('uwave:api:v1:search');
+const rxDuration = /^(?:PT)?([0-9]+?H)?([0-9]+?M)?([0-9]+?S)?/i;
 const rxTitle = /[-_]/;
 
 const sendRequest = function sendRequest(opts) {
@@ -45,6 +47,39 @@ const selectThumbnail = function selectThumbnail(thumbnails) {
   if (typeof thumbnails.default === 'object') return thumbnails.default.url;
 };
 
+const parseYoutubeDuration = function parseYoutubeDuration(duration) {
+  const time = duration.split(rxDuration);
+  let _seconds = 0;
+
+  for (let i = time.length - 1; i >= 0; i--) {
+    if (typeof time[i] !== 'string') continue;
+    const length = time[i].length;
+    if (length === 0) continue;
+
+    switch(time[i].slice(length - 1).toLowerCase()) {
+      case 'h':
+        const hours = parseInt(time[i].slice(0, length), 10);
+        if (hours === NaN) break;
+        _seconds += hours*60*60;
+      break;
+
+      case 'm':
+        const minutes = parseInt(time[i].slice(0, length), 10);
+        if (minutes === NaN) break;
+        _seconds += minutes*60;
+      break;
+
+      case 's':
+        const seconds = parseInt(time[i].slice(0, length), 10);
+        if (seconds === NaN) break;
+        _seconds += seconds;
+      break;
+    }
+  }
+
+  return _seconds;
+};
+
 const splitTitle = function splitTitle(title) {
   const metadata = title.split(rxTitle);
 
@@ -62,6 +97,76 @@ const splitTitle = function splitTitle(title) {
   }
 
   return metadata;
+};
+
+export const fetchMediaYoutube = function fetchMediaYoutube(id, key) {
+  const params = queryBuilder({
+    'part': 'snippet,contentDetails',
+    'key': key,
+    'id': id
+  });
+
+  const opts = {
+    'host': 'www.googleapis.com',
+    'path': '/youtube/v3/videos?' + params
+  };
+
+  return sendRequest(opts)
+  .then(media => {
+    if (
+      !Array.isArray(media.items) || media.items.length === 0 ||
+      !media.items[0].snippet || !media.items[0].contentDetails
+    ) throw new GenericError(404, 'media not found');
+    const title = splitTitle(media.items[0].snippet.title);
+
+    return {
+      'sourceType': 'youtube',
+      'sourceID': id,
+      'artist': title[0],
+      'title': title[1],
+      'duration': parseYoutubeDuration(media.items[0].contentDetails.duration),
+      'thumbnail': selectThumbnail(media.items[0].snippet.thumbnails)
+    };
+  });
+};
+
+export const fetchMediaSoundcloud = function fetchMediaSoundcloud(id, key) {
+  const params = queryBuilder({
+    'client_id': key
+  });
+
+  const opts = {
+    'host': 'api.soundcloud.com',
+    'path': ['/tracks/', id, '?', params].join('')
+  };
+
+  return sendRequest(opts)
+  .then(media => {
+    if (!media) throw new GenericError(404, 'media not found');
+    const title = splitTitle(media.title);
+
+    return {
+      'sourceType': 'soundcloud',
+      'sourceID': id,
+      'artist': title[0],
+      'title': title[1],
+      'duration': Math.ceil(parseInt(media.duration / 1000, 10)),
+      'thumbnail': media.artwork_url || media.waveform_url
+    };
+  });
+};
+
+export const fetchMedia = function fetchMedia(sourceType, sourceID, keys) {
+  switch(sourceType.toLowerCase()) {
+    case 'youtube':
+      return fetchMediaYoutube(sourceID, keys.youtube);
+
+    case 'soundcloud':
+      return fetchMediaSoundcloud(sourceID, keys.soundcloud);
+
+    default:
+      return new Promise((resolve, reject) => reject(new GenericError(404, 'unknown provider')));
+  }
 };
 
 export const searchYoutube = function searchYoutube(query, key) {
