@@ -1,10 +1,6 @@
-import mongoose from 'mongoose';
 import Promise from 'bluebird';
 import debug from 'debug';
 import https from 'https';
-
-import { createCommand } from '../sockets';
-import { GenericError } from '../errors';
 
 const ObjectId = mongoose.Types.ObjectId;
 const log = debug('uwave:api:v1:search');
