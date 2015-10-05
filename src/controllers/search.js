@@ -27,7 +27,7 @@ const sendRequest = function sendRequest(opts) {
       });
     }).end();
   });
-}
+};
 
 const queryBuilder = function queryBuilder(options) {
   const keys = Object.keys(options);
@@ -39,7 +39,7 @@ const queryBuilder = function queryBuilder(options) {
 
   // remove the first ampersand
   return query.join('').slice(1);
-}
+};
 
 const selectThumbnail = function selectThumbnail(thumbnails) {
   if (typeof thumbnails !== 'object') return '';
@@ -47,7 +47,7 @@ const selectThumbnail = function selectThumbnail(thumbnails) {
   if (typeof thumbnails.high === 'object') return thumbnails.high.url;
   if (typeof thumbnails.medium === 'object') return thumbnails.medium.url;
   if (typeof thumbnails.default === 'object') return thumbnails.default.url;
-}
+};
 
 const splitTitle = function splitTitle(title) {
   const metadata = title.split(rxTitle);
@@ -66,7 +66,7 @@ const splitTitle = function splitTitle(title) {
   }
 
   return metadata;
-}
+};
 
 export const searchYoutube = function searchYoutube(query, key) {
   const params = queryBuilder({
@@ -139,18 +139,8 @@ export const searchSoundcloud = function searchSoundcloud(query, key) {
 };
 
 export const search = function search(query, searchFilter, keys, uwave) {
-  const results = {
-    'youtube': null,
-    'soundcloud': null
-  };
-
-  return searchYoutube(query, keys.youtube)
-  .then(youtube => {
-    results.youtube = youtube;
-    return searchSoundcloud(query, keys.soundcloud);
-  })
-  .then(soundcloud => {
-    results.soundcloud = soundcloud;
-    return results;
+  return Promise.props({
+    'youtube': searchYoutube(query, keys.youtube),
+    'soundcloud': searchSoundcloud(query, keys.soundcloud)
   });
 };
