@@ -14,10 +14,11 @@ import now from './routes/now';
 
 // models
 import Authentication from './models/authentication';
-import User from './models/user';
+import GlobalMedia from './models/globalmedia';
 import Playlist from './models/playlist';
 import History from './models/history';
 import Media from './models/media';
+import User from './models/user';
 
 // middleware
 import authenticator from './middleware/authenticator';
@@ -68,6 +69,7 @@ export default class V1 {
   registerModels(uwave) {
     const mongoose = uwave.getMongoose();
     Authentication(mongoose);
+    GlobalMedia(mongoose);
     Playlist(mongoose);
     History(mongoose);
     Media(mongoose);
