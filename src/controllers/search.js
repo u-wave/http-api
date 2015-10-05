@@ -138,7 +138,7 @@ export const searchSoundcloud = function searchSoundcloud(query, key) {
   });
 };
 
-export const search = function search(query, searchFilter, keys, uwave) {
+export const search = function search(query, keys, uwave) {
   return Promise.props({
     'youtube': searchYoutube(query, keys.youtube),
     'soundcloud': searchSoundcloud(query, keys.soundcloud)
