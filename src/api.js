@@ -6,6 +6,7 @@ import fs from 'fs';
 import authenticate from './routes/authenticate';
 import playlist from './routes/playlists';
 import waitlist from './routes/waitlist';
+import search from './routes/search';
 import booth from './routes/booth';
 import users from './routes/users';
 import chat from './routes/chat';
@@ -42,6 +43,7 @@ export default class V1 {
     authenticate(this, this.router);
     playlist(this.router);
     waitlist(this.router);
+    search(config.keys, this.router);
     booth(this.router);
     users(this.router);
     chat(this.router);
