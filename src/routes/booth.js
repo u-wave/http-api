@@ -36,11 +36,9 @@ export default function booth(router) {
   });
 
   router.post('/booth/favorite', (req, res) => {
-    if (typeof req.body.historyID === 'undefined') return res.status(422).json('historyID is not set');
+    if (!checkFields(req.body, res, ['playlistID', 'historyID'], 'string')) return;
 
-    if (typeof req.body.historyID !== 'string') return res.status(422).json('historyID has to be of type string');
-
-    controller.favorite(req.user.id, req.body.historyID, req.uwave)
+    controller.favorite(req.user.id, req.body.playlistID, req.body.historyID, req.uwave)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
