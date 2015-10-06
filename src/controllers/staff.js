@@ -1,11 +1,8 @@
-import mongoose from 'mongoose';
-import Promise from 'bluebird';
 import debug from 'debug';
 
 import { GenericError } from '../errors';
 import { fetchMedia } from './search';
 
-const ObjectId = mongoose.Types.ObjectId;
 const log = debug('uwave:api:v1:staff');
 
 export const getGlobalMedia = function getGlobalMedia(page, limit, mongo) {
