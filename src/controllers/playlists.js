@@ -238,3 +238,35 @@ export const deletePlaylistItem = function deletePlaylistItem(id, playlistID, me
     throw new GenericError(404, 'media not found');
   });
 };
+
+export const copyPlaylistItem = function copyPlaylistItem(id, fromPlaylistID, mediaID, toPlaylistID, mongo) {
+  const PlaylistItem = mongo.model('PlaylistItem');
+  const Playlist = mongo.model('Playlist');
+
+  let _playlistItem = null;
+
+  return Playlist.findOne(ObjectId(fromPlaylistID)).populate('media')
+  .then(playlist => {
+    if (!playlist) throw new GenericError(404, 'originating playlist not found');
+    if (playlist.author.toString() !== id && !playlist.shared) throw new GenericError(403, 'originating playlist is private');
+
+    for (let i = playlist.media.length - 1; i >= 0; i--) {
+      if (playlists.media[i].id === mediaID) {
+        return PlaylistItem.findOne(ObjectId(mediaID), '-id');
+      }
+    }
+  })
+  .then(playlistItem => {
+    return new PlaylistItem(playlistItem);
+  })
+  .then(playlistItem => {
+    _playlistItem = playlistItem;
+    return Playlist.findOne(ObjectId(toPlaylistID));
+  })
+  .then(playlist => {
+    if (!playlist) throw new GenericError(404, 'playlist not found');
+    if (!playlist.author.toString() !== id) throw new GenericError(403, 'you can\'t copy media to another user\'s playlist');
+    playlist.media.push(_playlistItem.id);
+    return playlist.save();
+  });
+}

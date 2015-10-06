@@ -133,4 +133,12 @@ export default function playlists(router) {
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   });
+
+  router.post('/playlists/:id/media/:mediaID/copy', (req, res) => {
+    if (!checkFields(req.body, res, ['toPlaylistID'], 'string')) return;
+
+    controller.copyPlaylistItem(req.user.id, req.params.id, req.params.mediaID, req.uwave.mongo)
+    .then(playlist => res.status(200).json(playlist))
+    .catch(e => handleError(res, e, log));
+  });
 }
