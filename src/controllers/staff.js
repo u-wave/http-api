@@ -5,16 +5,16 @@ import { fetchMedia } from './search';
 
 const log = debug('uwave:api:v1:staff');
 
-export const getGlobalMedia = function getGlobalMedia(page, limit, mongo) {
-  const GlobalMedia = mongo.model('GlobalMedia');
+export const getAllMedia = function getAllMedia(page, limit, mongo) {
+  const Media = mongo.model('Media');
   const _limit = Math.min(limit, 100);
-  return GlobalMedia.find({}).setOptions({ 'limit': _limit, 'skip': _limit * page });
+  return Media.find({}).setOptions({ 'limit': _limit, 'skip': _limit * page });
 };
 
 export const getMedia = function getMedia(type, id, mongo) {
-  const GlobalMedia = mongo.model('GlobalMedia');
+  const Media = mongo.model('Media');
 
-  return GlobalMedia.find({ 'sourceType': type, 'sourceID': id })
+  return Media.find({ 'sourceType': type, 'sourceID': id })
   .then(media => {
     if (!media) throw new GenericError(404, 'no media found');
 
@@ -23,16 +23,16 @@ export const getMedia = function getMedia(type, id, mongo) {
 };
 
 export const addMedia = function addMedia(type, id, keys, mongo) {
-  const GlobalMedia = mongo.model('GlobalMedia');
+  const Media = mongo.model('Media');
   return fetchMedia(type, id, keys)
   .then(media => {
-    return new GlobalMedia(media).save();
+    return new Media(media).save();
   });
 };
 
 export const editMedia = function editMedia(metadata, mongo) {
-  const GlobalMedia = mongo.model('GlobalMedia');
-  return GlobalMedia.findOneAndUpdate(
+  const Media = mongo.model('Media');
+  return Media.findOneAndUpdate(
     { 'sourceType': metadata.sourceType, 'sourceID': metadata.sourceID },
     { 'artist': metadata.artist, 'title': metadata.title }
   )
@@ -43,8 +43,8 @@ export const editMedia = function editMedia(metadata, mongo) {
 };
 
 export const removeMedia = function removeMedia(type, id, mongo) {
-  const GlobalMedia = mongo.model('GlobalMedia');
-  return GlobalMedia.findOneAndRemove({ 'sourceType': type, 'sourceID': id })
+  const Media = mongo.model('Media');
+  return Media.findOneAndRemove({ 'sourceType': type, 'sourceID': id })
   .then(media => {
     if (!media) throw new GenericError(404, 'no media found');
     return media;

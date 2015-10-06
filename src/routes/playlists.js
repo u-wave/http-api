@@ -84,34 +84,21 @@ export default function playlists(router) {
 
   .post((req, res) => {
     if (!checkFields(req.body, res, [
-      'artist',
-      'title',
-      'start',
-      'end'
+      'sourceType',
+      'sourceID'
     ], [
       'string',
-      'string',
-      'number',
-      'number'
+      'string'
     ])) return;
 
-    const metadata = {
-      'artist': req.body.name,
-      'title': req.body.title,
-      'start': req.body.start,
-      'end': req.body.end
-    };
-
-    // TODO: add and validate source
-
-    controller.createMedia(req.user.id, req.params.id, metadata, req.uwave.mongo)
+    controller.createPlaylistItem(req.user.id, req.params.id, req.body.sourceType, req.body.sourceID, req.uwave)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   });
 
   router.route('/playlists/:id/media/:mediaID')
   .get((req, res) => {
-    controller.getMedia(req.user.id, req.params.id, req.params.mediaID, req.uwave.mongo)
+    controller.getPlaylistItem(req.user.id, req.params.id, req.params.mediaID, req.uwave.mongo)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   })
@@ -136,13 +123,13 @@ export default function playlists(router) {
       'end': req.body.end
     };
 
-    controller.updateMedia(req.user.id, req.params.id, req.params.mediaID, metadata, req.uwave.mongo)
+    controller.updatePlaylistItem(req.user.id, req.params.id, req.params.mediaID, metadata, req.uwave.mongo)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   })
 
   .delete((req, res) => {
-    controller.deleteMedia(req.user.id, req.params.id, req.params.mediaID, req.uwave.mongo)
+    controller.deletePlaylistItem(req.user.id, req.params.id, req.params.mediaID, req.uwave.mongo)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   });
