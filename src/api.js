@@ -9,6 +9,7 @@ import waitlist from './routes/waitlist';
 import search from './routes/search';
 import booth from './routes/booth';
 import users from './routes/users';
+import staff from './routes/staff';
 import chat from './routes/chat';
 import now from './routes/now';
 
@@ -44,9 +45,10 @@ export default class V1 {
     authenticate(this, this.router);
     playlist(this.router);
     waitlist(this.router);
-    search(config.keys, this.router);
+    search(this.router);
     booth(this.router);
     users(this.router);
+    staff(this.router);
     chat(this.router);
     now(this.router);
   }
