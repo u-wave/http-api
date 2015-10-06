@@ -84,19 +84,29 @@ export const replaceBooth = function replaceBooth(moderatorID, id, uwave) {
   });
 };
 
-export const favorite = function favorite(id, playlistID, uwave) {
+export const favorite = function favorite(id, playlistID, historyID, uwave) {
   const Playlist = uwave.mongo.model('Playlist');
+  const History = uwave.mongo.model('History');
   const User = uwave.mongo.model('User');
 
-  Playlist.findOne(ObjectId(playlistID))
+  let _mediaID;
+
+  return History.findOne(ObjectId(historyID))
+  .then(history => {
+    if (!history) throw new GenericError(404, `history entry with ID ${historyID} not found`);
+    if (history.user.toString() === id) throw new GenericError(403, 'you can\'t grab your own song');
+
+    _mediaID = history.media.toString();
+    return Playlist.findOne(ObjectId(playlistID));
+  })
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `Playlist with ID ${playlistID} not found`);
     if (playlist.author !== id) {
       throw new GenericError(403, 'you are not allowed to edit playlists of other users');
     }
 
-    // TODO: evaluate Media ID
-    //playlist.media.push(...);
+    playlist.media.push(_mediaID);
+
     this.redis.lrem('booth:favorite', 0, id);
     this.redis.lpush('booth:favorite', id);
     uwave.redis.publish('v1', createCommand('favorite', {
