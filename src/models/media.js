@@ -2,11 +2,12 @@ export default function(mongoose) {
   const Schema = mongoose.Schema;
 
   const mediaSchema = new Schema({
-    'global': { 'type': Schema.Types.ObjectId, 'ref': 'GlobalMedia', 'required': true },
     'artist': { 'type': String, 'max': 128, 'required': true },
     'title': { 'type': String, 'max': 128, 'required': true },
-    'start': { 'type': Number, 'min': 0, 'default': 0 },
-    'end': { 'type': Number, 'min': 0, 'default': 0 }
+    'duration': { 'type': Number, 'min': 0, 'default': 0 },
+    'thumbnail': { 'type': String, 'max': 256, 'default': '' },
+    'sourceID': { 'type': String, 'max': 128, 'required': true },
+    'sourceType': { 'type': String, 'max': 128, 'required': true }
   }, {
     'minimize': false
   });
