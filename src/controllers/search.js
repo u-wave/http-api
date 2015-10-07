@@ -80,6 +80,14 @@ const parseYoutubeDuration = function parseYoutubeDuration(duration) {
   return _seconds;
 };
 
+const getRegionRestriction = function getRegionRestriction(contentDetails) {
+  if (contentDetails.regionRestriction) {
+    return contentDetails.regionRestriction.blocked || [];
+  } else {
+    return [];
+  }
+};
+
 const splitTitle = function splitTitle(title) {
   const metadata = title.split(rxTitle);
 
@@ -125,7 +133,9 @@ export const fetchMediaYoutube = function fetchMediaYoutube(id, key) {
       'artist': title[0],
       'title': title[1],
       'duration': parseYoutubeDuration(media.items[0].contentDetails.duration),
-      'thumbnail': selectThumbnail(media.items[0].snippet.thumbnails)
+      'thumbnail': selectThumbnail(media.items[0].snippet.thumbnails),
+      'nsfw': typeof media.items[0].contentDetails.contentRating === 'object',
+      'restricted': getRegionRestriction(media.items[0].contentDetails)
     };
   });
 };
@@ -151,7 +161,9 @@ export const fetchMediaSoundcloud = function fetchMediaSoundcloud(id, key) {
       'artist': title[0],
       'title': title[1],
       'duration': Math.ceil(parseInt(media.duration / 1000, 10)),
-      'thumbnail': media.artwork_url || media.waveform_url
+      'thumbnail': media.artwork_url || media.waveform_url,
+      'nsfw': false,
+      'restricted': []
     };
   });
 };
@@ -200,7 +212,9 @@ export const searchYoutube = function searchYoutube(query, key) {
         'sourceID': body.items[i].id.videoId,
         'artist': title[0],
         'title': title[1],
-        'thumbnail': selectThumbnail(body.items[i].snippet.thumbnails)
+        'thumbnail': selectThumbnail(body.items[i].snippet.thumbnails),
+        'nsfw': typeof media.items[i].contentDetails.contentRating === 'object',
+        'restricted': getRegionRestriction(media.items[0].contentDetails)
       });
     }
 
@@ -232,7 +246,9 @@ export const searchSoundcloud = function searchSoundcloud(query, key) {
         'sourceID': body[i].id,
         'artist': title[0],
         'title': title[1],
-        'thumbnail': body[i].artwork_url || body[i].waveform_url
+        'thumbnail': body[i].artwork_url || body[i].waveform_url,
+        'nsfw': false,
+        'restricted': []
       });
     }
     return items;
