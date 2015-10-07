@@ -9,7 +9,7 @@ export default function(mongoose) {
     'genre': { 'type': String, 'max': 128 },
     'maxduration': { 'type': Number, 'default': -1 },
     'host': { 'type': Schema.Types.ObjectId, 'ref': 'User' },
-    'media': { 'type': Schema.Types.ObjectId, 'ref': 'Media' }
+    'media': { 'type': Schema.Types.ObjectId, 'ref': 'PlaylistItem' }
   }, {
     'minimize': false
   });
