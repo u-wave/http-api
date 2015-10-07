@@ -7,13 +7,13 @@ import handleError from '../errors';
 const log = debug('uwave:api:v1:staff');
 
 export default function staff(router) {
-  router.get('/staff/global', (req, res) => {
+  router.get('/staff/media', (req, res) => {
     controller.getAllMedia(req.query.page, parseInt(req.query.limit, 10), req.uwave.mongo)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   });
 
-  router.route('/staff/global/:id')
+  router.route('/staff/media/:id')
   .get((req, res) => {
     if (req.user.role < 4) return res.status(403).json('you need to be at least manager to do this');
     if (!checkFields(req.body, res, ['sourceType', 'sourceID'], 'string')) return;
