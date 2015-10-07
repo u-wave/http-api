@@ -100,7 +100,7 @@ export default class WSServer {
     conn.on('close', code => {
       const client = this.clients[conn.id];
 
-      if (client && client.id.length > 0) {
+      if (client && client._id.length > 0) {
         this.broadcast(createCommand('leave', client.id));
       }
       this._close(conn.id, code);
@@ -111,7 +111,7 @@ export default class WSServer {
     this.clients[conn.id] = {
       'heartbeat': Date.now(),
       'conn': conn,
-      'id': ''
+      '_id': ''
     };
   }
 
@@ -183,7 +183,7 @@ export default class WSServer {
     switch(payload.command) {
       case 'sendChat':
         this.broadcast(createCommand('chatMessage', {
-          'id': user.id,
+          '_id': user._id,
           'message': payload.data,
           'timestamp': Date.now()
         }));
@@ -195,7 +195,7 @@ export default class WSServer {
         this.redis.lpush(payload.data > 0 ? 'booth:upvotes' : 'booth:downvotes', user.id);
 
         this.broadcast(createCommand('vote', {
-          'id': user.id,
+          '_id': user._id,
           'value': payload.data
         }));
       break;
@@ -215,6 +215,7 @@ export default class WSServer {
 
         advance(this.mongo, this.redis)
         .then(booth => {
+          this.redis.set('booth:historyID', booth.historyID);
           this.broadcast(createCommand('advance', booth));
           this.advanceTimer = setTimeout(
             advance,
@@ -224,6 +225,7 @@ export default class WSServer {
         })
         .catch(e => {
           log(e);
+          this.redis.del('booth:historyID');
           this.broadcast(createCommand('advance', null));
         });
       } else if (command.command === 'closeSocket') {
