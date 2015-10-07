@@ -30,16 +30,30 @@ export const addMedia = function addMedia(type, id, keys, mongo) {
   });
 };
 
-export const editMedia = function editMedia(metadata, mongo) {
+export const editMedia = function editMedia(metadata, keys, mongo) {
   const Media = mongo.model('Media');
-  return Media.findOneAndUpdate(
-    { 'sourceType': metadata.sourceType, 'sourceID': metadata.sourceID },
-    { 'artist': metadata.artist, 'title': metadata.title }
-  )
-  .then(media => {
-    if (!media) throw new GenericError(404, 'no media found');
-    return media;
-  });
+  if (media.auto) {
+    return fetchMedia(metadata.sourceType, sourceID, keys)
+    .then(updatedMedia => {
+      return Media.findOneAndUpdate(
+        { 'sourceType': metadata.sourceType, 'sourceID': metadata.sourceID },
+        { 'artist': updatedMedia.artist, 'title': updatedMedia.title, 'nsfw': updatedMedia.nsfw, 'restricted': updatedMedia.restricted }
+      );
+    })
+    .then(media => {
+      if (!media) throw new GenericError(404, 'no media found');
+      return media;
+    });
+  } else {
+    return Media.findOneAndUpdate(
+      { 'sourceType': metadata.sourceType, 'sourceID': metadata.sourceID },
+      { 'artist': metadata.artist, 'title': metadata.title, 'nsfw': metadata.nsfw, 'restricted': metadata.restricted }
+    )
+    .then(media => {
+      if (!media) throw new GenericError(404, 'no media found');
+      return media;
+    });
+  }
 };
 
 export const removeMedia = function removeMedia(type, id, mongo) {

@@ -34,9 +34,28 @@ export default function staff(router) {
 
   .put((req, res) => {
     if (req.user.role < 4) return res.status(403).json('you need to be at least manager to do this');
-    if (!checkFields(req.body, res, ['sourceType', 'sourceID', 'artist', 'title'], 'string')) return;
+    if (!req.body.auto) {
+      if (!checkFields(req.body, res, [
+        'sourceType',
+        'sourceID',
+        'artist',
+        'title',
+        'nsfw',
+        'restricted'
+      ], [
+        'string',
+        'string',
+        'string',
+        'string',
+        'boolean'
+      ])) return;
 
-    controller.editMedia(req.body, req.uwave.mongo)
+      if (!Array.isArray(req.body.restricted)) res.status(422).json('restricted has to be an array of strings');
+    } else {
+      if (!checkFields(req.body, res, ['sourceType', 'sourceID', 'auto'], ['string', 'string', 'boolean'])) return;
+    }
+
+    controller.editMedia(req.body, req.uwave.keys, req.uwave.mongo)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   })
