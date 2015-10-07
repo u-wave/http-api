@@ -149,7 +149,7 @@ export default class WSServer {
       });
 
       this.clients[conn.id].id = user.id;
-      this.User.findOne(ObjectId(user.id), { '-__v': 0 })
+      this.User.findOne(ObjectId(user.id), { '__v': 0 })
       .then(user => {
         if (!user) return conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'unknown user'));
         this.redis.lpush('users', user.id);
