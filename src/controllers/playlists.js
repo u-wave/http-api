@@ -134,45 +134,61 @@ export const activatePlaylist = function activatePlaylist(id, playlistID, uwave)
   });
 };
 
-export const createPlaylistItem = function createPlaylistItem(id, playlistID, sourceType, sourceID, uwave) {
+export const createPlaylistItem = function createPlaylistItem(id, playlistID, items, uwave) {
   const PlaylistItem = uwave.mongo.model('PlaylistItem');
   const Playlist = uwave.mongo.model('Playlist');
   const Media = uwave.mongo.model('Media');
 
-  let _playlistItem = null;
+  const _items = [];
 
-  const removeOnFailure = e => {
-    if (_playlistItem) _playlistItem.remove();
-    throw new GenericError(500, 'couldn\'t save media');
+  const _addMedia = function(sourceType, sourceID) {
+    let _playlistItem = null;
+
+    return Media.findOne({ 'sourceType': sourceType, 'sourceID': sourceID })
+    .then(media => {
+      if (!media) {
+        return addMedia(sourceType, sourceID, uwave.keys, Media);
+      } else {
+        return media;
+      }
+    })
+    .then(media => {
+      _playlistItem = new PlaylistItem({
+        'media': media.id,
+        'artist': media.artist,
+        'title': media.title
+      });
+
+      return _playlistItem.save();
+    })
+    .then(playlistItem => {
+      if (!playlistItem) throw new Error('couldn\'t save media');
+
+      return playlistItem.id;
+    }, e => {
+      if (_playlistItem) _playlistItem.remove();
+      throw e;
+    });
   };
 
-  return Media.findOne({ 'sourceType': sourceType, 'sourceID': sourceID })
-  .then(media => {
-    if (!media) {
-      return addMedia(sourceType, sourceID, uwave.keys, Media);
-    } else {
-      return media;
-    }
-  })
-  .then(media => {
-    return new PlaylistItem({
-      'media': media.id,
-      'artist': media.artist,
-      'title': media.title
-    }).save();
-  })
-  .then(playlistItem => {
-    if (!playlistItem) throw new Error('couldn\'t save media');
-    _playlistItem = playlistItem;
-    return Playlist.findOne(ObjectId(playlistID));
-  }, removeOnFailure)
+  return Playlist.findOne(ObjectId(playlistID))
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
     if (playlist.author.toString() !== id) throw new GenericError(403, 'you can\'t edit the playlist of another user');
 
-    playlist.media.push(_playlistItem.id);
-    return playlist.save();
-  }, removeOnFailure);
+    for (let i = 0, l = items.length; i < l; i++) {
+      if (typeof items[i] !== 'object') continue;
+      if (typeof items[i].sourceType !== 'string' || typeof items[i].sourceID !== 'string') continue;
+
+      _items.push(_addMedia(items[i].sourceType, items[i].sourceID));
+    }
+
+    return Promise.all(_items)
+    .then(playlistItems => {
+      playlist.media = playlist.media.concat(playlistItems);
+      return playlist.save();
+    });
+  });
 };
 
 export const getPlaylistItem = function getPlaylistItem(id, playlistID, mediaID, mongo) {
