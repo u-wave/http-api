@@ -10,12 +10,17 @@ export const getState = function getState(id, uwave) {
     'playlists': null,
     'waitlist': null,
     'users': null,
-    'booth': null
+    'booth': null,
+    'user': null
   };
 
   return Playlist.find({ 'author': ObjectId(id) })
   .then(playlists => {
     state.playlists = playlists;
+    return User.findOne(ObjectId(id));
+  })
+  .then(myself => {
+    state.user = myself;
     return uwave.redis.lrange('users', 0, -1);
   })
   .then(users => {
@@ -30,7 +35,8 @@ export const getState = function getState(id, uwave) {
     return getBooth(uwave);
   })
   .then(booth => {
-    state.booth = booth;
+    if (booth.historyID) state.booth = booth;
+
     return state;
   });
 };
