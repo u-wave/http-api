@@ -8,6 +8,12 @@ const log = debug('uwave:api:v1:auth');
 const rx = /\s|%20/;
 
 export default function authenticate(v1, router) {
+  router.get('/auth', (req, res) => {
+    controller.getCurrentUser(req.user.id, req.uwave.mongo)
+    .then(user => res.status(200).json(user))
+    .catch(e => handleError(res, e, log));
+  });
+
   /* ========== REGISTER ========== */
   router.post('/auth/register', (req, res) => {
     if (!checkFields(req.body, res, [

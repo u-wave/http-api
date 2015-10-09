@@ -37,6 +37,12 @@ export const generateHashPair = function generateHashPair(password, length) {
   });
 };
 
+export const getCurrentUser = function getCurrentUser(id, mongo) {
+  const User = mongo.model('User');
+
+  return User.findOne(ObjectId(id));
+};
+
 export const createUser = function createUser(email, username, password, mongo) {
   const User = mongo.model('User');
   const Authentication = mongo.model('Authentication');
