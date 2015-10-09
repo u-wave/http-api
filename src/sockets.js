@@ -99,10 +99,6 @@ export default class WSServer {
     conn.on('message', msg => this._authenticate(conn, msg));
     conn.on('close', code => {
       const client = this.clients[conn.id];
-
-      if (client && client._id.length > 0) {
-        this.broadcast(createCommand('leave', client.id));
-      }
       this._close(conn.id, code);
     });
 
@@ -135,8 +131,11 @@ export default class WSServer {
       conn.on('message', msg => this._handleIncomingCommands(conn, msg));
       conn.on('error', e => log(e));
       conn.on('close', code => {
-        this._removeUser(this.clients[conn.id].id);
+        const client = this.clients[conn.id];
+
         this._close(conn.id, code);
+        this._removeUser(client._id);
+        this.broadcast(createCommand('leave', client._id));
       });
 
       conn.on('ping', () => {
