@@ -9,10 +9,6 @@ const log = debug('uwave:v1:authenticator');
 
 export default function _authenticator (v1) {
   return function authenticator(req, res, next) {
-    // check for routes that need no authentication
-    if (rx.test(req.path)) return next();
-    if (!req.query.token) return res.status(422).json('no token set');
-
     verify(req.query.token, v1.getCert())
     .then(user => {
       if (!user) res.status(404).json('user not found');
@@ -23,6 +19,10 @@ export default function _authenticator (v1) {
       next();
     })
     .catch(jwt.JsonWebTokenError, e => {
+      // check for routes that need no authentication
+      if (rx.test(req.path)) return next();
+      if (!req.query.token) return res.status(422).json('no token set');
+
       log(`Token '${req.query.token.slice(0, 64)}...' was not valid.`);
       res.status(410).json('access token invalid');
     })
