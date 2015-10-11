@@ -69,6 +69,15 @@ export default function playlists(router) {
     .catch(e => handleError(res, e, log));
   });
 
+  router.put('/playlists/:id/move', (req, res) => {
+    if (!checkFields(req.body, res, ['items', 'after']))
+    if (!Array.isArray(req.body.items)) return res.status(422).json('items has to be an array');
+
+    controller.movePlaylistItems(req.user.id, req.params.id, req.body.after, req.body.items, req.uwave.mongo)
+    .then(playlist => res.status(200).json(playlist))
+    .catch(e => handleError(res, e, log));
+  });
+
   router.put('/playlists/:id/activate', (req, res) => {
     controller.activatePlaylist(req.user.id, req.params.id, req.uwave)
     .then(playlist => res.status(200).json(playlist))

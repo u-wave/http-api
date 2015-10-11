@@ -120,6 +120,44 @@ export const sharePlaylist = function sharePlaylist(id, playlistID, shared, mong
   });
 };
 
+export const movePlaylistItems = function movePlaylistItems(id, playlistID, after, items, mongo) {
+  const PlaylistItem = mongo.model('PlaylistItem');
+  const Playlist = mongo.model('Playlist');
+  let pos = -1;
+
+  return Playlist.findOne(ObjectId(playlistID))
+  .then(playlist => {
+    if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+    if (id !== playlist.author.toString()) {
+      throw new GenericError(403, 'you can\'t edit the playlist of another user');
+    }
+
+    const _items = [];
+
+    for (let i = playlist.media.length - 1; i >= 0; i--) {
+      const _id = playlist.media[i].toString();
+
+      for (let j = items.length - 1; j >= 0; j--) {
+        if (_id === items[j]) {
+          _items.push(playlist.media.splice(i, 1)[0]);
+          items.splice(j, 1);
+          break;
+        }
+      }
+    }
+
+    for (let i = playlist.media.length - 1; i >= 0; i--) {
+      if (playlist.media[i].toString() === after) {
+        pos = i;
+        break;
+      }
+    }
+
+    playlist.media.splice(pos + 1, 0, ..._items);
+    return playlist.save();
+  });
+};
+
 export const activatePlaylist = function activatePlaylist(id, playlistID, uwave) {
   const Playlist = uwave.mongo.model('Playlist');
   return Playlist.findOne(ObjectId(playlistID)).populate('author')
