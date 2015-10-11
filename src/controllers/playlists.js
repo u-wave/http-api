@@ -54,7 +54,7 @@ export const getPlaylist = function getPlaylist(id, playlistID, populate, mongo)
   const Playlist = mongo.model('Playlist');
 
   return (
-    populate ?
+    !populate ?
     Playlist.findOne(ObjectId(playlistID)) :
     Playlist.findOne(ObjectId(playlistID)).populate('media')
   )
