@@ -10,7 +10,7 @@ export default function users(router) {
   router.get('/users', (req, res) => {
     if (req.user.role < 4) return res.status(403).json('you need to be at least manager to do this');
 
-    controller.getUsers(req.uwave.mongo)
+    controller.getUsers(parseInt(req.query.page, 10), parseInt(req.query.limit, 10), req.uwave.mongo)
     .then(users => res.status(200).json(users))
     .catch(e => handleError(res, e, log));
   });

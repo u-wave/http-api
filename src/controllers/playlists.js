@@ -16,10 +16,13 @@ const addMedia = function addMedia(sourceType, sourceID, keys, Media) {
   });
 };
 
-export const getPlaylists = function getPlaylists(id, mongo) {
+export const getPlaylists = function getPlaylists(page, limit, id, mongo) {
   const Playlist = mongo.model('Playlist');
 
-  return Playlist.find({'author': id});
+  const _page = (page === NaN ? 0 : page);
+  const _limit = (limit === NaN ? 50 : Math.ceil(limit, 50));
+
+  return Playlist.find({'author': id}).setOptions({ 'limit': _limit, 'skip': _limit * _page });
 };
 
 export const createPlaylist = function createPlaylist(data, mediaArray, mongo) {
@@ -50,13 +53,15 @@ export const createPlaylist = function createPlaylist(data, mediaArray, mongo) {
   });
 };
 
-export const getPlaylist = function getPlaylist(id, playlistID, populate, mongo) {
+export const getPlaylist = function getPlaylist(page, limit, id, playlistID, populate, mongo) {
   const Playlist = mongo.model('Playlist');
+  const _page = (page === NaN ? 0 : page);
+  const _limit = (limit === NaN ? 100 : Math.min(limit, 100));
 
   return (
     !populate ?
     Playlist.findOne(ObjectId(playlistID)) :
-    Playlist.findOne(ObjectId(playlistID)).populate('media')
+    Playlist.findOne(ObjectId(playlistID), { 'media': { '$slice': [_limit * _page, _limit] }}).populate('media')
   )
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);

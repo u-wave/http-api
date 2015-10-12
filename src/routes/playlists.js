@@ -10,7 +10,7 @@ export default function playlists(router) {
   router.route('/playlists')
   .get((req, res) => {
 
-    controller.getPlaylists(req.user.id, req.uwave.mongo)
+    controller.getPlaylists(parseInt(req.query.page, 10), parseInt(req.query.limit, 10), req.user.id, req.uwave.mongo)
     .then(playlists => res.status(200).json(playlists))
     .catch(e => handleError(res, e, log));
   })
@@ -86,7 +86,7 @@ export default function playlists(router) {
 
   router.route('/playlists/:id/media')
   .get((req, res) => {
-    controller.getPlaylist(req.user.id, req.params.id, true, req.uwave.mongo)
+    controller.getPlaylist(parseInt(req.query.page, 10), parseInt(req.query.limit, 10), req.user.id, req.params.id, true, req.uwave.mongo)
     .then(playlist => res.status(200).json(playlist.media))
     .catch(e => handleError(res, e, log));
   })

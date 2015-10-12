@@ -7,8 +7,9 @@ const log = debug('uwave:api:v1:staff');
 
 export const getAllMedia = function getAllMedia(page, limit, mongo) {
   const Media = mongo.model('Media');
-  const _limit = Math.min(limit, 100);
-  return Media.find({}).setOptions({ 'limit': _limit, 'skip': _limit * page });
+  const _page = (page === NaN ? 0 : page);
+  const _limit = (limit === NaN ? 200 : Math.min(limit, 200));
+  return Media.find({}).setOptions({ 'limit': _limit, 'skip': _limit * _page });
 };
 
 export const getMedia = function getMedia(type, id, mongo) {

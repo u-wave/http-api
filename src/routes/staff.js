@@ -8,7 +8,7 @@ const log = debug('uwave:api:v1:staff');
 
 export default function staff(router) {
   router.get('/staff/media', (req, res) => {
-    controller.getAllMedia(req.query.page, parseInt(req.query.limit, 10), req.uwave.mongo)
+    controller.getAllMedia(parseInt(req.query.page, 10), parseInt(req.query.limit, 10), req.uwave.mongo)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   });

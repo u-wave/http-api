@@ -8,10 +8,12 @@ import { GenericError } from '../errors';
 const ObjectId = mongoose.Types.ObjectId;
 const log = debug('uwave:api:v1:users');
 
-export const getUsers = function getUsers(mongo) {
+export const getUsers = function getUsers(page, limit, mongo) {
   const User = mongo.model('User');
+  const _page = (page === NaN ? 0 : page);
+  const _limit = (limit === NaN ? 50 : Math.min(limit, 50));
 
-  return User.find();
+  return User.find().setOptions({ 'limit': _limit, 'page': _limit * _page });
 };
 
 export const getUser = function getUser(id, mongo) {
