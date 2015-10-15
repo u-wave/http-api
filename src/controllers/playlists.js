@@ -58,18 +58,31 @@ export const getPlaylist = function getPlaylist(page, limit, id, playlistID, pop
   const _page = (page === NaN ? 0 : page);
   const _limit = (limit === NaN ? 100 : Math.min(limit, 100));
 
-  return (
-    !populate ?
-    Playlist.findOne(ObjectId(playlistID)) :
-    Playlist.findOne(ObjectId(playlistID), { 'media': { '$slice': [_limit * _page, _limit] }}).populate('media')
-  )
+  return Playlist.findOne(ObjectId(playlistID), (populate ? { 'media': { '$slice': [_limit * _page, _limit] }} : {}))
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
     if (id !== playlist.author.toString() && playlist.shared) {
       throw new GenericError(403, 'this playlist is private');
     }
 
-    return playlist.populate('media');
+    let _playlist = null;
+
+    if (populate) {
+      _playlist = playlist.populate('media');
+    } else {
+      _playlist = {
+        '_id': playlist.id,
+        'name': playlist.name,
+        'author': playlist.author,
+        'created': playlist.created,
+        'description': playlist.description,
+        'shared': playlist.shared,
+        'nsfw': playlist.nsfw,
+        'size': playlist.media.length;
+      }
+    }
+
+    return _playlist
   });
 };
 
