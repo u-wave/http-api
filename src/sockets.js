@@ -182,7 +182,7 @@ export default class WSServer {
     switch(payload.command) {
       case 'sendChat':
         this.broadcast(createCommand('chatMessage', {
-          '_id': user._id,
+          '_id': user.id,
           'message': payload.data,
           'timestamp': Date.now()
         }));
