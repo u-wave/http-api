@@ -10,8 +10,8 @@ const log = debug('uwave:api:v1:users');
 
 export const getUsers = function getUsers(page, limit, mongo) {
   const User = mongo.model('User');
-  const _page = (page === NaN ? 0 : page);
-  const _limit = (limit === NaN ? 50 : Math.min(limit, 50));
+  const _page = (isNaN(page) ? 0 : page);
+  const _limit = (isNaN(limit) ? 50 : Math.min(limit, 50));
 
   return User.find().setOptions({ 'limit': _limit, 'page': _limit * _page });
 };

@@ -59,19 +59,19 @@ const parseYoutubeDuration = function parseYoutubeDuration(duration) {
     switch(time[i].slice(length - 1).toLowerCase()) {
       case 'h':
         const hours = parseInt(time[i].slice(0, length), 10);
-        if (hours === NaN) break;
+        if (isNaN(hours)) break;
         _seconds += hours*60*60;
       break;
 
       case 'm':
         const minutes = parseInt(time[i].slice(0, length), 10);
-        if (minutes === NaN) break;
+        if (isNaN(minutes)) break;
         _seconds += minutes*60;
       break;
 
       case 's':
         const seconds = parseInt(time[i].slice(0, length), 10);
-        if (seconds === NaN) break;
+        if (isNaN(seconds)) break;
         _seconds += seconds;
       break;
     }
