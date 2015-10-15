@@ -19,8 +19,8 @@ const addMedia = function addMedia(sourceType, sourceID, keys, Media) {
 export const getPlaylists = function getPlaylists(page, limit, id, mongo) {
   const Playlist = mongo.model('Playlist');
 
-  const _page = (page === NaN ? 0 : page);
-  const _limit = (limit === NaN ? 50 : Math.ceil(limit, 50));
+  const _page = (isNaN(page) ? 0 : page);
+  const _limit = (isNaN(limit) ? 50 : Math.ceil(limit, 50));
 
   return Playlist.find({'author': id}).setOptions({ 'limit': _limit, 'skip': _limit * _page });
 };
@@ -55,10 +55,13 @@ export const createPlaylist = function createPlaylist(data, mediaArray, mongo) {
 
 export const getPlaylist = function getPlaylist(page, limit, id, playlistID, populate, mongo) {
   const Playlist = mongo.model('Playlist');
-  const _page = (page === NaN ? 0 : page);
-  const _limit = (limit === NaN ? 100 : Math.min(limit, 100));
+  const _page = (isNaN(page) ? 0 : page);
+  const _limit = (isNaN(limit) ? 100 : Math.min(limit, 100));
 
-  return Playlist.findOne(ObjectId(playlistID), (populate ? { 'media': { '$slice': [_limit * _page, _limit] }} : {}))
+  return (populate ?
+    Playlist.findOne(ObjectId(playlistID), { 'media': { '$slice': [_limit * _page, _limit] }}).populate('media') :
+    Playlist.findOne(ObjectId(playlistID))
+  )
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
     if (id !== playlist.author.toString() && playlist.shared) {
@@ -68,7 +71,7 @@ export const getPlaylist = function getPlaylist(page, limit, id, playlistID, pop
     let _playlist = null;
 
     if (populate) {
-      _playlist = playlist.populate('media');
+      _playlist = playlist;
     } else {
       _playlist = {
         '_id': playlist.id,
@@ -78,7 +81,7 @@ export const getPlaylist = function getPlaylist(page, limit, id, playlistID, pop
         'description': playlist.description,
         'shared': playlist.shared,
         'nsfw': playlist.nsfw,
-        'size': playlist.media.length;
+        'size': playlist.media.length
       }
     }
 
@@ -210,7 +213,7 @@ export const createPlaylistItem = function createPlaylistItem(id, playlistID, it
     })
     .then(media => {
       _playlistItem = new PlaylistItem({
-        'media': media.id,
+        'media': media,
         'artist': media.artist,
         'title': media.title
       });
@@ -220,7 +223,7 @@ export const createPlaylistItem = function createPlaylistItem(id, playlistID, it
     .then(playlistItem => {
       if (!playlistItem) throw new Error('couldn\'t save media');
 
-      return playlistItem.id;
+      return playlistItem;
     }, e => {
       if (_playlistItem) _playlistItem.remove();
       throw e;
@@ -242,7 +245,14 @@ export const createPlaylistItem = function createPlaylistItem(id, playlistID, it
     return Promise.all(_items)
     .then(playlistItems => {
       playlist.media = playlist.media.concat(playlistItems);
-      return playlist.save();
+
+      return playlist.save()
+      .then(() => {
+        return {
+          'added': playlistItems,
+          'playlistSize': playlist.media.length
+        };
+      });
     });
   });
 };
