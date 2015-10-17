@@ -1,42 +1,28 @@
 import mongoose from 'mongoose';
+import Promise from 'bluebird';
 import { getBooth } from './booth';
+import { getPlaylists } from './playlists';
 
 const ObjectId = mongoose.Types.ObjectId;
 
 export const getState = function getState(id, uwave) {
   const Playlist = uwave.mongo.model('Playlist');
   const User = uwave.mongo.model('User');
-  const state = {
-    'playlists': null,
-    'waitlist': null,
-    'users': null,
-    'booth': null,
-    'user': null
-  };
 
-  return Playlist.find({ 'author': ObjectId(id) })
-  .then(playlists => {
-    state.playlists = playlists;
-    return User.findOne(ObjectId(id));
-  })
-  .then(myself => {
-    state.user = myself;
-    return uwave.redis.lrange('users', 0, -1);
-  })
-  .then(users => {
-    return User.find({'_id': { '$in': users }});
-  })
-  .then(users => {
-    state.users = users;
-    return uwave.redis.lrange('waitlist', 0, -1);
-  })
-  .then(waitlist => {
-    state.waitlist = waitlist;
-    return getBooth(uwave);
-  })
-  .then(booth => {
-    if (booth.historyID) state.booth = booth;
+  const playlists = getPlaylists(0, 50, id, uwave.mongo);
+  const booth = getBooth(uwave)
+    // set booth to null if nobody is playing
+    .then(booth => booth.historyID ? booth : null);
+  const user = User.findOne(ObjectId(id));
+  const users = uwave.redis.lrange('users', 0, -1)
+    .then(userIDs => User.find({'_id': { '$in': userIDs }}));
+  const waitlist = uwave.redis.lrange('waitlist', 0, -1);
 
-    return state;
+  return Promise.props({
+    playlists,
+    booth,
+    user,
+    users,
+    waitlist
   });
 };

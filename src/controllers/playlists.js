@@ -16,13 +16,29 @@ const addMedia = function addMedia(sourceType, sourceID, keys, Media) {
   });
 };
 
+const toPlaylistResponse = function toPlaylistResponse(model) {
+  return {
+    '_id': model.id,
+    'name': model.name,
+    'author': model.author,
+    'created': model.created,
+    'description': model.description,
+    'shared': model.shared,
+    'nsfw': model.nsfw,
+    'size': model.media.length
+  };
+};
+
 export const getPlaylists = function getPlaylists(page, limit, id, mongo) {
   const Playlist = mongo.model('Playlist');
 
   const _page = (isNaN(page) ? 0 : page);
   const _limit = (isNaN(limit) ? 50 : Math.ceil(limit, 50));
 
-  return Playlist.find({'author': id}).setOptions({ 'limit': _limit, 'skip': _limit * _page });
+  return Playlist.find({'author': id})
+    .setOptions({ 'limit': _limit, 'skip': _limit * _page })
+    .exec()
+    .map(toPlaylistResponse);
 };
 
 export const createPlaylist = function createPlaylist(data, mediaArray, mongo) {
@@ -73,19 +89,10 @@ export const getPlaylist = function getPlaylist(page, limit, id, playlistID, pop
     if (populate) {
       _playlist = playlist;
     } else {
-      _playlist = {
-        '_id': playlist.id,
-        'name': playlist.name,
-        'author': playlist.author,
-        'created': playlist.created,
-        'description': playlist.description,
-        'shared': playlist.shared,
-        'nsfw': playlist.nsfw,
-        'size': playlist.media.length
-      }
+      _playlist = toPlaylistResponse(playlist);
     }
 
-    return _playlist
+    return _playlist;
   });
 };
 
