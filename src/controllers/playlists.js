@@ -73,26 +73,23 @@ export const getPlaylist = function getPlaylist(page, limit, id, playlistID, pop
   const Playlist = mongo.model('Playlist');
   const _page = (isNaN(page) ? 0 : page);
   const _limit = (isNaN(limit) ? 100 : Math.min(limit, 100));
+  const _slice = { 'media' : { '$slice': [_limit * _page, _limit ] } };
 
-  return (populate ?
-    Playlist.findOne(ObjectId(playlistID), { 'media': { '$slice': [_limit * _page, _limit] }}).populate('media') :
-    Playlist.findOne(ObjectId(playlistID))
-  )
+  return Playlist.findOne(ObjectId(playlistID), (populate ? _slice : {}))
   .then(playlist => {
-    if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
-    if (id !== playlist.author.toString() && playlist.shared) {
+    if (!playlist) throw new GenericError(404, `playlist with ID ${ID} not found`);
+    if (id !== playlist.author.toString() && !playlist.shared) {
       throw new GenericError(403, 'this playlist is private');
     }
 
-    let _playlist = null;
-
     if (populate) {
-      _playlist = playlist;
+      return playlist.populate('media').execPopulate()
+      .then(_playlist => {
+        return Playlist.populate(_playlist, { 'path': 'media.media', 'model': 'Media' });
+      });
     } else {
-      _playlist = toPlaylistResponse(playlist);
+      return toPlaylistResponse(playlist);
     }
-
-    return _playlist;
   });
 };
 
