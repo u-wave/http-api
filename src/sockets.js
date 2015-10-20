@@ -182,16 +182,16 @@ export default class WSServer {
     switch(payload.command) {
       case 'sendChat':
         this.broadcast(createCommand('chatMessage', {
-          '_id': user.id,
+          '_id': user._id,
           'message': payload.data,
           'timestamp': Date.now()
         }));
       break;
 
       case 'vote':
-        this.redis.lrem('booth:upvotes', 0, user.id);
-        this.redis.lrem('booth:downvotes', 0, user.id);
-        this.redis.lpush(payload.data > 0 ? 'booth:upvotes' : 'booth:downvotes', user.id);
+        this.redis.lrem('booth:upvotes', 0, user._id);
+        this.redis.lrem('booth:downvotes', 0, user._id);
+        this.redis.lpush(payload.data > 0 ? 'booth:upvotes' : 'booth:downvotes', user._id);
 
         this.broadcast(createCommand('vote', {
           '_id': user._id,
