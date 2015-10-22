@@ -17,12 +17,17 @@ export const getState = function getState(id, uwave) {
   const users = uwave.redis.lrange('users', 0, -1)
     .then(userIDs => User.find({'_id': { '$in': userIDs }}));
   const waitlist = uwave.redis.lrange('waitlist', 0, -1);
+  const waitlistLocked = uwave.redis.get('waitlist:lock')
+    .then(lock => lock ? true : false);
+  const activePlaylist = uwave.redis.get(`playlist:${id}`);
 
   return Promise.props({
     playlists,
     booth,
     user,
     users,
-    waitlist
+    waitlist,
+    waitlistLocked,
+    activePlaylist
   });
 };
