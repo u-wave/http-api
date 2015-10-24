@@ -49,4 +49,17 @@ export const handleDuplicate = function handleDuplicate(res, str, fields) {
   return false;
 };
 
+export const split = function split(arr, size) {
+  if (!Array.isArray(arr)) return [];
+
+  const length = arr.length;
+  const chunks = [];
+
+  for (let i = 0; i < length; i += size) {
+    chunks.push(arr.slice(i, size));
+  }
+
+  return chunks;
+};
+
 export default checkFields;
