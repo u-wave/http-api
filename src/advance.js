@@ -26,7 +26,7 @@ export default function advance(mongo, redis) {
   .then(user => {
     if (!user) throw new GenericError(404, 'user not found');
 
-    now.userID = user;
+    now.userID = user.id;
     return redis.get(`playlist:${user.id}`);
   })
   .then(playlistID => {
