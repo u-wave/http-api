@@ -2,6 +2,8 @@ import Promise from 'bluebird';
 import debug from 'debug';
 import https from 'https';
 
+import { split } from '../utils';
+import { stringify } from 'querystring';
 import { GenericError } from '../errors';
 
 const log = debug('uwave:api:v1:search');
@@ -25,18 +27,6 @@ const sendRequest = function sendRequest(opts) {
       });
     }).end();
   });
-};
-
-const queryBuilder = function queryBuilder(options) {
-  const keys = Object.keys(options);
-  const query = [];
-
-  for (let i = keys.length - 1; i >= 0; i--) {
-    query.push('&', keys[i], '=', encodeURIComponent(options[keys[i]]));
-  }
-
-  // remove the first ampersand
-  return query.join('').slice(1);
 };
 
 const selectThumbnail = function selectThumbnail(thumbnails) {
@@ -107,41 +97,68 @@ const splitTitle = function splitTitle(title) {
   return metadata;
 };
 
-export const fetchMediaYoutube = function fetchMediaYoutube(id, key) {
-  const params = queryBuilder({
+const convertSoundcloudMedia = function convertSoundcloudMedia(media) {
+  const title = splitTitle(media.title);
+
+  return {
+    'sourceType': 'soundcloud',
+    'sourceID': media.id,
+    'artist': title[0],
+    'title': title[1],
+    'duration': Math.ceil(parseInt(media.duration / 1000, 10)),
+    'thumbnail': media.artwork_url || media.waveform_url,
+    'nsfw': false,
+    'restricted': []
+  };
+};
+
+const convertYoutubeMedia = function convertYoutubeMedia(item) {
+  const title = splitTitle(item.snippet.title);
+
+  return {
+    'sourceType': 'youtube',
+    'sourceID': item.id,
+    'artist': title[0],
+    'title': title[1],
+    'duration': parseYoutubeDuration(item.contentDetails.duration),
+    'thumbnail': selectThumbnail(item.snippet.thumbnails),
+    'nsfw': typeof item.contentDetails.contentRating === 'object',
+    'restricted': getRegionRestriction(item.contentDetails)
+  };
+};
+
+export const fetchMediaYoutube = function fetchMediaYoutube(ids, key) {
+  const params = stringify({
     'part': 'snippet,contentDetails',
     'key': key,
-    'id': id
+    'id': Array.isArray(ids) ? ids.join(',') : ids
   });
 
   const opts = {
     'host': 'www.googleapis.com',
-    'path': '/youtube/v3/videos?' + params
+    'path': ['/youtube/v3/videos?', params].join('')
   };
 
   return sendRequest(opts)
   .then(media => {
-    if (
-      !Array.isArray(media.items) || media.items.length === 0 ||
-      !media.items[0].snippet || !media.items[0].contentDetails
-    ) throw new GenericError(404, 'media not found');
-    const title = splitTitle(media.items[0].snippet.title);
+    const _media = [];
 
-    return {
-      'sourceType': 'youtube',
-      'sourceID': id,
-      'artist': title[0],
-      'title': title[1],
-      'duration': parseYoutubeDuration(media.items[0].contentDetails.duration),
-      'thumbnail': selectThumbnail(media.items[0].snippet.thumbnails),
-      'nsfw': typeof media.items[0].contentDetails.contentRating === 'object',
-      'restricted': getRegionRestriction(media.items[0].contentDetails)
-    };
+    if (!Array.isArray(media.items) || media.items.length === 0) {
+      return [];
+    }
+
+    for (let i = 0, l = media.items.length; i < l; i++) {
+      if (!media.items[i].snippet || !media.items[i].contentDetails) continue;
+
+      _media.push(convertYoutubeMedia(media.items[i]));
+    }
+
+    return _media;
   });
 };
 
 export const fetchMediaSoundcloud = function fetchMediaSoundcloud(id, key) {
-  const params = queryBuilder({
+  const params = stringify({
     'client_id': key
   });
 
@@ -152,37 +169,32 @@ export const fetchMediaSoundcloud = function fetchMediaSoundcloud(id, key) {
 
   return sendRequest(opts)
   .then(media => {
-    if (!media) throw new GenericError(404, 'media not found');
+    if (!media) null;
     const title = splitTitle(media.title);
 
-    return {
-      'sourceType': 'soundcloud',
-      'sourceID': id,
-      'artist': title[0],
-      'title': title[1],
-      'duration': Math.ceil(parseInt(media.duration / 1000, 10)),
-      'thumbnail': media.artwork_url || media.waveform_url,
-      'nsfw': false,
-      'restricted': []
-    };
+    return convertSoundcloudMedia(media);
   });
 };
 
 export const fetchMedia = function fetchMedia(sourceType, sourceID, keys) {
   switch(sourceType.toLowerCase()) {
     case 'youtube':
-      return fetchMediaYoutube(sourceID, keys.youtube);
+      return fetchMediaYoutube([sourceID], keys.youtube)
+      .then(media => {
+        if (!media || media.length === 0) throw new GenericError(404, 'media not found');
+        return media[0];
+      });
 
     case 'soundcloud':
       return fetchMediaSoundcloud(sourceID, keys.soundcloud);
 
     default:
-      return new Promise((resolve, reject) => reject(new GenericError(404, 'unknown provider')));
+      return Promise.reject(new GenericError(404, 'unknown provider'));
   }
 };
 
 export const searchYoutube = function searchYoutube(query, key) {
-  const params = queryBuilder({
+  const params = stringify({
     'q': query,
     'key': key,
     'safeSearch': 'moderate',
@@ -195,35 +207,25 @@ export const searchYoutube = function searchYoutube(query, key) {
 
   const opts = {
     'host': 'www.googleapis.com',
-    'path': '/youtube/v3/search?' + params
+    'path': ['/youtube/v3/search?', params].join('')
   };
 
   return sendRequest(opts)
   .then(body => {
-    const items = [];
+    const ids = [];
 
     if (!Array.isArray(body.items)) return [];
 
     for (let i = 0, l = body.items.length; i < l; i++) {
-      const title = splitTitle(body.items[i].snippet.title);
-
-      items.push({
-        'sourceType': 'youtube',
-        'sourceID': body.items[i].id.videoId,
-        'artist': title[0],
-        'title': title[1],
-        'thumbnail': selectThumbnail(body.items[i].snippet.thumbnails),
-        'nsfw': typeof media.items[i].contentDetails.contentRating === 'object',
-        'restricted': getRegionRestriction(media.items[0].contentDetails)
-      });
+      ids.push(body.items[i].id.videoId);
     }
 
-    return items;
-  })
+    return fetchMediaYoutube(ids, key);
+  });
 };
 
 export const searchSoundcloud = function searchSoundcloud(query, key) {
-  const params = queryBuilder({
+  const params = stringify({
     'client_id': key,
     'q': query,
     'limit': 25
@@ -239,17 +241,7 @@ export const searchSoundcloud = function searchSoundcloud(query, key) {
     const items = [];
 
     for (let i = 0, l = body.length; i < l; i++) {
-      const title = splitTitle(body[i].title);
-
-      items.push({
-        'sourceType': 'soundcloud',
-        'sourceID': body[i].id,
-        'artist': title[0],
-        'title': title[1],
-        'thumbnail': body[i].artwork_url || body[i].waveform_url,
-        'nsfw': false,
-        'restricted': []
-      });
+      items.push(convertSoundcloudMedia(body[i]));
     }
     return items;
   });
