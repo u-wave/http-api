@@ -153,6 +153,8 @@ export const removeSession = function removeSession(id, uwave) {
   const Authentication = uwave.mongo.model('Authentication');
   return Authentication.findOne(ObjectId(id))
   .then(auth => {
-    uwave.redis.publish('v1p', createCommand('closeSocket', id));
+    if (!auth) throw new GenericError(404, 'user not found');
+
+    uwave.redis.publish('v1p', createCommand('closeSocket', auth.id));
   });
 };
