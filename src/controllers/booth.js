@@ -25,7 +25,12 @@ export const getBooth = function getBooth(uwave) {
   return uwave.redis.get('booth:historyID')
   .then(historyID => {
     booth.historyID = historyID;
-    return History.findOne(ObjectId(historyID)).populate('media');
+    return History.findOne(ObjectId(historyID)).populate('media')
+    .then(entry => {
+      if (!entry) throw new GenericError(404, 'booth is empty');
+
+      return History.populate(entry, { 'path': 'media.media', 'model': 'Media' });
+    });
   })
   .then(entry => {
     if (entry) {
