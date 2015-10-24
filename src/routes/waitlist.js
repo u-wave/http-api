@@ -17,15 +17,18 @@ export default function waitlist(router) {
 
   /* ========== WAITLIST[POST] ========== */
   .post((req, res) => {
-    if (!checkFields(req.body, res, ['userID', 'position'], ['string', 'number'])) return;
-
     if (!req.body.userID) return res.status(422).json('userID is not set');
+    let _position = parseInt(req.body.position, 10);
+    _position = (!isNaN(_position) ? _position : -1);
 
-    if (req.user.id !== req.body.userID && req.user.role < 3) {
-      return res.status(403).json('you need to be at least a bouncer to do this');
+    if (_position >= 0) {
+      throw new GenericError(403, 'you need to be at least bouncer to do this');
     }
 
-    controller.joinWaitlist(req.user.id, req.body.userID, req.body.position, req.user.role >= 3, req.uwave)
+    (_position < 0 ?
+      controller.appendToWaitlist(req.body.userID, req.user.role >= 2, req.uwave) :
+      controller.insertWaitlist(req.user.id, req.body.userID, _position, req.user.role >= 2, req.uwave)
+    )
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   })
