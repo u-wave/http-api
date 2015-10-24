@@ -10,70 +10,83 @@ export const getWaitlist = function getWaitlist(redis) {
   return redis.lrange('waitlist', 0, -1);
 };
 
-export const joinWaitlist = function joinWaitlist(moderatorID, id, position, forceJoin, uwave) {
-  const User = uwave.mongo.model('User');
-  const History = uwave.mongo.model('History');
-  let beforeID = null;
-  let _waitlist = null;
-
-  return uwave.redis.get('waitlist:lock')
+const _getWaitlist = function _getWaitlist(forceJoin, redis) {
+  return redis.get('waitlist:lock')
   .then(lock => {
     if (lock || !forceJoin) throw new GenericError(403, 'waitlist is locked');
-    return uwave.redis.lrange('waitlist', 0, -1);
-  })
-  .then(waitlist => {
-    for (let i = waitlist.length - 1; i >= 0; i--) {
-      if (waitlist[i] === id) {
-        throw new GenericError(403, 'already in waitlist');
-      }
+    return redis.lrange('waitlist', 0, -1);
+  });
+};
 
-      if (position === i) {
-        beforeID = waitlist[Math.max(position - 1, 0)];
-      }
-    }
+export const appendToWaitlist = function appendToWaitlist(id, forceJoin, uwave) {
+  const User = uwave.mongo.model('User');
+  let role = 0;
 
-    return User.findOne(ObjectId(id)).exec();
-  })
+  return User.findOne(ObjectId(id))
   .then(user => {
     if (!user) throw new GenericError(404, 'user not found');
 
-    if (beforeID) {
-      uwave.redis.linsert('waitlist', 'BEFORE', beforeID, user.id);
+    role = user.role;
+    return _getWaitlist(forceJoin, uwave.redis);
+  })
+  .then(waitlist => {
+    for (let i = waitlist.length - 1; i >= 0; i--) {
+      if (waitlist[i] === id) throw new GenericError(403, 'already in waitlist');
+    }
+
+    uwave.redis.rpush('waitlist', id);
+    return uwave.redis.lrange('waitlist', 0, -1);
+  })
+  .then(waitlist => {
+    uwave.redis.publish('v1', createCommand('waitlistJoin', {
+      'userID': id,
+      'waitlist': waitlist
+    }));
+
+    uwave.redis.publish('v1p', createCommand('checkAdvance', role));
+
+    return waitlist;
+  });
+};
+
+export const insertWaitlist = function insertWaitlist(moderatorID, id, position, forceJoin, uwave) {
+  const User = uwave.mongo.model('User');
+  let role = 0;
+
+  return User.find(ObjectId(id))
+  .then(user => {
+    if (!user) throw new GenericError(404, 'user not found');
+
+    role = user.role;
+    return _getWaitlist(forceJoin, uwave.redis);
+  })
+  .then(waitlist => {
+    const length = waitlist.length;
+    const _position = Math.max(Math.min(position, length - 1), 0);
+
+    for (let i = length - 1; i >= 0; i--) {
+      if (waitlist[i] === id) throw new GenericError(403, 'already in waitlist');
+    }
+
+    if (length > _position) {
+      uwave.redis.linsert('waitlist', 'BEFORE', waitlist[_position], id);
     } else {
-      uwave.redis.lpush('waitlist', user.id);
+      uwave.redis.lpush('waitlist', id);
     }
 
     return uwave.redis.lrange('waitlist', 0, -1);
   })
   .then(waitlist => {
-    for (let i = waitlist.length - 1; i >= 0; i--) {
-      if (waitlist[i] === id) {
-        if (moderatorID !== id) {
-          uwave.redis.publish('v1', createCommand('waitlistAdd', {
-            'userID': id,
-            'moderatorID': moderatorID,
-            'position': i || waitlist.length - 1,
-            'waitlist': waitlist
-          }));
-        } else {
-          uwave.redis.publish('v1', createCommand('waitlistJoin', {
-            'userID': id,
-            'waitlist': waitlist
-          }));
-        }
+    uwave.redis.publish('v1', createCommand('waitlistAdd', {
+      'userID': id,
+      'moderatorID': moderatorID,
+      'position': _position,
+      'waitlist': waitlist
+    }));
 
-        _waitlist = waitlist;
-        return History.find().sort({'played': -1}).limit(1).populate('media');
-      }
-    }
-    throw new Error(`couldn't add user ${id} to waitlist`);
-  })
-  .then(lastPlayed => {
-    if (!lastPlayed.length || Date.now() - (lastPlayed.played + lastPlayed.media.duration * 1000) >= 0) {
-      uwave.redis.publish('v1p', createCommand('advance', null));
-      _waitlist.shift();
-    }
-    return _waitlist;
+    uwave.redis.publish('v1p', createCommand('checkAdvance', role));
+
+    return waitlist;
   });
 };
 
