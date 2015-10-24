@@ -35,7 +35,7 @@ export const getBooth = function getBooth(uwave) {
     if (entry) {
       booth.userID = entry.user.toString();
       booth.playlistID = entry.playlist.toString();
-      booth.played = entry.played;
+      booth.played = Date.parse(entry.played);
       booth.media = entry.media;
     }
 
