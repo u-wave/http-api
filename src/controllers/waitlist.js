@@ -13,7 +13,7 @@ export const getWaitlist = function getWaitlist(redis) {
 const _getWaitlist = function _getWaitlist(forceJoin, redis) {
   return redis.get('waitlist:lock')
   .then(lock => {
-    if (lock || !forceJoin) throw new GenericError(403, 'waitlist is locked');
+    if (lock && !forceJoin) throw new GenericError(403, 'waitlist is locked');
     return redis.lrange('waitlist', 0, -1);
   });
 };
