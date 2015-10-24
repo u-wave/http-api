@@ -241,7 +241,10 @@ export const createPlaylistItems = function createPlaylistItems(id, playlistID, 
 
     for (let i = 0, l = items.length; i < l; i++) {
       if (typeof items[i] !== 'object') continue;
-      if (typeof items[i].sourceType !== 'string' || typeof items[i].sourceID !== 'string') continue;
+      if (
+        typeof items[i].sourceType !== 'string' &&
+        (typeof items[i].sourceID !== 'string' || typeof items[i].sourceID !== 'number')
+      ) continue;
 
       _items.push(_addMedia(items[i].sourceType, items[i].sourceID));
     }
