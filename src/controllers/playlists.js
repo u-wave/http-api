@@ -197,7 +197,7 @@ export const activatePlaylist = function activatePlaylist(id, playlistID, uwave)
   });
 };
 
-export const createPlaylistItem = function createPlaylistItem(id, playlistID, items, uwave) {
+export const createPlaylistItems = function createPlaylistItems(id, playlistID, items, uwave) {
   const PlaylistItem = uwave.mongo.model('PlaylistItem');
   const Playlist = uwave.mongo.model('Playlist');
   const Media = uwave.mongo.model('Media');
