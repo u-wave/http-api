@@ -97,7 +97,7 @@ export default function authenticate(v1, router) {
       return res.status(403).json('you need to be at least a manager to do this');
     }
 
-    controller.removeSession(req.params.id, req.query.token, req.uwave)
+    controller.removeSession(req.params.id, req.uwave)
     .then(user => {
       if (!Object.keys(user).length) {
         res.status(200).json('logged out');
