@@ -219,7 +219,8 @@ export const createPlaylistItems = function createPlaylistItems(id, playlistID, 
       _playlistItem = new PlaylistItem({
         'media': media,
         'artist': media.artist,
-        'title': media.title
+        'title': media.title,
+        'end': media.duration
       });
 
       return _playlistItem.save();
