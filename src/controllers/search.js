@@ -197,10 +197,10 @@ export const searchYoutube = function searchYoutube(query, key) {
   const params = stringify({
     'q': query,
     'key': key,
-    'safeSearch': 'moderate',
+    'safeSearch': 'none',
     'videoSyndicated': true,
     'part': 'snippet',
-    'order': 'rating',
+    'order': 'relevance',
     'maxResults': 25,
     'type': 'video'
   });
