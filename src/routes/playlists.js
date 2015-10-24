@@ -98,6 +98,14 @@ export default function playlists(router) {
     controller.createPlaylistItems(req.user.id, req.params.id, req.body.items, req.uwave)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
+  })
+
+  .delete((req, res) => {
+    if (!Array.isArray(req.body.items)) return res.status(422).json('items is not set');
+
+    controller.deletePlaylistItems(req.user.id, req.params.id, req.body.items, req.uwave.mongo)
+    .then(playlist => res.status(200).json(playlist))
+    .catch(e => handleError(res, e, log));
   });
 
   router.route('/playlists/:id/media/:mediaID')
@@ -133,8 +141,8 @@ export default function playlists(router) {
   })
 
   .delete((req, res) => {
-    controller.deletePlaylistItem(req.user.id, req.params.id, req.params.mediaID, req.uwave.mongo)
-    .then(media => res.status(200).json(media))
+    controller.deletePlaylistItems(req.user.id, req.params.id, [req.params.mediaID], req.uwave.mongo)
+    .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
 

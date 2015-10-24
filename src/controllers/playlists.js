@@ -305,27 +305,19 @@ export const updatePlaylistItem = function updatePlaylistItem(id, playlistID, me
   });
 };
 
-export const deletePlaylistItem = function deletePlaylistItem(id, playlistID, mediaID, mongo) {
+export const deletePlaylistItems = function deletePlaylistItems(id, playlistID, items, mongo) {
   const PlaylistItem = mongo.model('PlaylistItem');
   const Playlist = mongo.model('Playlist');
 
-  return Playlist.findOne(ObjectId(playlistID))
+  return Playlist.findOneAndUpdate(
+    { '_id': playlistID, 'author': id },
+    { '$pullAll': { 'media': items } },
+    { 'new': true }
+  )
   .then(playlist => {
-    if (!playlist) throw new GenericError(404, `playlist with ID ${id} not found`);
-    if (id !== playlist.author.toString()) {
-      throw new GenericError(403, 'playlist is private');
-    }
-
-    for (let i = playlist.media.length - 1; i >= 0; i--) {
-      if (playlist.media[i].toString() === mediaID) {
-        PlaylistItem.findOneAndRemove(playlist.media[i]);
-
-        playlist.media.splice(i, 1);
-        return playlist.save();
-      }
-    }
-
-    throw new GenericError(404, 'media not found');
+    if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+    return PlaylistItem.remove({ '_id': { '$in': items } })
+    .then(() => toPlaylistResponse(playlist));
   });
 };
 
