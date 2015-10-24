@@ -27,8 +27,7 @@ export const getBooth = function getBooth(uwave) {
     booth.historyID = historyID;
     return History.findOne(ObjectId(historyID)).populate('media')
     .then(entry => {
-      if (!entry) throw new GenericError(404, 'booth is empty');
-
+      if (!entry) return null;
       return History.populate(entry, { 'path': 'media.media', 'model': 'Media' });
     });
   })
@@ -52,7 +51,7 @@ export const getBooth = function getBooth(uwave) {
   })
   .then(favorite => {
     booth.stats.favorite = favorite;
-    return booth;
+    return (booth.userID !== null ? booth : null);
   });
 };
 
