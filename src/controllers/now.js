@@ -10,9 +10,7 @@ export const getState = function getState(id, uwave) {
   const User = uwave.mongo.model('User');
 
   const playlists = getPlaylists(0, 50, id, uwave.mongo);
-  const booth = getBooth(uwave)
-    // set booth to null if nobody is playing
-    .then(booth => booth.historyID ? booth : null);
+  const booth = getBooth(uwave);
   const user = User.findOne(ObjectId(id));
   const users = uwave.redis.lrange('users', 0, -1)
     .then(userIDs => User.find({'_id': { '$in': userIDs }}));
