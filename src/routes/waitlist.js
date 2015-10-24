@@ -22,7 +22,7 @@ export default function waitlist(router) {
     _position = (!isNaN(_position) ? _position : -1);
 
     if (_position >= 0) {
-      throw new GenericError(403, 'you need to be at least bouncer to do this');
+      return res.status(403).json('you need to be at least bouncer to do this');
     }
 
     (_position < 0 ?
