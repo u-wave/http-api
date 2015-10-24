@@ -27,10 +27,8 @@ export const createCommand = function createCommand(key, value) {
 
 export default class WSServer {
   constructor(v1, uwave, config) {
-    const mongo = uwave.getMongo();
-    this.User = mongo.model('User');
-
     this.v1 = v1;
+    this.mongo = uwave.getMongo();
     this.redis = uwave.getRedis();
     this.sub = new Redis(config.redis.port, config.redis.host, config.redis.options);
 
@@ -96,6 +94,7 @@ export default class WSServer {
   }
 
   _onConnection(conn) {
+    log('new connection');
     conn.on('message', msg => this._authenticate(conn, msg));
     conn.on('close', code => {
       const client = this.clients[conn.id];
@@ -125,6 +124,8 @@ export default class WSServer {
   }
 
   _authenticate(conn, token) {
+    const User = this.mongo.model('User');
+
     return verify(token, this.v1.getCert())
     .then(user => {
       conn.removeAllListeners();
@@ -148,7 +149,7 @@ export default class WSServer {
       });
 
       this.clients[conn.id]._id = user.id;
-      this.User.findOne(ObjectId(user.id), { '__v': 0 })
+      User.findOne(ObjectId(user.id), { '__v': 0 })
       .then(user => {
         if (!user) return conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'unknown user'));
         this.redis.lpush('users', user.id);
@@ -205,30 +206,38 @@ export default class WSServer {
   }
 
   _handleMessage(channel, command) {
+    const _command = JSON.parse(command);
+
     if (channel === 'v1') {
       this.broadcast(command);
     } else if (channel === 'v1p') {
-      if (command.command === 'advance') {
+      if (_command.command === 'advance') {
         clearTimeout(this.advanceTimer);
         this.advanceTimer = null;
 
         advance(this.mongo, this.redis)
-        .then(booth => {
-          this.redis.set('booth:historyID', booth.historyID);
-          this.broadcast(createCommand('advance', booth));
+        .then(now => {
+          this.redis.set('booth:historyID', now.historyID);
+          this.broadcast(createCommand('advance', now));
           this.advanceTimer = setTimeout(
-            advance,
-            booth.media.duration * 1000,
-            this.uwave.getMongo(), this.uwave.getRedis()
+            this._handleMessage.bind(this),
+            now.media.media.duration * 1000,
+            'v1p', createCommand('advance', null)
           );
         })
         .catch(e => {
           log(e);
           this.redis.del('booth:historyID');
-          this.broadcast(createCommand('advance', null));
         });
-      } else if (command.command === 'closeSocket') {
-        this._close(command.data, CLOSE_NORMAL);
+      } else if (_command.command === 'checkAdvance') {
+        this.redis.get('waitlist:lock')
+        .then(lock => {
+          if (this.advanceTimer === null && (!lock || (lock && _command.data > 3))) {
+            this._handleMessage('v1p', createCommand('advance', null));
+          }
+        });
+      } else if (_command.command === 'closeSocket') {
+        this._close(_command.data, CLOSE_NORMAL);
       }
     }
   }
