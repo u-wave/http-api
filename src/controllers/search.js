@@ -105,7 +105,7 @@ const convertSoundcloudMedia = function convertSoundcloudMedia(media) {
     'sourceID': media.id,
     'artist': title[0],
     'title': title[1],
-    'duration': Math.ceil(parseInt(media.duration / 1000, 10)),
+    'duration': Math.round(parseInt(media.duration / 1000, 10)),
     'thumbnail': media.artwork_url || media.waveform_url,
     'nsfw': false,
     'restricted': []
