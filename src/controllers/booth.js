@@ -67,7 +67,7 @@ export const skipBooth = function skipBooth(moderatorID, id, reason, uwave) {
 export const replaceBooth = function replaceBooth(moderatorID, id, uwave) {
   let next = null;
 
-  uwave.redis.lrange('waitlist')
+  uwave.redis.lrange('waitlist', 0, -1)
   .then(waitlist => {
     if (!waitlist.length) throw new GenericError(404, 'waitlist is empty');
 
