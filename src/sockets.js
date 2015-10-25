@@ -222,7 +222,7 @@ export default class WSServer {
           this.advanceTimer = setTimeout(
             this._handleMessage.bind(this),
             now.media.media.duration * 1000,
-            'v1p', createCommand('advance', null)
+            'v1p', createCommand('cycleWaitlist', null)
           );
         })
         .catch(e => {
@@ -235,6 +235,23 @@ export default class WSServer {
           if (this.advanceTimer === null && (!lock || (lock && _command.data > 3))) {
             this._handleMessage('v1p', createCommand('advance', null));
           }
+        });
+      } else if (_command.command = 'cycleWaitlist') {
+        this.redis.get('booth:historyID')
+        .then(historyID => {
+          const History = this.mongo.model('History');
+
+          return History.findOne(ObjectId(historyID));
+        })
+        .then(entry => {
+          if (!entry) return;
+
+          this.redis.rpush('waitlist', entry.user.toString());
+          return this.redis.lrange('waitlist', 0, -1)
+          .then(waitlist => {
+            this.redis.publish('v1', createCommand('waitlistUpdate', waitlist));
+            this.redis.publish('v1p', createCommand('advance', null));
+          });
         });
       } else if (_command.command === 'closeSocket') {
         this._close(_command.data, CLOSE_NORMAL);

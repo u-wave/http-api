@@ -5,8 +5,10 @@ import { GenericError } from './errors';
 const ObjectId = mongoose.Types.ObjectId;
 
 export default function advance(mongo, redis) {
+  const PlaylistItem = mongo.model('PlaylistItem');
   const Playlist = mongo.model('Playlist');
   const History = mongo.model('History');
+  const Media = mongo.model('Media');
   const User = mongo.model('User');
 
   const now = {
@@ -32,17 +34,22 @@ export default function advance(mongo, redis) {
   .then(playlistID => {
     if (!playlistID) throw new GenericError(404, 'playlistID not set');
 
-    return Playlist.findOne(ObjectId(playlistID), { 'media': { '$slice': [0, 1] } }).populate('media')
-    .then(playlist => {
-      if (!playlist) throw new GenericError(404, 'playlist not found');
-      return Playlist.populate(playlist, { 'path': 'media.media', 'model': 'Media' });
-    });
+    return Playlist.findOne(ObjectId(playlistID));
   })
   .then(playlist => {
     if (!playlist) throw new GenericError(404, 'playlist not found');
 
     now.playlistID = playlist.id;
-    now.media = playlist.media[0];
+
+    now.media = playlist.media.shift();
+    playlist.media.push(now.media);
+    playlist.save();
+
+    return PlaylistItem.findOne(now.media).populate('media');
+  })
+  .then(media => {
+    if (!media) throw new GenericError(404, 'media not found');
+    now.media = media;
 
     return new History({
       'user': now.userID,
