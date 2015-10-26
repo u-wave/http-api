@@ -3,6 +3,7 @@ import Promise from 'bluebird';
 import debug from 'debug';
 
 import { createCommand } from '../sockets';
+import { paginate } from '../utils';
 import { GenericError } from '../errors';
 
 const ObjectId = mongoose.Types.ObjectId;
@@ -123,3 +124,16 @@ export const setStatus = function setStatus(id, status, redis) {
       'status': Math.max(Math.min(status, 3), 0)
     }));
 };
+
+export const getHistory = function getHistory(id, page, limit, mongo) {
+  const History = mongo.model('History');
+
+  const _page = (!isNaN(page) ? page : 0);
+  const _limit = (!isNaN(limit) ? limit : 25);
+
+  return History.find({ 'user': id }).skip(_page * _limit).limit(_limit).sort({ 'played': -1 }).populate('media user')
+  .then(
+    history => paginate(_page, _limit, history),
+    e => { throw new PaginateError(e); }
+  );
+}

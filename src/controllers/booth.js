@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import Promise from 'bluebird';
 
 import { createCommand } from '../sockets';
-import { GenericError } from '../errors';
+import { paginate } from '../utils';
+import { GenericError, PaginateError } from '../errors';
 
 const ObjectId = mongoose.Types.ObjectId;
 
@@ -119,4 +120,17 @@ export const favorite = function favorite(id, playlistID, historyID, uwave) {
     }));
     return playlist.save();
   });
+};
+
+export const getHistory = function getHistory(page, limit, mongo) {
+  const History = mongo.model('History');
+
+  const _page = (!isNaN(page) ? page : 0);
+  const _limit = (!isNaN(limit) ? limit : 25);
+
+  return History.find({}).skip(_page * _limit).limit(_limit).sort({ 'played': -1 }).populate('media user')
+  .then(
+    history => paginate(_page, _limit, history),
+    e => { throw new PaginateError(e); }
+  );
 };
