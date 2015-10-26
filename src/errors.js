@@ -28,10 +28,21 @@ export class GenericError extends Error {
   }
 }
 
+export class PaginateError extends Error {
+  constructor(e) {
+    super();
+    this.name = 'PaginateError';
+    this.stack = e.stack;
+    this.message = e.message;
+  }
+}
+
 export const handleError = function handleError(res, e, log) {
   log && log(e);
   if (e instanceof redis.ReplyError) {
     res.status(410).json('couldn\'t save to database, please try again later');
+  } else if (e instanceof PaginateError) {
+    res.status(500).json(e.message);
   } else if (e instanceof PasswordError) {
     res.status(410).json(e.message);
   } else if (e instanceof TokenError) {
