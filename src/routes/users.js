@@ -136,4 +136,10 @@ export default function users(router) {
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });
+
+  router.get('/users/:id/history', (req, res) => {
+    controller.getHistory(req.params.id, parseInt(req.query.page, 10), parseInt(req.query.limit, 10), req.uwave.mongo)
+    .then(history => res.status(200).json(history))
+    .catch(e => handleError(res, e, log));
+  });
 }
