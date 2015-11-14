@@ -149,7 +149,7 @@ export const leaveWaitlist = function leaveWaitlist(moderatorID, id, uwave) {
   .then(user => {
     if (!user) throw new GenericError(404, `no user with id ${id}`);
 
-    for (let i = length - 1; i >= 0; i--) {
+    for (let i = _waitlist.length - 1; i >= 0; i--) {
       if (_waitlist[i] === user.id) {
         uwave.redis.lrem('waitlist', 0, user.id);
         return uwave.redis.lrange('waitlist', 0, -1);
