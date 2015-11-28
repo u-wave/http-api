@@ -33,12 +33,20 @@ export const getPlaylists = function getPlaylists(page, limit, id, mongo) {
   const Playlist = mongo.model('Playlist');
 
   const _page = (isNaN(page) ? 0 : page);
-  const _limit = (isNaN(limit) ? 50 : Math.ceil(limit, 50));
+  const _limit = (isNaN(limit) ? 50 : Math.min(limit, 50));
 
   return Playlist.find({'author': id})
-    .setOptions({ 'limit': _limit, 'skip': _limit * _page })
-    .exec()
-    .map(toPlaylistResponse);
+  .setOptions({ 'limit': _limit, 'skip': _limit * _page })
+  .exec()
+  .then(playlists => {
+    const _playlists = [];
+
+    for (let i = playlists.length - 1; i >= 0; i--) {
+      _playlists.push(toPlaylistResponse(playlists[i]));
+    }
+
+    return _playlists;
+  });
 };
 
 export const createPlaylist = function createPlaylist(data, mediaArray, mongo) {
@@ -75,12 +83,9 @@ export const getPlaylist = function getPlaylist(page, limit, id, playlistID, pop
   const _limit = (isNaN(limit) ? 100 : Math.min(limit, 100));
   const _slice = { 'media' : { '$slice': [_limit * _page, _limit ] } };
 
-  return Playlist.findOne(ObjectId(playlistID), (populate ? _slice : {}))
+  return Playlist.findOne({ '_id': playlistID, 'author': id })
   .then(playlist => {
-    if (!playlist) throw new GenericError(404, `playlist with ID ${ID} not found`);
-    if (id !== playlist.author.toString() && !playlist.shared) {
-      throw new GenericError(403, 'this playlist is private');
-    }
+    if (!playlist) throw new GenericError(404, 'playlist not found or private');
 
     if (populate) {
       return playlist.populate('media').execPopulate()
@@ -180,6 +185,27 @@ export const movePlaylistItems = function movePlaylistItems(id, playlistID, afte
 
     playlist.media.splice(pos + 1, 0, ..._items);
     return playlist.save();
+  });
+
+  return Playlist.findOneAndUpdate(
+    { '_id': playlistID, 'author': id },
+    { '$pullAll': { '$in': items } },
+    { 'new': true }
+  )
+  .then(playlist => {
+    if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+
+    return Media.find({ '_id': { '$in': items }})
+    .then(media => {
+      if (!media) throw new GenericError(404, 'no media found to be moved');
+      const _items = [];
+
+      for (let i = 0, l = media.length; i < l; i++) {
+        _items.push(media.id);
+      }
+
+      playlist.media = media.playlist.save();
+    });
   });
 };
 
@@ -316,8 +342,18 @@ export const deletePlaylistItems = function deletePlaylistItems(id, playlistID, 
   )
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
-    return PlaylistItem.remove({ '_id': { '$in': items } })
-    .then(() => toPlaylistResponse(playlist));
+    // return full PlaylistItem object to keep consitency with addMedia route
+    return PlaylistItem.find({ '_id': { '$in': items }}).populate('media')
+    .then(mediaItems => {
+      // sadly .remove will not return the removed objects :C
+      return PlaylistItem.remove({ '_id': { '$in': items } })
+      .then(() => {
+        return {
+          'removed': mediaItems,
+          'playlistSize': playlist.media.length
+        };
+      });
+    });
   });
 };
 
