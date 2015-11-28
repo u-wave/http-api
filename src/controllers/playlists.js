@@ -223,7 +223,7 @@ export const activatePlaylist = function activatePlaylist(id, playlistID, uwave)
   });
 };
 
-export const createPlaylistItems = function createPlaylistItems(id, playlistID, items, uwave) {
+export const createPlaylistItems = function createPlaylistItems(id, playlistID, after, items, uwave) {
   const PlaylistItem = uwave.mongo.model('PlaylistItem');
   const Playlist = uwave.mongo.model('Playlist');
   const Media = uwave.mongo.model('Media');
@@ -278,7 +278,16 @@ export const createPlaylistItems = function createPlaylistItems(id, playlistID, 
 
     return Promise.all(_items)
     .then(playlistItems => {
-      playlist.media = playlist.media.concat(playlistItems);
+      let pos = -1;
+
+      for (let i = playlist.media.length - 1; i >= 0; i--) {
+        if (playlist.media[i].toString() === after) {
+          pos = i;
+          break;
+        }
+      }
+
+      playlist.media.splice(pos + 1, 0, ...playlistItems);
 
       return playlist.save()
       .then(() => {
