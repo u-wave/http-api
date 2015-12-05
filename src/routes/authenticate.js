@@ -31,12 +31,6 @@ export default function authenticate(v1, router) {
       return res.status(422).json('username contains invalid characters e.g. space');
     }
 
-    if (req.query.token) {
-      return res.status(418).json(
-        `you are already registered and logged in. I presume you dropped this on your way in '${req.query.token}' :P`
-      );
-    }
-
     controller.createUser(req.body.email, req.body.username, req.body.password, req.uwave.mongo)
     .then(user => res.status(200).json(user))
     .catch(e => {
