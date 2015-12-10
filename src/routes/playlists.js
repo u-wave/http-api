@@ -92,10 +92,10 @@ export default function playlists(router) {
   })
 
   .post((req, res) => {
-    if (!req.body.items) return res.status(422).json('items is not set');
+    if (!checkFields(req.body, res, ['items', 'after'])) return;
     if (!Array.isArray(req.body.items)) return res.status(422).json('items has to be an array');
 
-    controller.createPlaylistItems(req.user.id, req.params.id, req.body.items, req.uwave)
+    controller.createPlaylistItems(req.user.id, req.params.id, req.body.after, req.body.items, req.uwave)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   })
