@@ -81,9 +81,11 @@ export const getPlaylist = function getPlaylist(page, limit, id, playlistID, pop
   const Playlist = mongo.model('Playlist');
   const _page = (isNaN(page) ? 0 : page);
   const _limit = (isNaN(limit) ? 100 : Math.min(limit, 100));
-  const _slice = { 'media' : { '$slice': [_limit * _page, _limit ] } };
 
-  return Playlist.findOne({ '_id': playlistID, 'author': id })
+  return Playlist.findOne(
+    { '_id': playlistID, 'author': id },
+    { 'media' : { '$slice': [_limit * _page, _limit ] } }
+  )
   .then(playlist => {
     if (!playlist) throw new GenericError(404, 'playlist not found or private');
 
