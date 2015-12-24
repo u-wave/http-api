@@ -129,7 +129,7 @@ export default function playlists(router) {
     ])) return;
 
     const metadata = {
-      'artist': req.body.name,
+      'artist': req.body.artist,
       'title': req.body.title,
       'start': req.body.start,
       'end': req.body.end
