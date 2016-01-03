@@ -128,9 +128,14 @@ export const getHistory = function getHistory(page, limit, mongo) {
   const _page = (!isNaN(page) ? page : 0);
   const _limit = (!isNaN(limit) ? limit : 25);
 
-  return History.find({}).skip(_page * _limit).limit(_limit).sort({ 'played': -1 }).populate('media user')
-  .then(
-    history => paginate(_page, _limit, history),
-    e => { throw new PaginateError(e); }
-  );
+  return History.find({})
+    .skip(_page * _limit)
+    .limit(_limit)
+    .sort({ 'played': -1 })
+    .populate('media user')
+    .then(history => History.populate(history, { 'path': 'media.media', 'model': 'Media' }))
+    .then(history => paginate(_page, _limit, history))
+    .catch(e => {
+      throw new PaginateError(e);
+    });
 };
