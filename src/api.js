@@ -1,4 +1,4 @@
-import express from 'express';
+import { Router as createRouter } from 'express';
 import debug from 'debug';
 import fs from 'fs';
 
@@ -14,12 +14,12 @@ import chat from './routes/chat';
 import now from './routes/now';
 
 // models
-import Authentication from './models/authentication';
-import PlaylistItem from './models/playlistitem';
-import Playlist from './models/playlist';
-import History from './models/history';
-import Media from './models/media';
-import User from './models/user';
+import installAuthenticationModel from './models/authentication';
+import installPlaylistItemModel from './models/playlistitem';
+import installPlaylistModel from './models/playlist';
+import installHistoryModel from './models/history';
+import installMediaModel from './models/media';
+import installUserModel from './models/user';
 
 // middleware
 import authenticator from './middleware/authenticator';
@@ -34,7 +34,7 @@ const log = debug('uwave:api:v1');
  **/
 export default class V1 {
   constructor(config = {}) {
-    this.router = express.Router(config.router);
+    this.router = createRouter(config.router);
     this.cert = '';
     this.wsserver = null;
 
@@ -70,12 +70,12 @@ export default class V1 {
 
   registerModels(uwave) {
     const mongoose = uwave.getMongoose();
-    Authentication(mongoose);
-    PlaylistItem(mongoose);
-    Playlist(mongoose);
-    History(mongoose);
-    Media(mongoose);
-    User(mongoose);
+    installAuthenticationModel(mongoose);
+    installPlaylistItemModel(mongoose);
+    installPlaylistModel(mongoose);
+    installHistoryModel(mongoose);
+    installMediaModel(mongoose);
+    installUserModel(mongoose);
   }
 
   registerWSServer(uwave) {

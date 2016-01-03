@@ -6,7 +6,7 @@ import handleError from '../errors';
 
 const log = debug('uwave:api:v1:staff');
 
-export default function staff(router) {
+export default function staffRoutes(router) {
   router.get('/staff/media', (req, res) => {
     controller.getAllMedia(parseInt(req.query.page, 10), parseInt(req.query.limit, 10), req.uwave.mongo)
     .then(media => res.status(200).json(media))
@@ -16,7 +16,9 @@ export default function staff(router) {
   router.route('/staff/media/:id')
   .get((req, res) => {
     if (req.user.role < 4) return res.status(403).json('you need to be at least manager to do this');
-    if (!checkFields(req.body, res, ['sourceType', 'sourceID'], 'string')) return;
+    if (!checkFields(req.body, res, ['sourceType', 'sourceID'], 'string')) {
+      return res.status(422).json('expected sourceType to be a string and sourceID to be a string');
+    }
 
     controller.getMedia(req.body.sourceType, req.body.sourceID, req.uwave.mongo)
     .then(media => res.status(200).json(media))
@@ -25,7 +27,9 @@ export default function staff(router) {
 
   .post((req, res) => {
     if (req.user.role < 4) return res.status(403).json('you need to be at least manager to do this');
-    if (!checkFields(req.body, res, ['sourceType', 'sourceID'], 'string')) return;
+    if (!checkFields(req.body, res, ['sourceType', 'sourceID'], 'string')) {
+      return res.status(422).json('expected sourceType to be a string and sourceID to be a string');
+    }
 
     controller.addMedia(req.body.sourceType, req.body.sourceID, req.uwave.keys, req.uwave.mongo)
     .then(media => res.status(200).json(media))
@@ -48,11 +52,19 @@ export default function staff(router) {
         'string',
         'string',
         'boolean'
-      ])) return;
+      ]))  {
+        return res.status(422).json(
+          'expected sourceType to be a string, sourceID to be a string, ' +
+          'artist to be a string, title to be a string, nsfw to be boolean and' +
+          'restricted to be an array of strings'
+        );
+      }
 
       if (!Array.isArray(req.body.restricted)) res.status(422).json('restricted has to be an array of strings');
-    } else {
-      if (!checkFields(req.body, res, ['sourceType', 'sourceID', 'auto'], ['string', 'string', 'boolean'])) return;
+    } else if (!checkFields(req.body, res, ['sourceType', 'sourceID', 'auto'], ['string', 'string', 'boolean']))  {
+      return res.status(422).json(
+        'expected sourceType to be a string, sourceID to be a string and auto to be boolean'
+      );
     }
 
     controller.editMedia(req.body, req.uwave.keys, req.uwave.mongo)
@@ -62,7 +74,9 @@ export default function staff(router) {
 
   .delete((req, res) => {
     if (req.user.role < 4) return res.status(403).json('you need to be at least manager to do this');
-    if (!checkFields(req.body, res, ['sourceType', 'sourceID'], 'string')) return;
+    if (!checkFields(req.body, res, ['sourceType', 'sourceID'], 'string')) {
+      return res.status(422).json('expected sourceType to be a string and sourceID to be a string');
+    }
 
     controller.removeMedia(req.body.sourceType, req.body.sourceID, req.uwave.mongo)
     .then(media => res.status(200).json(media))

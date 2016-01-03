@@ -16,7 +16,7 @@ const log = debug('uwave:api:v1:auth');
 const pbkdf2 = Promise.promisify(crypto.pbkdf2);
 const randomBytes = Promise.promisify(crypto.randomBytes);
 
-export const generateHashPair = function generateHashPair(password, length) {
+export function generateHashPair(password, length) {
   const hashPair = {
     hash: null,
     salt: null
@@ -35,21 +35,21 @@ export const generateHashPair = function generateHashPair(password, length) {
     log(e);
     throw new GenericError(402, 'couldn\'t create password');
   });
-};
+}
 
-export const getCurrentUser = function getCurrentUser(id, mongo) {
+export function getCurrentUser(id, mongo) {
   const User = mongo.model('User');
 
-  return User.findOne(ObjectId(id));
-};
+  return User.findOne(new ObjectId(id));
+}
 
-export const createUser = function createUser(email, username, password, mongo) {
+export function createUser(email, username, password, mongo) {
   const User = mongo.model('User');
   const Authentication = mongo.model('Authentication');
   let _auth = null;
 
   log(`creating new user ${username}`);
-  const user = new User({'username': username});
+  const user = new User({ username: username });
 
   return user.validate()
   .then(() => {
@@ -64,21 +64,17 @@ export const createUser = function createUser(email, username, password, mongo) 
     });
     return _auth.save();
   })
-  .then(() => {
-    return user.save();
-  })
-  .then(() => {
-    return user;
-  },
-  e => {
+  .then(() => user.save())
+  .then(() => user)
+  .catch(e => {
     log(`did not create user ${username}. Error: ${e}`);
     if (_auth) _auth.remove();
     user.remove();
     throw e;
   });
-};
+}
 
-export const login = function login(email, password, secret, uwave) {
+export function login(email, password, secret, uwave) {
   const Authentication = uwave.mongo.model('Authentication');
   let _auth = null;
 
@@ -90,25 +86,24 @@ export const login = function login(email, password, secret, uwave) {
     return pbkdf2(password, _auth.salt, PASS_ITERATIONS, PASS_LENGTH, PASS_HASH);
   })
   .then(hash => {
-    if (_auth.hash === hash.toString('hex')) {
-      const token = jwt.sign({
-        'id': _auth.user.id,
-        'role': _auth.user.role
-      }, secret, {
-        'expiresIn': '31d'
-      });
-
-      return {
-        'jwt': token,
-        'user': _auth.user
-      };
-    } else {
+    if (_auth.hash !== hash.toString('hex')) {
       throw new PasswordError('password is incorrect');
     }
-  });
-};
+    const token = jwt.sign({
+      id: _auth.user.id,
+      role: _auth.user.role
+    }, secret, {
+      expiresIn: '31d'
+    });
 
-export const reset = function reset(email, uwave) {
+    return {
+      jwt: token,
+      user: _auth.user
+    };
+  });
+}
+
+export function reset(email, uwave) {
   const Authentication = uwave.mongo.model('Authentication');
 
   return Authentication.findOne({'email': email})
@@ -119,17 +114,17 @@ export const reset = function reset(email, uwave) {
   .then(buf => {
     const token = buf.toString('hex');
     uwave.redis.set(`reset:${email}`, token);
-    uwave.redis.expire(`reset${email}`, 24*60*60);
+    uwave.redis.expire(`reset${email}`, 24 * 60 * 60);
     return token;
   });
-};
+}
 
-export const changePassword = function changePassword(email, password, reset, uwave) {
+export function changePassword(email, password, resetToken, uwave) {
   const Authentication = uwave.mongo.model('Authentication');
 
   return uwave.redis.get(`reset:${email}`)
   .then(token => {
-    if (!token || token !== reset) throw new TokenError('reset token invalid');
+    if (!token || token !== resetToken) throw new TokenError('reset token invalid');
 
     return generateHashPair(password, PASS_LENGTH);
   })
@@ -147,14 +142,13 @@ export const changePassword = function changePassword(email, password, reset, uw
     uwave.redis.del(`reset:${email}`);
     return `updated password for ${email}`;
   });
-};
+}
 
-export const removeSession = function removeSession(id, uwave) {
+export function removeSession(id, uwave) {
   const Authentication = uwave.mongo.model('Authentication');
-  return Authentication.findOne(ObjectId(id))
-  .then(auth => {
+  return Authentication.findOne(new ObjectId(id)).then(auth => {
     if (!auth) throw new GenericError(404, 'user not found');
 
     uwave.redis.publish('v1p', createCommand('closeSocket', auth.id));
   });
-};
+}

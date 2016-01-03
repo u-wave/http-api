@@ -6,10 +6,9 @@ import handleError from '../errors';
 
 const log = debug('uwave:api:v1:playlists');
 
-export default function playlists(router) {
+export default function playlistRoutes(router) {
   router.route('/playlists')
   .get((req, res) => {
-
     controller.getPlaylists(parseInt(req.query.page, 10), parseInt(req.query.limit, 10), req.user.id, req.uwave.mongo)
     .then(playlists => res.status(200).json(playlists))
     .catch(e => handleError(res, e, log));
@@ -70,8 +69,12 @@ export default function playlists(router) {
   });
 
   router.put('/playlists/:id/move', (req, res) => {
-    if (!checkFields(req.body, res, ['items', 'after']))
-    if (!Array.isArray(req.body.items)) return res.status(422).json('items has to be an array');
+    if (!checkFields(req.body, res, ['items', 'after'])) {
+      return res.status(422).json('missing items or after property');
+    }
+    if (!Array.isArray(req.body.items)) {
+      return res.status(422).json('items has to be an array');
+    }
 
     controller.movePlaylistItems(req.user.id, req.params.id, req.body.after, req.body.items, req.uwave.mongo)
     .then(playlist => res.status(200).json(playlist))
@@ -92,8 +95,12 @@ export default function playlists(router) {
   })
 
   .post((req, res) => {
-    if (!checkFields(req.body, res, ['items', 'after'])) return;
-    if (!Array.isArray(req.body.items)) return res.status(422).json('items has to be an array');
+    if (!checkFields(req.body, res, ['items', 'after'])) {
+      return res.status(422).json('missing items or after property');
+    }
+    if (!Array.isArray(req.body.items)) {
+      return res.status(422).json('items has to be an array');
+    }
 
     controller.createPlaylistItems(req.user.id, req.params.id, req.body.after, req.body.items, req.uwave)
     .then(media => res.status(200).json(media))

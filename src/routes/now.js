@@ -5,7 +5,7 @@ import handleError from '../errors';
 
 const log = debug('uwave:api:v1:now');
 
-export default function now(router) {
+export default function nowRoute(router) {
   router.get('/now', (req, res) => {
     if (!req.user) req.user = { 'id': null };
 

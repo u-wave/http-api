@@ -8,22 +8,21 @@ export default function advance(mongo, redis) {
   const PlaylistItem = mongo.model('PlaylistItem');
   const Playlist = mongo.model('Playlist');
   const History = mongo.model('History');
-  const Media = mongo.model('Media');
   const User = mongo.model('User');
 
   const now = {
-    'playlistID': null,
-    'historyID': null,
-    'userID': null,
-    'media': null,
-    'played': null
+    playlistID: null,
+    historyID: null,
+    userID: null,
+    media: null,
+    played: null
   };
 
   return redis.lpop('waitlist')
   .then(userID => {
     if (!userID) throw new GenericError(404, 'waitlist is empty');
 
-    return User.findOne(ObjectId(userID));
+    return User.findOne(new ObjectId(userID));
   })
   .then(user => {
     if (!user) throw new GenericError(404, 'user not found');
@@ -34,7 +33,7 @@ export default function advance(mongo, redis) {
   .then(playlistID => {
     if (!playlistID) throw new GenericError(404, 'playlistID not set');
 
-    return Playlist.findOne(ObjectId(playlistID));
+    return Playlist.findOne(new ObjectId(playlistID));
   })
   .then(playlist => {
     if (!playlist) throw new GenericError(404, 'playlist not found');
@@ -52,9 +51,9 @@ export default function advance(mongo, redis) {
     now.media = media;
 
     return new History({
-      'user': now.userID,
-      'media': now.media.id,
-      'playlist': now.playlistID
+      user: now.userID,
+      media: now.media.id,
+      playlist: now.playlistID
     }).save();
   })
   .then(history => {

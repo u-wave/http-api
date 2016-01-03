@@ -7,7 +7,7 @@ import handleError from '../errors';
 const log = debug('uwave:api:v1:auth');
 const rx = /\s|%20/;
 
-export default function authenticate(v1, router) {
+export default function authenticateRoutes(v1, router) {
   router.get('/auth', (req, res) => {
     controller.getCurrentUser(req.user.id, req.uwave.mongo)
     .then(user => res.status(200).json(user))
@@ -21,7 +21,11 @@ export default function authenticate(v1, router) {
       'username',
       'password',
       'passwordRepeat'
-    ], 'string')) return;
+    ], 'string')) {
+      return res.status(422).json(
+        'expected email to be a string, username to be a string and password to be a string'
+      );
+    }
 
     if (req.body.password !== req.body.passwordRepeat) {
       return res.status(422).json('passwords don\'t match');
@@ -45,7 +49,9 @@ export default function authenticate(v1, router) {
     if (!checkFields(req.body, res, [
       'email',
       'password'
-    ], 'string')) return;
+    ], 'string')) {
+      return res.status(422).json('expected email to be a string and password to be a string');
+    }
 
     if (req.query.token) {
       return res.status(418).json(
@@ -74,7 +80,9 @@ export default function authenticate(v1, router) {
       'email',
       'password',
       'passwordRepeat'
-    ], 'string')) return;
+    ], 'string')) {
+      return res.status(422).json('expected email to be a string and password to be a string');
+    }
 
     if (req.body.password !== req.body.passwordRepeat) {
       return res.status(422).json('passwords don\'t match');
@@ -101,4 +109,4 @@ export default function authenticate(v1, router) {
     })
     .catch(e => handleError(res, e, log));
   });
-};
+}

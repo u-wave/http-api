@@ -6,7 +6,7 @@ import handleError from '../errors';
 
 const log = debug('uwave:api:v1:booth');
 
-export default function booth(router) {
+export default function boothRoutes(router) {
   router.get('/booth', (req, res) => {
     controller.getBooth(req.uwave)
     .then(booth => res.status(200).json(booth))
@@ -16,7 +16,9 @@ export default function booth(router) {
   router.post('/booth/skip', (req, res) => {
     if (req.user.role < 3) return res.status(412).json('you need to be at least bouncer to do this');
 
-    if (!checkFields(req.body, res, ['userID', 'reason'], 'string')) return;
+    if (!checkFields(req.body, res, ['userID', 'reason'], 'string'))  {
+      return res.status(422).json('expected userID to be a string and reason to be a string');
+    }
 
     controller.skipBooth(req.user.id, req.body.userID, req.body.reason, req.uwave)
     .then(skipped => res.status(200).json(skipped))
@@ -36,7 +38,9 @@ export default function booth(router) {
   });
 
   router.post('/booth/favorite', (req, res) => {
-    if (!checkFields(req.body, res, ['playlistID', 'historyID'], 'string')) return;
+    if (!checkFields(req.body, res, ['playlistID', 'historyID'], 'string'))  {
+      return res.status(422).json('expected playlistID to be a string and historyID to be a string');
+    }
 
     controller.favorite(req.user.id, req.body.playlistID, req.body.historyID, req.uwave)
     .then(playlist => res.status(200).json(playlist))

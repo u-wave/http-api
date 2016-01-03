@@ -6,23 +6,23 @@ import { GenericError } from '../errors';
 
 const ObjectId = mongoose.Types.ObjectId;
 
-export const getWaitlist = function getWaitlist(redis) {
+export function getWaitlist(redis) {
   return redis.lrange('waitlist', 0, -1);
-};
+}
 
-const _getWaitlist = function _getWaitlist(forceJoin, redis) {
+function _getWaitlist(forceJoin, redis) {
   return redis.get('waitlist:lock')
   .then(lock => {
     if (lock && !forceJoin) throw new GenericError(403, 'waitlist is locked');
     return redis.lrange('waitlist', 0, -1);
   });
-};
+}
 
-export const appendToWaitlist = function appendToWaitlist(id, forceJoin, uwave) {
+export function appendToWaitlist(id, forceJoin, uwave) {
   const User = uwave.mongo.model('User');
   let role = 0;
 
-  return User.findOne(ObjectId(id))
+  return User.findOne(new ObjectId(id))
   .then(user => {
     if (!user) throw new GenericError(404, 'user not found');
 
@@ -47,13 +47,13 @@ export const appendToWaitlist = function appendToWaitlist(id, forceJoin, uwave) 
 
     return waitlist;
   });
-};
+}
 
-export const insertWaitlist = function insertWaitlist(moderatorID, id, position, forceJoin, uwave) {
+export function insertWaitlist(moderatorID, id, position, forceJoin, uwave) {
   const User = uwave.mongo.model('User');
   let role = 0;
 
-  return User.find(ObjectId(id))
+  return User.find(new ObjectId(id))
   .then(user => {
     if (!user) throw new GenericError(404, 'user not found');
 
@@ -88,9 +88,9 @@ export const insertWaitlist = function insertWaitlist(moderatorID, id, position,
 
     return waitlist;
   });
-};
+}
 
-export const moveWaitlist = function moveWaitlist(moderatorID, id, position, uwave) {
+export function moveWaitlist(moderatorID, id, position, uwave) {
   const User = uwave.mongo.model('User');
   let beforeID = null;
   let _position = null;
@@ -104,7 +104,7 @@ export const moveWaitlist = function moveWaitlist(moderatorID, id, position, uwa
         _position = Math.max(Math.min(position, length), 0);
         beforeID = length > 0 ? waitlist[_position] : null;
 
-        return User.findOne(ObjectId(id.toLowerCase()));
+        return User.findOne(new ObjectId(id.toLowerCase()));
       }
     }
 
@@ -131,9 +131,9 @@ export const moveWaitlist = function moveWaitlist(moderatorID, id, position, uwa
 
     return waitlist;
   });
-};
+}
 
-export const leaveWaitlist = function leaveWaitlist(moderatorID, id, uwave) {
+export function leaveWaitlist(moderatorID, id, uwave) {
   const User = uwave.mongo.model('User');
   let _waitlist = null;
 
@@ -144,7 +144,7 @@ export const leaveWaitlist = function leaveWaitlist(moderatorID, id, uwave) {
     if (length === 0) throw new GenericError(412, 'waitlist is empty');
 
     _waitlist = waitlist;
-    return User.findOne(ObjectId(id.toLowerCase()));
+    return User.findOne(new ObjectId(id.toLowerCase()));
   })
   .then(user => {
     if (!user) throw new GenericError(404, `no user with id ${id}`);
@@ -174,22 +174,21 @@ export const leaveWaitlist = function leaveWaitlist(moderatorID, id, uwave) {
 
     return waitlist;
   });
-};
+}
 
-export const clearWaitlist = function clearWaitlist(moderatorID, redis) {
+export function clearWaitlist(moderatorID, redis) {
   redis.del('waitlist');
   return redis.lrange('waitlist', 0, -1)
   .then(waitlist => {
     if (waitlist.length === 0) {
       redis.publish('v1', createCommand('waitlistClear', { 'moderatorID': moderatorID }));
       return waitlist;
-    } else {
-      throw new GenericError(500, 'couldn\'t clear waitlist');
     }
+    throw new GenericError(500, 'couldn\'t clear waitlist');
   });
-};
+}
 
-export const lockWaitlist = function lockWaitlist(moderatorID, lock, clear, redis) {
+export function lockWaitlist(moderatorID, lock, clear, redis) {
   if (clear) redis.del('waitlist');
 
   if (lock) {
@@ -219,4 +218,4 @@ export const lockWaitlist = function lockWaitlist(moderatorID, lock, clear, redi
       }
     });
   });
-};
+}

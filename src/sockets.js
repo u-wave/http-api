@@ -7,8 +7,6 @@ import debug from 'debug';
 
 import advance from './advance';
 
-const OFFSET_NOAUTH = 20*1000;
-
 // websocket error codes
 const CLOSE_NORMAL = 1000;
 const CLOSE_VIOLATED_POLICY = 1008;
@@ -18,7 +16,7 @@ const ObjectId = Mongoose.Types.ObjectId;
 const log = debug('uwave:api:sockets');
 const verify = bluebird.promisify(jwt.verify);
 
-export const createCommand = function createCommand(key, value) {
+export function createCommand(key, value) {
   return JSON.stringify({
     'command': key,
     'data': value
@@ -40,7 +38,7 @@ export default class WSServer {
     this.clients = {};
     this.ID = 0;
 
-    this.heartbeatInt = setInterval(this._heartbeat.bind(this), 30*1000);
+    this.heartbeatInt = setInterval(this._heartbeat.bind(this), 30 * 1000);
     this.advanceTimer = null;
 
     this.sub.on('ready', () => this.sub.subscribe('v1', 'v1p'));
@@ -54,7 +52,7 @@ export default class WSServer {
 
     try {
       payload = JSON.parse(str);
-    } catch(e) {
+    } catch (e) {
       log(e);
     }
 
@@ -79,13 +77,13 @@ export default class WSServer {
     });
   }
 
-  _close(id, code, msg = '') {
+  _close(id, code) {
     if (code !== CLOSE_NORMAL) log(`connection ${id} closed with error.`);
     delete this.clients[id];
   }
 
   generateID() {
-    while(this.clients[++this.ID]) {
+    while (this.clients[++this.ID]) {
       if (this.ID >= Number.MAX_SAFE_INTEGER) {
         this.ID = 0;
       }
@@ -97,7 +95,6 @@ export default class WSServer {
     log('new connection');
     conn.on('message', msg => this._authenticate(conn, msg));
     conn.on('close', code => {
-      const client = this.clients[conn.id];
       this._close(conn.id, code);
     });
 
@@ -116,7 +113,7 @@ export default class WSServer {
     for (let i = keys.length - 1; i >= 0; i--) {
       const client = this.clients[keys[i]];
       if (client) {
-        if (client.heartbeat - Date.now() >= 60*1000) {
+        if (client.heartbeat - Date.now() >= 60 * 1000) {
           client.conn.close(CLOSE_VIOLATED_POLICY, 'idled too long');
         }
       }
@@ -149,11 +146,11 @@ export default class WSServer {
       });
 
       this.clients[conn.id]._id = user.id;
-      User.findOne(ObjectId(user.id), { '__v': 0 })
-      .then(user => {
-        if (!user) return conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'unknown user'));
-        this.redis.lpush('users', user.id);
-        this.broadcast(createCommand('join', user));
+      User.findOne(new ObjectId(user.id), { '__v': 0 })
+      .then(userModel => {
+        if (!userModel) return conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'unknown user'));
+        this.redis.lpush('users', userModel.id);
+        this.broadcast(createCommand('join', userModel));
       })
       .catch(e => {
         log(e);
@@ -180,28 +177,28 @@ export default class WSServer {
 
     if (!user) return conn.close(CLOSE_VIOLATED_POLICY, 'user not found');
 
-    switch(payload.command) {
-      case 'sendChat':
-        this.broadcast(createCommand('chatMessage', {
-          '_id': user._id,
-          'message': payload.data,
-          'timestamp': Date.now()
-        }));
+    switch (payload.command) {
+    case 'sendChat':
+      this.broadcast(createCommand('chatMessage', {
+        '_id': user._id,
+        'message': payload.data,
+        'timestamp': Date.now()
+      }));
       break;
 
-      case 'vote':
-        this.redis.lrem('booth:upvotes', 0, user._id);
-        this.redis.lrem('booth:downvotes', 0, user._id);
-        this.redis.lpush(payload.data > 0 ? 'booth:upvotes' : 'booth:downvotes', user._id);
+    case 'vote':
+      this.redis.lrem('booth:upvotes', 0, user._id);
+      this.redis.lrem('booth:downvotes', 0, user._id);
+      this.redis.lpush(payload.data > 0 ? 'booth:upvotes' : 'booth:downvotes', user._id);
 
-        this.broadcast(createCommand('vote', {
-          '_id': user._id,
-          'value': payload.data
-        }));
+      this.broadcast(createCommand('vote', {
+        '_id': user._id,
+        'value': payload.data
+      }));
       break;
 
-      default:
-        conn.send(createCommand('error', 'unknown command'));
+    default:
+      conn.send(createCommand('error', 'unknown command'));
     }
   }
 
@@ -241,13 +238,13 @@ export default class WSServer {
         .then(historyID => {
           const History = this.mongo.model('History');
 
-          return History.findOne(ObjectId(historyID));
+          return History.findOne(new ObjectId(historyID));
         })
         .then(entry => {
           if (!entry) return;
 
           this.redis.rpush('waitlist', entry.user.toString());
-          return this.redis.lrange('waitlist', 0, -1)
+          this.redis.lrange('waitlist', 0, -1)
           .then(waitlist => {
             this.redis.publish('v1', createCommand('waitlistUpdate', waitlist));
             this.redis.publish('v1p', createCommand('advance', null));

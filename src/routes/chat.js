@@ -4,7 +4,7 @@ import * as controller from '../controllers/chat';
 
 const log = debug('uwave:api:v1:chat');
 
-export default function chat(router) {
+export default function chatRoutes(router) {
   router.delete('/chat', (req, res) => {
     if (req.user.role < 4) return res.status(403).json('you need to be at least manager to do this');
 

@@ -1,14 +1,14 @@
-export default function (mongoose) {
+export default function(mongoose) {
   const Schema = mongoose.Schema;
 
   const authenticationSchema = new Schema({
-    'user': { 'type': Schema.Types.ObjectId, 'ref': 'User' },
-    'email': { 'type': String, 'max': 254, 'required': true, 'unique': true },
-    'hash': { 'type': String, 'required': true },
-    'salt': { 'type': String, 'required': true },
-    'validated': { 'type': Boolean, 'default': false }
+    user: { type: Schema.Types.ObjectId, ref: 'User' },
+    email: { type: String, max: 254, required: true, unique: true },
+    hash: { type: String, required: true },
+    salt: { type: String, required: true },
+    validated: { type: Boolean, default: false }
   }, {
-    'minimize': false
+    minimize: false
   });
 
   return mongoose.model('Authentication', authenticationSchema);

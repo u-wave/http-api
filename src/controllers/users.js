@@ -9,24 +9,24 @@ import { GenericError } from '../errors';
 const ObjectId = mongoose.Types.ObjectId;
 const log = debug('uwave:api:v1:users');
 
-export const getUsers = function getUsers(page, limit, mongo) {
+export function getUsers(page, limit, mongo) {
   const User = mongo.model('User');
-  const _page = (isNaN(page) ? 0 : page);
-  const _limit = (isNaN(limit) ? 50 : Math.min(limit, 50));
+  const _page = isNaN(page) ? 0 : page;
+  const _limit = isNaN(limit) ? 50 : Math.min(limit, 50);
 
   return User.find().setOptions({ 'limit': _limit, 'page': _limit * _page });
-};
+}
 
-export const getUser = function getUser(id, mongo) {
+export function getUser(id, mongo) {
   const User = mongo.model('User');
 
-  return User.findOne(ObjectId(id));
-};
+  return User.findOne(new ObjectId(id));
+}
 
-export const banUser = function banUser(moderatorID, id, time, exiled, uwave) {
+export function banUser(moderatorID, id, time, exiled, uwave) {
   const User = uwave.mongo.model('User');
 
-  return User.findOne(ObjectId(id))
+  return User.findOne(new ObjectId(id))
   .then(user => {
     if (!user) throw new GenericError(404, `user with ID ${id} not found`);
 
@@ -55,12 +55,12 @@ export const banUser = function banUser(moderatorID, id, time, exiled, uwave) {
       resolve(user);
     });
   });
-};
+}
 
-export const muteUser = function muteUser(moderatorID, id, time, uwave) {
+export function muteUser(moderatorID, id, time, uwave) {
   const User = uwave.mongo.model('User');
 
-  return User.findOne(ObjectId(id))
+  return User.findOne(new ObjectId(id))
   .then(user => {
     if (!user) throw new GenericError(404, `user with ID ${id} not found`);
 
@@ -75,12 +75,12 @@ export const muteUser = function muteUser(moderatorID, id, time, uwave) {
       resolve(time > 0 ? true : false);
     });
   });
-};
+}
 
-export const changeRole = function changeRole(moderatorID, id, role, uwave) {
+export function changeRole(moderatorID, id, role, uwave) {
   const User = uwave.mongo.model('User');
 
-  return User.findOne(ObjectId(id))
+  return User.findOne(new ObjectId(id))
   .then(user => {
     if (!user) throw new GenericError(404, `user with ID ${id} not found`);
 
@@ -93,12 +93,12 @@ export const changeRole = function changeRole(moderatorID, id, role, uwave) {
     }));
     return user.save();
   });
-};
+}
 
-export const changeUsername = function changeUsername(moderatorID, id, name, uwave) {
+export function changeUsername(moderatorID, id, name, uwave) {
   const User = uwave.mongo.model('User');
 
-  return User.findOne(ObjectId(id))
+  return User.findOne(new ObjectId(id))
   .then(user => {
     if (!user) throw new GenericError(404, `user with ID ${id} not found`);
     if (user.id !== id && user.role < 3) {
@@ -116,16 +116,16 @@ export const changeUsername = function changeUsername(moderatorID, id, name, uwa
 
     return user.save();
   });
-};
+}
 
-export const setStatus = function setStatus(id, status, redis) {
+export function setStatus(id, status, redis) {
   redis.publish('v1', createCommand('statusChange', {
-      'userID': id,
-      'status': Math.max(Math.min(status, 3), 0)
-    }));
-};
+    userID: id,
+    status: Math.max(Math.min(status, 3), 0)
+  }));
+}
 
-export const getHistory = function getHistory(id, page, limit, mongo) {
+export function getHistory(id, page, limit, mongo) {
   const History = mongo.model('History');
 
   const _page = (!isNaN(page) ? page : 0);

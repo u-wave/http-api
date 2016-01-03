@@ -6,7 +6,7 @@ import handleError from '../errors';
 
 const log = debug('uwave:api:v1:waitlist');
 
-export default function waitlist(router) {
+export default function waitlistRoutes(router) {
   router.route('/waitlist')
   /* ========== WAITLIST[GET] ========== */
   .get((req, res) => {
@@ -44,7 +44,9 @@ export default function waitlist(router) {
 
   /* ========== WAITLIST MOVE ========== */
   router.put('/waitlist/move', (req, res) => {
-    if (!checkFields(req.body, res, ['userID', 'position'], ['string', 'number'])) return;
+    if (!checkFields(req.body, res, ['userID', 'position'], ['string', 'number'])) {
+      return res.status(422).json('expected userID to be a string and position to be a number');
+    }
 
     if (req.user.role < 3) {
       return res.status(403).json('you need to be at least a bouncer to do this');
@@ -68,7 +70,9 @@ export default function waitlist(router) {
 
   /* ========== WAITLIST LOCK ========== */
   router.put('/waitlist/lock', (req, res) => {
-    if (!checkFields(req.body, res, ['lock', 'clear'], 'boolean')) return;
+    if (!checkFields(req.body, res, ['lock', 'clear'], 'boolean')) {
+      return res.status(422).json('expected lock to be boolean and clear to be boolean');
+    }
     if (req.user.role < 3) {
       return res.status(403).json('you need to be at least a bouncer to do this');
     }
