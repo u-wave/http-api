@@ -236,7 +236,7 @@ export default class WSServer {
             this._handleMessage('v1p', createCommand('advance', null));
           }
         });
-      } else if (_command.command = 'cycleWaitlist') {
+      } else if (_command.command === 'cycleWaitlist') {
         this.redis.get('booth:historyID')
         .then(historyID => {
           const History = this.mongo.model('History');
