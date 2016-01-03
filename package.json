@@ -12,7 +12,8 @@
   },
   "scripts": {
     "test": "eslint src",
-    "build": "babel --out-dir lib src"
+    "build": "babel --out-dir lib src",
+    "prepublish": "npm run build"
   },
   "dependencies": {
     "bluebird": "^2.10.0",
