@@ -107,7 +107,6 @@ export default function userRoutes(router) {
   });
 
   router.put('/users/:id/avatar', (req, res) => {
-    return res.status(500).json('soonTM');
     if (!req.body.avatar) return res.status(422).json('avatar is not set');
 
     if (typeof req.body.avatar !== 'string') {

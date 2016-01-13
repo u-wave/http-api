@@ -1,9 +1,5 @@
-import debug from 'debug';
-
 import { GenericError } from '../errors';
 import { fetchMedia } from './search';
-
-const log = debug('uwave:api:v1:staff');
 
 export function getAllMedia(page, limit, mongo) {
   const Media = mongo.model('Media');

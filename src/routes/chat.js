@@ -1,8 +1,4 @@
-import debug from 'debug';
-
 import * as controller from '../controllers/chat';
-
-const log = debug('uwave:api:v1:chat');
 
 export default function chatRoutes(router) {
   router.delete('/chat', (req, res) => {

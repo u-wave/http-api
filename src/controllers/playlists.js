@@ -1,12 +1,10 @@
 import mongoose from 'mongoose';
 import Promise from 'bluebird';
-import debug from 'debug';
 
 import { GenericError } from '../errors';
 import { fetchMedia } from './search';
 
 const ObjectId = mongoose.Types.ObjectId;
-const log = debug('uwave:api:v1:playlists');
 
 function addMedia(sourceType, sourceID, keys, Media) {
   return fetchMedia(sourceType, sourceID, keys).then(media => {
@@ -53,19 +51,7 @@ export function createPlaylist(data, mediaArray, mongo) {
 
   return playlist.validate()
   .then(() => {
-    let pending = mediaArray.length;
-    const cb = (err, media) => {
-      if (err) {
-        playlist.remove();
-        throw err;
-      }
-
-      pending--;
-      playlist.media.push(media.id);
-      if (!pending) return playlist.save();
-    };
-
-    if (!pending) return playlist.save();
+    if (!mediaArray.length) return playlist.save();
 
     for (let i = 0, l = mediaArray.length; i < l; i++) {
       new PlaylistItem(mediaArray[i]).save();

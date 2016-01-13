@@ -1,13 +1,11 @@
 import mongoose from 'mongoose';
 import Promise from 'bluebird';
-import debug from 'debug';
 
 import { createCommand } from '../sockets';
 import { paginate } from '../utils';
 import { GenericError } from '../errors';
 
 const ObjectId = mongoose.Types.ObjectId;
-const log = debug('uwave:api:v1:users');
 
 export function getUsers(page, limit, mongo) {
   const User = mongo.model('User');
