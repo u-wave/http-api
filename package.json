@@ -4,6 +4,7 @@
   "description": "V1 API for üwave.",
   "license": "MIT",
   "repository": "u-wave/u-wave-api-v1",
+  "main": "./lib/api",
   "devDependencies": {
     "babel": "^5.8.23",
     "babel-eslint": "^4.1.1",
