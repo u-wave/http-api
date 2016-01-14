@@ -288,14 +288,11 @@ export function updatePlaylistItem(id, playlistID, mediaID, metadata, mongo) {
     if (id !== playlist.author.toString() && playlist.shared) {
       throw new GenericError(403, 'playlist is private');
     }
-
-    for (let i = playlist.media.length - 1; i >= 0; i--) {
-      if (playlist.media[i].toString() === mediaID) {
-        return PlaylistItem.findOneAndUpdate(playlist.media[i], metadata, { 'new': true });
-      }
+    if (playlist.media.indexOf(mediaID) === -1) {
+        throw new GenericError(404, 'media not found');
     }
 
-    throw new GenericError(404, 'media not found');
+    return PlaylistItem.findOneAndUpdate({ _id: mediaID }, metadata, { new: true });
   });
 }
 
