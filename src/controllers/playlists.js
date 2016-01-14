@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Promise from 'bluebird';
 
 import { GenericError } from '../errors';
+import { paginate } from '../utils';
 import { fetchMedia } from './search';
 
 const ObjectId = mongoose.Types.ObjectId;
@@ -59,24 +60,13 @@ export function createPlaylist(data, mediaArray, mongo) {
   });
 }
 
-export function getPlaylist(page, limit, id, playlistID, populate, mongo) {
+export function getPlaylist(id, playlistID, mongo) {
   const Playlist = mongo.model('Playlist');
-  const _page = (isNaN(page) ? 0 : page);
-  const _limit = (isNaN(limit) ? 100 : Math.min(limit, 100));
 
-  return Playlist.findOne(
-    { _id: playlistID, author: id },
-    { media: { $slice: [_limit * _page, _limit ] } }
-  )
+  return Playlist.findOne({ _id: playlistID, author: id })
   .then(playlist => {
     if (!playlist) throw new GenericError(404, 'playlist not found or private');
 
-    if (populate) {
-      return playlist.populate('media').execPopulate()
-      .then(_playlist => {
-        return Playlist.populate(_playlist, { 'path': 'media.media', 'model': 'Media' });
-      });
-    }
     return toPlaylistResponse(playlist);
   });
 }
@@ -130,6 +120,27 @@ export function sharePlaylist(id, playlistID, shared, mongo) {
     playlist.shared = shared;
     return playlist.save();
   });
+}
+
+export function getPlaylistItems(page, limit, id, playlistID, mongo) {
+  const Playlist = mongo.model('Playlist');
+  const PlaylistItem = mongo.model('PlaylistItem');
+  const _page = (isNaN(page) ? 0 : page);
+  const _limit = (isNaN(limit) ? 100 : Math.min(limit, 100));
+
+  return Playlist.findOne(
+    { _id: playlistID, author: id },
+    { media: { $slice: [_limit * _page, _limit ] } }
+  )
+  .then(playlist => {
+    if (!playlist) throw new GenericError(404, 'playlist not found or private');
+
+    return playlist.media;
+  })
+  .then(media =>
+    PlaylistItem.find({ _id: { $in: media } }).populate('media')
+  )
+  .then(media => paginate(_page, _limit, media));
 }
 
 export function movePlaylistItems(id, playlistID, after, items, mongo) {
