@@ -214,13 +214,18 @@ export default class WSServer {
 
         advance(this.mongo, this.redis)
         .then(now => {
-          this.redis.set('booth:historyID', now.historyID);
-          this.broadcast(createCommand('advance', now));
-          this.advanceTimer = setTimeout(
-            this._handleMessage.bind(this),
-            now.media.media.duration * 1000,
-            'v1p', createCommand('cycleWaitlist', null)
-          );
+          if (now) {
+            this.redis.set('booth:historyID', now.historyID);
+            this.broadcast(createCommand('advance', now));
+            this.advanceTimer = setTimeout(
+              this._handleMessage.bind(this),
+              now.media.media.duration * 1000,
+              'v1p', createCommand('cycleWaitlist', null)
+            );
+          } else {
+            this.redis.del('booth:historyID');
+            this.broadcast(createCommand('advance', null));
+          }
         })
         .catch(e => {
           log(e);
