@@ -289,7 +289,7 @@ export function updatePlaylistItem(id, playlistID, mediaID, metadata, mongo) {
       throw new GenericError(403, 'playlist is private');
     }
     if (playlist.media.indexOf(mediaID) === -1) {
-        throw new GenericError(404, 'media not found');
+      throw new GenericError(404, 'media not found');
     }
 
     return PlaylistItem.findOneAndUpdate({ _id: mediaID }, metadata, { new: true });
