@@ -60,21 +60,32 @@ export default class WSServer {
   }
 
   _removeUser(id) {
-    this.redis.lrem('users', 0, id);
-    this.redis.lrange('waitlist', 0, -1)
-    .then(waitlist => {
-      for (let i = waitlist.length - 1; i >= 0; i--) {
-        if (waitlist[i] === id) {
+    const History = this.mongo.model('History');
+    const removeFromWaitlist = () => {
+      return this.redis.lrange('waitlist', 0, -1).then(waitlist => {
+        const i = waitlist.indexOf(id);
+        if (i !== -1) {
           waitlist.splice(i, 1);
           this.redis.lrem('waitlist', 0, id);
-
           this.broadcast(createCommand('waitlistLeave', {
-            'userID': id,
-            'waitlist': waitlist
+            userID: id,
+            waitlist: waitlist
           }));
         }
-      }
-    });
+      });
+    };
+    const skipIfCurrentDJ = () => {
+      return this.redis.get('booth:historyID')
+        .then(historyID => History.findOne({ _id: historyID }))
+        .then(entry => {
+          if (entry && entry.user + '' === id) {
+            this.redis.publish('v1p', createCommand('advance', null));
+          }
+        });
+    };
+    this.redis.lrem('users', 0, id);
+    skipIfCurrentDJ()
+      .then(removeFromWaitlist);
   }
 
   _close(id, code) {
