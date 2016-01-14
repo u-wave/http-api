@@ -20,47 +20,48 @@ export default function advance(mongo, redis) {
 
   return redis.lpop('waitlist')
   .then(userID => {
-    if (!userID) throw new GenericError(404, 'waitlist is empty');
+    if (!userID) {
+      return null;
+    }
+    return User.findOne(new ObjectId(userID))
+      .then(user => {
+        if (!user) throw new GenericError(404, 'user not found');
 
-    return User.findOne(new ObjectId(userID));
-  })
-  .then(user => {
-    if (!user) throw new GenericError(404, 'user not found');
+        now.userID = user.id;
+        return redis.get(`playlist:${user.id}`);
+      })
+      .then(playlistID => {
+        if (!playlistID) throw new GenericError(404, 'playlistID not set');
 
-    now.userID = user.id;
-    return redis.get(`playlist:${user.id}`);
-  })
-  .then(playlistID => {
-    if (!playlistID) throw new GenericError(404, 'playlistID not set');
+        return Playlist.findOne(new ObjectId(playlistID));
+      })
+      .then(playlist => {
+        if (!playlist) throw new GenericError(404, 'playlist not found');
 
-    return Playlist.findOne(new ObjectId(playlistID));
-  })
-  .then(playlist => {
-    if (!playlist) throw new GenericError(404, 'playlist not found');
+        now.playlistID = playlist.id;
 
-    now.playlistID = playlist.id;
+        now.media = playlist.media.shift();
+        playlist.media.push(now.media);
+        playlist.save();
 
-    now.media = playlist.media.shift();
-    playlist.media.push(now.media);
-    playlist.save();
+        return PlaylistItem.findOne(now.media).populate('media');
+      })
+      .then(media => {
+        if (!media) throw new GenericError(404, 'media not found');
+        now.media = media;
 
-    return PlaylistItem.findOne(now.media).populate('media');
-  })
-  .then(media => {
-    if (!media) throw new GenericError(404, 'media not found');
-    now.media = media;
+        return new History({
+          user: now.userID,
+          media: now.media.id,
+          playlist: now.playlistID
+        }).save();
+      })
+      .then(history => {
+        if (!history) throw new GenericError(404, 'history not found');
 
-    return new History({
-      user: now.userID,
-      media: now.media.id,
-      playlist: now.playlistID
-    }).save();
-  })
-  .then(history => {
-    if (!history) throw new GenericError(404, 'history not found');
-
-    now.historyID = history.id;
-    now.played = Date.now();
-    return now;
+        now.historyID = history.id;
+        now.played = Date.now();
+        return now;
+      });
   });
 }
