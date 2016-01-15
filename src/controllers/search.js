@@ -1,12 +1,12 @@
 import Promise from 'bluebird';
 import debug from 'debug';
 import https from 'https';
+import parseIsoDuration from 'parse-iso-duration';
 
 import { stringify } from 'querystring';
 import { GenericError } from '../errors';
 
 const log = debug('uwave:api:v1:search');
-const rxDuration = /^(?:PT)?([0-9]+?H)?([0-9]+?M)?([0-9]+?S)?/i;
 const rxTitle = /[-_]/;
 
 function sendRequest(opts) {
@@ -32,45 +32,6 @@ function selectThumbnail(thumbnails) {
   if (typeof thumbnails.high === 'object') return thumbnails.high.url;
   if (typeof thumbnails.medium === 'object') return thumbnails.medium.url;
   if (typeof thumbnails.default === 'object') return thumbnails.default.url;
-}
-
-function parseYoutubeDuration(duration) {
-  const time = duration.split(rxDuration);
-  let _seconds = 0;
-
-  for (let i = time.length - 1; i >= 0; i--) {
-    const length = time[i].length;
-    if (length === 0) {
-      continue;
-    }
-
-    switch (time[i].slice(length - 1).toLowerCase()) {
-    case 'h':
-      const hours = parseInt(time[i].slice(0, length), 10);
-      if (!isNaN(hours)) {
-        _seconds += hours * 60 * 60;
-      }
-      break;
-
-    case 'm':
-      const minutes = parseInt(time[i].slice(0, length), 10);
-      if (!isNaN(minutes)) {
-        _seconds += minutes * 60;
-      }
-      break;
-
-    case 's':
-      const seconds = parseInt(time[i].slice(0, length), 10);
-      if (!isNaN(seconds)) {
-        _seconds += seconds;
-      }
-      break;
-    default:
-      // do nothing
-    }
-  }
-
-  return _seconds;
 }
 
 function getRegionRestriction(contentDetails) {
@@ -120,7 +81,7 @@ function convertYoutubeMedia(item) {
     sourceType: 'youtube',
     sourceID: item.id,
     artist, title,
-    duration: parseYoutubeDuration(item.contentDetails.duration),
+    duration: Math.round(parseIsoDuration(item.contentDetails.duration) / 1000),
     thumbnail: selectThumbnail(item.snippet.thumbnails),
     nsfw: typeof item.contentDetails.contentRating === 'object',
     restricted: getRegionRestriction(item.contentDetails)
