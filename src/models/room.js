@@ -1,4 +1,4 @@
-export default function(mongoose) {
+export default function (mongoose) {
   const Schema = mongoose.Schema;
   // TODO: probably should allow to embed links
   const roomSchema = new Schema({

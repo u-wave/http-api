@@ -61,7 +61,7 @@ function splitTitle(title) {
 }
 
 function convertSoundcloudMedia(media) {
-  const [ artist, title ] = splitTitle(media.title);
+  const [artist, title] = splitTitle(media.title);
 
   return {
     sourceType: 'soundcloud',
@@ -75,7 +75,7 @@ function convertSoundcloudMedia(media) {
 }
 
 function convertYoutubeMedia(item) {
-  const [ artist, title ] = splitTitle(item.snippet.title);
+  const [artist, title] = splitTitle(item.snippet.title);
 
   return {
     sourceType: 'youtube',
@@ -90,8 +90,8 @@ function convertYoutubeMedia(item) {
 
 export function fetchMediaYoutube(ids, key) {
   const params = stringify({
+    key,
     part: 'snippet,contentDetails',
-    key: key,
     id: Array.isArray(ids) ? ids.join(',') : ids
   });
 
@@ -150,8 +150,8 @@ export function fetchMedia(sourceType, sourceID, keys) {
 
 export function searchYoutube(query, key) {
   const params = stringify({
+    key,
     q: query,
-    key: key,
     safeSearch: 'none',
     videoSyndicated: true,
     part: 'snippet',

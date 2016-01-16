@@ -18,11 +18,11 @@ function _getWaitlist(forceJoin, redis) {
   });
 }
 
-export function appendToWaitlist(id, forceJoin, uwave) {
+export function appendToWaitlist(userID, forceJoin, uwave) {
   const User = uwave.mongo.model('User');
   let role = 0;
 
-  return User.findOne(new ObjectId(id))
+  return User.findOne(new ObjectId(userID))
   .then(user => {
     if (!user) throw new GenericError(404, 'user not found');
 
@@ -31,17 +31,14 @@ export function appendToWaitlist(id, forceJoin, uwave) {
   })
   .then(waitlist => {
     for (let i = waitlist.length - 1; i >= 0; i--) {
-      if (waitlist[i] === id) throw new GenericError(403, 'already in waitlist');
+      if (waitlist[i] === userID) throw new GenericError(403, 'already in waitlist');
     }
 
-    uwave.redis.rpush('waitlist', id);
+    uwave.redis.rpush('waitlist', userID);
     return uwave.redis.lrange('waitlist', 0, -1);
   })
   .then(waitlist => {
-    uwave.redis.publish('v1', createCommand('waitlistJoin', {
-      'userID': id,
-      'waitlist': waitlist
-    }));
+    uwave.redis.publish('v1', createCommand('waitlistJoin', { userID, waitlist }));
 
     uwave.redis.publish('v1p', createCommand('checkAdvance', role));
 
@@ -52,6 +49,7 @@ export function appendToWaitlist(id, forceJoin, uwave) {
 export function insertWaitlist(moderatorID, id, position, forceJoin, uwave) {
   const User = uwave.mongo.model('User');
   let role = 0;
+  let clampedPosition = position;
 
   return User.find(new ObjectId(id))
   .then(user => {
@@ -62,14 +60,14 @@ export function insertWaitlist(moderatorID, id, position, forceJoin, uwave) {
   })
   .then(waitlist => {
     const length = waitlist.length;
-    const _position = Math.max(Math.min(position, length - 1), 0);
+    clampedPosition = Math.max(Math.min(position, length - 1), 0);
 
     for (let i = length - 1; i >= 0; i--) {
       if (waitlist[i] === id) throw new GenericError(403, 'already in waitlist');
     }
 
-    if (length > _position) {
-      uwave.redis.linsert('waitlist', 'BEFORE', waitlist[_position], id);
+    if (length > clampedPosition) {
+      uwave.redis.linsert('waitlist', 'BEFORE', waitlist[clampedPosition], id);
     } else {
       uwave.redis.lpush('waitlist', id);
     }
@@ -78,10 +76,10 @@ export function insertWaitlist(moderatorID, id, position, forceJoin, uwave) {
   })
   .then(waitlist => {
     uwave.redis.publish('v1', createCommand('waitlistAdd', {
-      'userID': id,
-      'moderatorID': moderatorID,
-      'position': _position,
-      'waitlist': waitlist
+      userID: id,
+      moderatorID,
+      position: clampedPosition,
+      waitlist
     }));
 
     uwave.redis.publish('v1p', createCommand('checkAdvance', role));
@@ -90,7 +88,7 @@ export function insertWaitlist(moderatorID, id, position, forceJoin, uwave) {
   });
 }
 
-export function moveWaitlist(moderatorID, id, position, uwave) {
+export function moveWaitlist(moderatorID, userID, position, uwave) {
   const User = uwave.mongo.model('User');
   let beforeID = null;
   let _position = null;
@@ -100,15 +98,15 @@ export function moveWaitlist(moderatorID, id, position, uwave) {
     const length = waitlist.length;
 
     for (let i = (length > 0 ? length - 1 : -1); i >= 0; i--) {
-      if (waitlist[i] === user.id) {
+      if (waitlist[i] === userID) {
         _position = Math.max(Math.min(position, length), 0);
         beforeID = length > 0 ? waitlist[_position] : null;
 
-        return User.findOne(new ObjectId(id.toLowerCase()));
+        return User.findOne(new ObjectId(userID.toLowerCase()));
       }
     }
 
-    throw new GenericError(404, `user ${id} is not in waitlist`);
+    throw new GenericError(404, `user ${userID} is not in waitlist`);
   })
   .then(user => {
     if (!user) throw new GenericError(404, 'user not found');
@@ -123,10 +121,10 @@ export function moveWaitlist(moderatorID, id, position, uwave) {
   })
   .then(waitlist => {
     uwave.redis.publish('v1', createCommand('waitlistAdd', {
-      'userID': id,
-      'moderatorID': moderatorID,
-      'position': _position,
-      'waitlist': waitlist
+      userID,
+      moderatorID,
+      position: _position,
+      waitlist
     }));
 
     return waitlist;
@@ -161,14 +159,13 @@ export function leaveWaitlist(moderatorID, id, uwave) {
   .then(waitlist => {
     if (moderatorID !== id) {
       uwave.redis.publish('v1', createCommand('waitlistRemove', {
-        'userID': id,
-        'moderatorID': moderatorID,
-        'waitlist': waitlist
+        userID: id,
+        moderatorID, waitlist
       }));
     } else {
       uwave.redis.publish('v1', createCommand('waitlistLeave', {
-        'userID': id,
-        'waitlist': waitlist
+        userID: id,
+        waitlist
       }));
     }
 
@@ -181,7 +178,7 @@ export function clearWaitlist(moderatorID, redis) {
   return redis.lrange('waitlist', 0, -1)
   .then(waitlist => {
     if (waitlist.length === 0) {
-      redis.publish('v1', createCommand('waitlistClear', { 'moderatorID': moderatorID }));
+      redis.publish('v1', createCommand('waitlistClear', { moderatorID }));
       return waitlist;
     }
     throw new GenericError(500, 'couldn\'t clear waitlist');
@@ -199,19 +196,16 @@ export function lockWaitlist(moderatorID, lock, clear, redis) {
 
   return redis.get('waitlist:lock')
   .then(locked => {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       if (Boolean(locked) === lock) {
-        redis.publish('v1', createCommand('waitlistLock', {
-          'moderatorID': moderatorID,
-          'locked': locked
-        }));
+        redis.publish('v1', createCommand('waitlistLock', { moderatorID, locked }));
 
         if (clear) {
-          redis.publish('v1', createCommand('waitlistClear', { 'moderatorID': moderatorID }));
+          redis.publish('v1', createCommand('waitlistClear', { moderatorID }));
         }
         resolve({
-          'locked': lock,
-          'cleared': clear
+          locked: lock,
+          cleared: clear
         });
       } else {
         reject(new GenericError(500, `couldn't ${lock ? 'lock' : 'unlock'} waitlist`));

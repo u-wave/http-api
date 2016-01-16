@@ -14,9 +14,11 @@ export default function boothRoutes(router) {
   });
 
   router.post('/booth/skip', (req, res) => {
-    if (req.user.role < 3) return res.status(412).json('you need to be at least bouncer to do this');
+    if (req.user.role < 3) {
+      return res.status(412).json('you need to be at least bouncer to do this');
+    }
 
-    if (!checkFields(req.body, res, ['userID', 'reason'], 'string'))  {
+    if (!checkFields(req.body, res, ['userID', 'reason'], 'string')) {
       return res.status(422).json('expected userID to be a string and reason to be a string');
     }
 
@@ -26,11 +28,15 @@ export default function boothRoutes(router) {
   });
 
   router.post('/booth/replace', (req, res) => {
-    if (req.user.role < 3) return res.status(412).json('you need to be at least bouncer to do this');
-
-    if (typeof req.body.userID === 'undefined') return res.status(422).json('userID is not set');
-
-    if (typeof req.body.userID !== 'string') return res.status(422).json('userID has to be of type string');
+    if (req.user.role < 3) {
+      return res.status(412).json('you need to be at least bouncer to do this');
+    }
+    if (typeof req.body.userID === 'undefined') {
+      return res.status(422).json('userID is not set');
+    }
+    if (typeof req.body.userID !== 'string') {
+      return res.status(422).json('userID has to be of type string');
+    }
 
     controller.replaceBooth(req.user.id, req.body.userID, req.uwave)
     .then(replaced => res.status(200).json(replaced))
@@ -38,8 +44,10 @@ export default function boothRoutes(router) {
   });
 
   router.post('/booth/favorite', (req, res) => {
-    if (!checkFields(req.body, res, ['playlistID', 'historyID'], 'string'))  {
-      return res.status(422).json('expected playlistID to be a string and historyID to be a string');
+    if (!checkFields(req.body, res, ['playlistID', 'historyID'], 'string')) {
+      return res.status(422).json(
+        'expected playlistID to be a string and historyID to be a string'
+      );
     }
 
     controller.favorite(req.user.id, req.body.playlistID, req.body.historyID, req.uwave)
@@ -48,7 +56,8 @@ export default function boothRoutes(router) {
   });
 
   router.get('/booth/history', (req, res) => {
-    controller.getHistory(parseInt(req.query.page, 10), parseInt(req.query.limit, 10), req.uwave.mongo)
+    const { page, limit } = req.query;
+    controller.getHistory(parseInt(page, 10), parseInt(limit, 10), req.uwave.mongo)
     .then(history => res.status(200).json(history))
     .catch(e => handleError(res, e, log));
   });

@@ -38,7 +38,9 @@ export class PaginateError extends Error {
 }
 
 export const handleError = function handleError(res, e, log) {
-  log && log(e);
+  if (log) {
+    log(e);
+  }
   if (e instanceof redis.ReplyError) {
     res.status(410).json('couldn\'t save to database, please try again later');
   } else if (e instanceof PaginateError) {

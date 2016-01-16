@@ -49,18 +49,16 @@ export function createUser(email, username, password, mongo) {
   let _auth = null;
 
   log(`creating new user ${username}`);
-  const user = new User({ username: username });
+  const user = new User({ username });
 
   return user.validate()
-  .then(() => {
-    return generateHashPair(password, PASS_LENGTH);
-  })
+  .then(() => generateHashPair(password, PASS_LENGTH))
   .then(hashPair => {
     _auth = new Authentication({
-      'user': user.id,
-      'email': email,
-      'hash': hashPair.hash,
-      'salt': hashPair.salt
+      user: user.id,
+      email,
+      hash: hashPair.hash,
+      salt: hashPair.salt
     });
     return _auth.save();
   })
@@ -78,7 +76,7 @@ export function login(email, password, secret, uwave) {
   const Authentication = uwave.mongo.model('Authentication');
   let _auth = null;
 
-  return Authentication.findOne({'email': email}).populate('user').exec()
+  return Authentication.findOne({ email }).populate('user').exec()
   .then(auth => {
     if (!auth) throw new GenericError(404, 'no user found');
 
@@ -106,7 +104,7 @@ export function login(email, password, secret, uwave) {
 export function reset(email, uwave) {
   const Authentication = uwave.mongo.model('Authentication');
 
-  return Authentication.findOne({'email': email})
+  return Authentication.findOne({ email })
   .then(auth => {
     if (!auth) throw new GenericError(404, 'no user found');
     return randomBytes(64);
@@ -128,15 +126,12 @@ export function changePassword(email, password, resetToken, uwave) {
 
     return generateHashPair(password, PASS_LENGTH);
   })
-  .then(hashPair => {
-    return Authentication.findOneAndUpdate(
-      { 'email': email },
-      {
-        'salt': hashPair.salt,
-        'hash': hashPair.hash
-      }
-    ).exec();
-  })
+  .then(hashPair =>
+    Authentication.findOneAndUpdate(
+      { email },
+      { salt: hashPair.salt, hash: hashPair.hash }
+    ).exec()
+  )
   .then(auth => {
     if (!auth) throw new GenericError(404, `no user with email ${email} found`);
     uwave.redis.del(`reset:${email}`);

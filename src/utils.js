@@ -62,13 +62,8 @@ export const split = function split(arr, size) {
   return chunks;
 };
 
-export const paginate = function paginate(page, size, data, err = null) {
-  return {
-    'page': page,
-    'size': size,
-    'result': data,
-    'error': err
-  };
+export const paginate = function paginate(page, size, result, error = null) {
+  return { page, size, result, error };
 };
 
 export default checkFields;

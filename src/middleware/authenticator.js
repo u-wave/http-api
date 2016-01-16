@@ -3,7 +3,9 @@ import jwt from 'jsonwebtoken';
 import debug from 'debug';
 
 const verify = bluebird.promisify(jwt.verify);
+/* eslint-disable max-len */
 const rx = /\/auth\/(login|register|password\/reset|password\/reset\/[a-f0-9]{128})|\/booth|\/now|\/(playlists|users)\/[a-f0-9]{24}$/i;
+/* eslint-enable max-len */
 
 const log = debug('uwave:v1:authenticator');
 

@@ -8,9 +8,8 @@ import { fetchMedia } from './search';
 const ObjectId = mongoose.Types.ObjectId;
 
 function addMedia(sourceType, sourceID, keys, Media) {
-  return fetchMedia(sourceType, sourceID, keys).then(media => {
-    return new Media(media).save();
-  });
+  return fetchMedia(sourceType, sourceID, keys)
+    .then(media => new Media(media).save());
 }
 
 const toPlaylistResponse = model => ({
@@ -27,11 +26,11 @@ const toPlaylistResponse = model => ({
 export function getPlaylists(page, limit, id, mongo) {
   const Playlist = mongo.model('Playlist');
 
-  const _page = (isNaN(page) ? 0 : page);
-  const _limit = (isNaN(limit) ? 50 : Math.min(limit, 50));
+  const _page = isNaN(page) ? 0 : page;
+  const _limit = isNaN(limit) ? 50 : Math.min(limit, 50);
 
-  return Playlist.find({'author': id})
-  .setOptions({ 'limit': _limit, 'skip': _limit * _page })
+  return Playlist.find({ author: id })
+  .setOptions({ limit: _limit, skip: _limit * _page })
   .exec()
   .then(playlists => {
     const _playlists = [];
@@ -125,12 +124,12 @@ export function sharePlaylist(id, playlistID, shared, mongo) {
 export function getPlaylistItems(page, limit, id, playlistID, mongo) {
   const Playlist = mongo.model('Playlist');
   const PlaylistItem = mongo.model('PlaylistItem');
-  const _page = (isNaN(page) ? 0 : page);
-  const _limit = (isNaN(limit) ? 100 : Math.min(limit, 100));
+  const _page = isNaN(page) ? 0 : page;
+  const _limit = isNaN(limit) ? 100 : Math.min(limit, 100);
 
   return Playlist.findOne(
     { _id: playlistID, author: id },
-    { media: { $slice: [_limit * _page, _limit ] } }
+    { media: { $slice: [_limit * _page, _limit] } }
   )
   .then(playlist => {
     if (!playlist) throw new GenericError(404, 'playlist not found or private');
@@ -204,7 +203,7 @@ export function createPlaylistItems(id, playlistID, after, items, uwave) {
   const _addMedia = (sourceType, sourceID) => {
     let _playlistItem = null;
 
-    return Media.findOne({ 'sourceType': sourceType, 'sourceID': sourceID })
+    return Media.findOne({ sourceType, sourceID })
     .then(media => {
       if (!media) {
         return addMedia(sourceType, sourceID, uwave.keys, Media);
@@ -213,10 +212,10 @@ export function createPlaylistItems(id, playlistID, after, items, uwave) {
     })
     .then(media => {
       _playlistItem = new PlaylistItem({
-        'media': media,
-        'artist': media.artist,
-        'title': media.title,
-        'end': media.duration
+        media,
+        artist: media.artist,
+        title: media.title,
+        end: media.duration
       });
 
       return _playlistItem.save();
@@ -233,8 +232,12 @@ export function createPlaylistItems(id, playlistID, after, items, uwave) {
 
   return Playlist.findOne(new ObjectId(playlistID))
   .then(playlist => {
-    if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
-    if (playlist.author.toString() !== id) throw new GenericError(403, 'you can\'t edit the playlist of another user');
+    if (!playlist) {
+      throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+    }
+    if (playlist.author.toString() !== id) {
+      throw new GenericError(403, 'you can\'t edit the playlist of another user');
+    }
 
     for (let i = 0, l = items.length; i < l; i++) {
       if (typeof items[i] !== 'object') continue;
@@ -259,13 +262,10 @@ export function createPlaylistItems(id, playlistID, after, items, uwave) {
 
       playlist.media.splice(pos + 1, 0, ...playlistItems);
 
-      return playlist.save()
-      .then(() => {
-        return {
-          'added': playlistItems,
-          'playlistSize': playlist.media.length
-        };
-      });
+      return playlist.save().then(() => ({
+        added: playlistItems,
+        playlistSize: playlist.media.length
+      }));
     });
   });
 }
@@ -312,23 +312,20 @@ export function deletePlaylistItems(id, playlistID, items, mongo) {
   const Playlist = mongo.model('Playlist');
 
   return Playlist.findOneAndUpdate(
-    { '_id': playlistID, 'author': id },
-    { '$pullAll': { 'media': items } },
-    { 'new': true }
+    { _id: playlistID, author: id },
+    { $pullAll: { media: items } },
+    { new: true }
   )
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
     // return full PlaylistItem object to keep consitency with addMedia route
-    return PlaylistItem.find({ '_id': { '$in': items }}).populate('media')
+    return PlaylistItem.find({ _id: { $in: items } }).populate('media')
     .then(mediaItems => {
       // sadly .remove will not return the removed objects :C
-      return PlaylistItem.remove({ '_id': { '$in': items } })
-      .then(() => {
-        return {
-          'removed': mediaItems,
-          'playlistSize': playlist.media.length
-        };
-      });
+      return PlaylistItem.remove({ _id: { $in: items } }).then(() => ({
+        removed: mediaItems,
+        playlistSize: playlist.media.length
+      }));
     });
   });
 }
@@ -341,25 +338,31 @@ export function copyPlaylistItem(id, fromPlaylistID, mediaID, toPlaylistID, mong
 
   return Playlist.findOne(new ObjectId(fromPlaylistID)).populate('media')
   .then(playlist => {
-    if (!playlist) throw new GenericError(404, 'originating playlist not found');
-    if (playlist.author.toString() !== id && !playlist.shared) throw new GenericError(403, 'originating playlist is private');
+    if (!playlist) {
+      throw new GenericError(404, 'originating playlist not found');
+    }
+    if (playlist.author.toString() !== id && !playlist.shared) {
+      throw new GenericError(403, 'originating playlist is private');
+    }
 
     for (let i = playlist.media.length - 1; i >= 0; i--) {
-      if (playlists.media[i].id === mediaID) {
+      if (playlist.media[i].id === mediaID) {
         return PlaylistItem.findOne(new ObjectId(mediaID), '-id');
       }
     }
   })
-  .then(playlistItem => {
-    return new PlaylistItem(playlistItem);
-  })
+  .then(playlistItem => new PlaylistItem(playlistItem))
   .then(playlistItem => {
     _playlistItem = playlistItem;
     return Playlist.findOne(new ObjectId(toPlaylistID));
   })
   .then(playlist => {
-    if (!playlist) throw new GenericError(404, 'playlist not found');
-    if (!playlist.author.toString() !== id) throw new GenericError(403, 'you can\'t copy media to another user\'s playlist');
+    if (!playlist) {
+      throw new GenericError(404, 'playlist not found');
+    }
+    if (!playlist.author.toString() !== id) {
+      throw new GenericError(403, 'you can\'t copy media to another user\'s playlist');
+    }
     playlist.media.push(_playlistItem.id);
     return playlist.save();
   });

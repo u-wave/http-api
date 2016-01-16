@@ -1,4 +1,4 @@
-export default function(mongoose) {
+export default function (mongoose) {
   const Schema = mongoose.Schema;
 
   const historySchema = new Schema({

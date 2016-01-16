@@ -16,11 +16,8 @@ const ObjectId = Mongoose.Types.ObjectId;
 const log = debug('uwave:api:sockets');
 const verify = bluebird.promisify(jwt.verify);
 
-export function createCommand(key, value) {
-  return JSON.stringify({
-    'command': key,
-    'data': value
-  });
+export function createCommand(command, data) {
+  return JSON.stringify({ command, data });
 }
 
 export default class WSServer {
@@ -31,8 +28,8 @@ export default class WSServer {
     this.sub = new Redis(config.redis.port, config.redis.host, config.redis.options);
 
     this.wss = new WebSocket.Server({
-      'server': uwave.getServer(),
-      'clientTracking': false
+      server: uwave.getServer(),
+      clientTracking: false
     });
 
     this.clients = {};
@@ -69,7 +66,7 @@ export default class WSServer {
           this.redis.lrem('waitlist', 0, id);
           this.broadcast(createCommand('waitlistLeave', {
             userID: id,
-            waitlist: waitlist
+            waitlist
           }));
         }
       });
@@ -112,9 +109,9 @@ export default class WSServer {
     conn.id = this.generateID();
 
     this.clients[conn.id] = {
-      'heartbeat': Date.now(),
-      'conn': conn,
-      '_id': ''
+      _id: '',
+      conn,
+      heartbeat: Date.now()
     };
   }
 
@@ -157,9 +154,11 @@ export default class WSServer {
       });
 
       this.clients[conn.id]._id = user.id;
-      User.findOne(new ObjectId(user.id), { '__v': 0 })
+      User.findOne(new ObjectId(user.id), { __v: 0 })
       .then(userModel => {
-        if (!userModel) return conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'unknown user'));
+        if (!userModel) {
+          return conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'unknown user'));
+        }
         this.redis.lpush('users', userModel.id);
         this.broadcast(createCommand('join', userModel));
       })
@@ -191,9 +190,9 @@ export default class WSServer {
     switch (payload.command) {
     case 'sendChat':
       this.broadcast(createCommand('chatMessage', {
-        '_id': user._id,
-        'message': payload.data,
-        'timestamp': Date.now()
+        _id: user._id,
+        message: payload.data,
+        timestamp: Date.now()
       }));
       break;
 
@@ -203,8 +202,8 @@ export default class WSServer {
       this.redis.lpush(payload.data > 0 ? 'booth:upvotes' : 'booth:downvotes', user._id);
 
       this.broadcast(createCommand('vote', {
-        '_id': user._id,
-        'value': payload.data
+        _id: user._id,
+        value: payload.data
       }));
       break;
 
