@@ -1,3 +1,4 @@
+import find from 'array-find';
 import mongoose from 'mongoose';
 import Promise from 'bluebird';
 
@@ -136,9 +137,16 @@ export function getPlaylistItems(page, limit, id, playlistID, mongo) {
 
     return playlist.media;
   })
-  .then(media =>
-    PlaylistItem.find({ _id: { $in: media } }).populate('media')
-  )
+  .then(itemIDs => {
+    return PlaylistItem.find({ _id: { $in: itemIDs } })
+      .populate('media')
+      .then(items =>
+        // MongoDB returns the playlist items in whichever order it likes, which
+        // is usually not the current playlist order. So we need to sort the
+        // playlist items according to the itemIDs list here.
+        itemIDs.map(itemID => find(items, item => item._id + '' === itemID + ''))
+      );
+  })
   .then(media => paginate(_page, _limit, media));
 }
 
