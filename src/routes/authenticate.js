@@ -55,7 +55,7 @@ export default function authenticateRoutes(v1, router) {
 
     if (req.query.token) {
       return res.status(418).json(
-        `you are already registered and logged in. I presume you dropped this on your way in '${req.query.token}' :P`
+        `you are already registered and logged in`
       );
     }
 
@@ -66,8 +66,12 @@ export default function authenticateRoutes(v1, router) {
 
   /* ========== PASSWORD RESET ========== */
   router.post('/auth/password/reset', (req, res) => {
-    if (!req.body.email) return res.status(422).json('email is not set');
-    if (typeof req.body.email !== 'string') return res.status(422).json('email has to be of type string');
+    if (!req.body.email) {
+      return res.status(422).json('email is not set');
+    }
+    if (typeof req.body.email !== 'string') {
+      return res.status(422).json('email has to be of type string');
+    }
 
     controller.reset(req.body.email, req.uwave)
     .then(token => res.status(200).json(token))

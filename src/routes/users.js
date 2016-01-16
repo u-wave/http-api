@@ -8,9 +8,13 @@ const log = debug('uwave:api:v1:users');
 
 export default function userRoutes(router) {
   router.get('/users', (req, res) => {
-    if (req.user.role < 4) return res.status(403).json('you need to be at least manager to do this');
+    if (req.user.role < 4) {
+      return res.status(403).json('you need to be at least manager to do this');
+    }
 
-    controller.getUsers(parseInt(req.query.page, 10), parseInt(req.query.limit, 10), req.uwave.mongo)
+    const { page, limit } = req.query;
+
+    controller.getUsers(parseInt(page, 10), parseInt(limit, 10), req.uwave.mongo)
     .then(users => res.status(200).json(users))
     .catch(e => handleError(res, e, log));
   });
@@ -24,7 +28,7 @@ export default function userRoutes(router) {
   router.route('/users/:id/ban')
 
   .post((req, res) => {
-    if (!checkFields(req.body, res, ['time', 'exiled'], ['number', 'boolean']))  {
+    if (!checkFields(req.body, res, ['time', 'exiled'], ['number', 'boolean'])) {
       return res.status(422).json('expected time to be a timestamp and exiled to be boolean');
     }
     if (req.user.role < 4) return res.status(403, 'you need to be at least manager to do this');
@@ -139,7 +143,8 @@ export default function userRoutes(router) {
   });
 
   router.get('/users/:id/history', (req, res) => {
-    controller.getHistory(req.params.id, parseInt(req.query.page, 10), parseInt(req.query.limit, 10), req.uwave.mongo)
+    const { page, limit } = req.query;
+    controller.getHistory(req.params.id, parseInt(page, 10), parseInt(limit, 10), req.uwave.mongo)
     .then(history => res.status(200).json(history))
     .catch(e => handleError(res, e, log));
   });

@@ -1,4 +1,4 @@
-export default function(mongoose) {
+export default function (mongoose) {
   const Schema = mongoose.Schema;
 
   const userSchema = new Schema({
@@ -13,7 +13,7 @@ export default function(mongoose) {
     exiled: { type: Boolean, default: false },
     banned: { type: Date, default: null }
   }, {
-    'minimize': false
+    minimize: false
   });
 
   userSchema.pre('validate', function _assignSlug(next) {

@@ -9,7 +9,8 @@ const log = debug('uwave:api:v1:playlists');
 export default function playlistRoutes(router) {
   router.route('/playlists')
   .get((req, res) => {
-    controller.getPlaylists(parseInt(req.query.page, 10), parseInt(req.query.limit, 10), req.user.id, req.uwave.mongo)
+    const { page, limit } = req.query;
+    controller.getPlaylists(parseInt(page, 10), parseInt(limit, 10), req.user.id, req.uwave.mongo)
     .then(playlists => res.status(200).json(playlists))
     .catch(e => handleError(res, e, log));
   })
@@ -26,10 +27,10 @@ export default function playlistRoutes(router) {
     ])) return;
 
     const data = {
-      'name': req.body.name,
-      'description': req.body.description,
-      'shared': req.body.shared,
-      'author': req.user.id
+      name: req.body.name,
+      description: req.body.description,
+      shared: req.body.shared,
+      author: req.user.id
     };
 
     controller.createPlaylist(data, [], req.uwave.mongo)
@@ -51,8 +52,12 @@ export default function playlistRoutes(router) {
   });
 
   router.put('/playlists/:id/rename', (req, res) => {
-    if (!req.body.name) return res.status(422).json('name is not set');
-    if (typeof req.body.name !== 'string') return res.status(422).json('name has to be of type string');
+    if (!req.body.name) {
+      return res.status(422).json('name is not set');
+    }
+    if (typeof req.body.name !== 'string') {
+      return res.status(422).json('name has to be of type string');
+    }
 
     controller.renamePlaylist(req.user.id, req.params.id, req.body.name, req.uwave.mongo)
     .then(playlist => res.status(200).json(playlist))
@@ -60,8 +65,12 @@ export default function playlistRoutes(router) {
   });
 
   router.put('/playlists/:id/share', (req, res) => {
-    if (typeof req.body.share === 'undefined') return res.status(422).json('share is not set');
-    if (typeof req.body.share !== 'boolean') return res.status(422).json('share has to be of type boolean');
+    if (typeof req.body.share === 'undefined') {
+      return res.status(422).json('share is not set');
+    }
+    if (typeof req.body.share !== 'boolean') {
+      return res.status(422).json('share has to be of type boolean');
+    }
 
     controller.sharePlaylist(req.user.id, req.params.id, req.body.share, req.uwave.mongo)
     .then(playlist => res.status(200).json(playlist))
@@ -72,11 +81,13 @@ export default function playlistRoutes(router) {
     if (!checkFields(req.body, res, ['items', 'after'])) {
       return res.status(422).json('missing items or after property');
     }
-    if (!Array.isArray(req.body.items)) {
+
+    const { after, items } = req.body;
+    if (!Array.isArray(items)) {
       return res.status(422).json('items has to be an array');
     }
 
-    controller.movePlaylistItems(req.user.id, req.params.id, req.body.after, req.body.items, req.uwave.mongo)
+    controller.movePlaylistItems(req.user.id, req.params.id, after, items, req.uwave.mongo)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
@@ -89,7 +100,9 @@ export default function playlistRoutes(router) {
 
   router.route('/playlists/:id/media')
   .get((req, res) => {
-    controller.getPlaylistItems(parseInt(req.query.page, 10), parseInt(req.query.limit, 10), req.user.id, req.params.id, req.uwave.mongo)
+    const { page, limit } = req.query;
+    controller.getPlaylistItems(parseInt(page, 10), parseInt(limit, 10),
+                                req.user.id, req.params.id, req.uwave.mongo)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   })
@@ -98,11 +111,12 @@ export default function playlistRoutes(router) {
     if (!checkFields(req.body, res, ['items', 'after'])) {
       return res.status(422).json('missing items or after property');
     }
-    if (!Array.isArray(req.body.items)) {
+    const { after, items } = req.body;
+    if (!Array.isArray(items)) {
       return res.status(422).json('items has to be an array');
     }
 
-    controller.createPlaylistItems(req.user.id, req.params.id, req.body.after, req.body.items, req.uwave)
+    controller.createPlaylistItems(req.user.id, req.params.id, after, items, req.uwave)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   })
@@ -135,20 +149,23 @@ export default function playlistRoutes(router) {
       'number'
     ])) return;
 
+    const { body, params, user, uwave } = req;
+
     const metadata = {
-      'artist': req.body.artist,
-      'title': req.body.title,
-      'start': req.body.start,
-      'end': req.body.end
+      artist: body.artist,
+      title: body.title,
+      start: body.start,
+      end: body.end
     };
 
-    controller.updatePlaylistItem(req.user.id, req.params.id, req.params.mediaID, metadata, req.uwave.mongo)
+    controller.updatePlaylistItem(user.id, params.id, params.mediaID, metadata, uwave.mongo)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   })
 
   .delete((req, res) => {
-    controller.deletePlaylistItems(req.user.id, req.params.id, [req.params.mediaID], req.uwave.mongo)
+    const { params, user, uwave } = req;
+    controller.deletePlaylistItems(user.id, params.id, [params.mediaID], uwave.mongo)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });

@@ -6,14 +6,14 @@ export function chatDelete(id, redis) {
 
 export function chatDeleteByID(id, chatID, redis) {
   redis.publish('v1', createCommand('chatDeleteByID', {
-    moderatorID: id,
-    chatID: chatID
+    chatID,
+    moderatorID: id
   }));
 }
 
 export function chatDeleteByUser(id, userID, redis) {
   redis.publish('v1', createCommand('chatDeleteByUser', {
-    moderatorID: id,
-    userID: userID
+    userID,
+    moderatorID: id
   }));
 }

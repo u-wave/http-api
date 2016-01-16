@@ -28,7 +28,7 @@ export function getBooth(uwave) {
     return History.findOne(new ObjectId(historyID)).populate('media')
     .then(entry => {
       if (!entry) return null;
-      return History.populate(entry, { 'path': 'media.media', 'model': 'Media' });
+      return History.populate(entry, { path: 'media.media', model: 'Media' });
     });
   })
   .then(entry => {
@@ -55,12 +55,8 @@ export function getBooth(uwave) {
   });
 }
 
-export function skipBooth(moderatorID, id, reason, uwave) {
-  uwave.redis.publish('v1', createCommand('skip', {
-    'moderatorID': moderatorID,
-    'userID': id,
-    'reason': reason
-  }));
+export function skipBooth(moderatorID, userID, reason, uwave) {
+  uwave.redis.publish('v1', createCommand('skip', { moderatorID, userID, reason }));
   uwave.redis.publish('v1p', createCommand('advance', null));
 }
 
@@ -78,8 +74,8 @@ export function replaceBooth(moderatorID, id, uwave) {
   })
   .then(waitlist => {
     uwave.redis.publish('v1', createCommand('boothReplace', {
-      'moderatorID': moderatorID,
-      'userID': id
+      moderatorID,
+      userID: id
     }));
     uwave.redis.publish('v1p', createCommand('advance', null));
     return waitlist;
@@ -94,8 +90,12 @@ export function favorite(id, playlistID, historyID, uwave) {
 
   return History.findOne(new ObjectId(historyID))
   .then(history => {
-    if (!history) throw new GenericError(404, `history entry with ID ${historyID} not found`);
-    if (history.user.toString() === id) throw new GenericError(403, 'you can\'t grab your own song');
+    if (!history) {
+      throw new GenericError(404, `history entry with ID ${historyID} not found`);
+    }
+    if (history.user.toString() === id) {
+      throw new GenericError(403, 'you can\'t grab your own song');
+    }
 
     _mediaID = history.media.toString();
     return Playlist.findOne(new ObjectId(playlistID));
@@ -112,7 +112,7 @@ export function favorite(id, playlistID, historyID, uwave) {
     this.redis.lpush('booth:favorite', id);
     uwave.redis.publish('v1', createCommand('favorite', {
       userID: id,
-      playlistID: playlistID
+      playlistID
     }));
     return playlist.save();
   });
@@ -127,9 +127,9 @@ export function getHistory(page, limit, mongo) {
   return History.find({})
     .skip(_page * _limit)
     .limit(_limit)
-    .sort({ 'played': -1 })
+    .sort({ played: -1 })
     .populate('media user')
-    .then(history => History.populate(history, { 'path': 'media.media', 'model': 'Media' }))
+    .then(history => History.populate(history, { path: 'media.media', model: 'Media' }))
     .then(history => paginate(_page, _limit, history))
     .catch(e => {
       throw new PaginateError(e);
