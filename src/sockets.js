@@ -215,6 +215,8 @@ export default class WSServer {
   _handleMessage(channel, command) {
     const _command = JSON.parse(command);
 
+    const getDuration = playlistItem => playlistItem.end - playlistItem.start;
+
     if (channel === 'v1') {
       this.broadcast(command);
     } else if (channel === 'v1p') {
@@ -229,7 +231,7 @@ export default class WSServer {
             this.broadcast(createCommand('advance', now));
             this.advanceTimer = setTimeout(
               this._handleMessage.bind(this),
-              now.media.media.duration * 1000,
+              getDuration(now.media) * 1000,
               'v1p', createCommand('cycleWaitlist', null)
             );
           } else {
