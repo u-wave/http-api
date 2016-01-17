@@ -102,7 +102,7 @@ export function favorite(id, playlistID, historyID, uwave) {
   })
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `Playlist with ID ${playlistID} not found`);
-    if (playlist.author !== id) {
+    if (playlist.author + '' !== id) {
       throw new GenericError(403, 'you are not allowed to edit playlists of other users');
     }
 
