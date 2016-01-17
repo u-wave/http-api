@@ -108,8 +108,8 @@ export function favorite(id, playlistID, historyID, uwave) {
 
     playlist.media.push(_mediaID);
 
-    this.redis.lrem('booth:favorite', 0, id);
-    this.redis.lpush('booth:favorite', id);
+    uwave.redis.lrem('booth:favorite', 0, id);
+    uwave.redis.lpush('booth:favorite', id);
     uwave.redis.publish('v1', createCommand('favorite', {
       userID: id,
       playlistID
