@@ -53,12 +53,6 @@ export default function authenticateRoutes(v1, router) {
       return res.status(422).json('expected email to be a string and password to be a string');
     }
 
-    if (req.query.token) {
-      return res.status(418).json(
-        `you are already registered and logged in`
-      );
-    }
-
     controller.login(req.body.email, req.body.password, v1.getCert(), req.uwave)
     .then(token => res.status(200).json(token))
     .catch(e => handleError(res, e, log));
