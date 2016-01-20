@@ -197,14 +197,19 @@ export default class WSServer {
       break;
 
     case 'vote':
-      this.redis.lrem('booth:upvotes', 0, user._id);
-      this.redis.lrem('booth:downvotes', 0, user._id);
-      this.redis.lpush(payload.data > 0 ? 'booth:upvotes' : 'booth:downvotes', user._id);
+      this.redis.get('booth:historyID')
+      .then(historyID => {
+        if(historyID !== null) {
+          this.redis.lrem('booth:upvotes', 0, user._id);
+          this.redis.lrem('booth:downvotes', 0, user._id);
+          this.redis.lpush(payload.data > 0 ? 'booth:upvotes' : 'booth:downvotes', user._id);
 
-      this.broadcast(createCommand('vote', {
-        _id: user._id,
-        value: payload.data
-      }));
+          this.broadcast(createCommand('vote', {
+            _id: user._id,
+            value: payload.data
+          }));
+        }
+      });
       break;
 
     default:
