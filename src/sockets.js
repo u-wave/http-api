@@ -187,6 +187,16 @@ export default class WSServer {
 
     if (!user) return conn.close(CLOSE_VIOLATED_POLICY, 'user not found');
 
+    function sendVote(vote) {
+      vote.redis.lrem('booth:upvotes', 0, user._id);
+      vote.redis.lrem('booth:downvotes', 0, user._id);
+      vote.redis.lpush(payload.data > 0 ? 'booth:upvotes' : 'booth:downvotes', user._id);
+      vote.broadcast(createCommand('vote', {
+        _id: user._id,
+        value: payload.data
+      }));
+    }
+
     switch (payload.command) {
     case 'sendChat':
       this.broadcast(createCommand('chatMessage', {
@@ -197,14 +207,22 @@ export default class WSServer {
       break;
 
     case 'vote':
-      this.redis.lrem('booth:upvotes', 0, user._id);
-      this.redis.lrem('booth:downvotes', 0, user._id);
-      this.redis.lpush(payload.data > 0 ? 'booth:upvotes' : 'booth:downvotes', user._id);
-
-      this.broadcast(createCommand('vote', {
-        _id: user._id,
-        value: payload.data
-      }));
+      this.redis.get('booth:historyID')
+      .then(historyID => {
+        if (historyID !== null) {
+          if (payload.data > 0) {
+            this.redis.lrange('booth:upvotes', 0, -1)
+            .then(upvoted => {
+              if (upvoted.indexOf(user._id) === -1) sendVote(this);
+            });
+          } else {
+            this.redis.lrange('booth:downvotes', 0, -1)
+            .then(downvoted => {
+              if (downvoted.indexOf(user._id) === -1) sendVote(this);
+            });
+          }
+        }
+      });
       break;
 
     default:
@@ -227,6 +245,7 @@ export default class WSServer {
         advance(this.mongo, this.redis)
         .then(now => {
           if (now) {
+            this.redis.del(['booth:historyID', 'booth:upvotes', 'booth:downvotes']);
             this.redis.set('booth:historyID', now.historyID);
             this.broadcast(createCommand('advance', now));
             this.advanceTimer = setTimeout(
@@ -235,13 +254,13 @@ export default class WSServer {
               'v1p', createCommand('cycleWaitlist', null)
             );
           } else {
-            this.redis.del('booth:historyID');
+            this.redis.del(['booth:historyID', 'booth:upvotes', 'booth:downvotes']);
             this.broadcast(createCommand('advance', null));
           }
         })
         .catch(e => {
           log(e);
-          this.redis.del('booth:historyID');
+          this.redis.del(['booth:historyID', 'booth:upvotes', 'booth:downvotes']);
         });
       } else if (_command.command === 'checkAdvance') {
         this.redis.get('waitlist:lock')
