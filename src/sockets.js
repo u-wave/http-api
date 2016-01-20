@@ -187,6 +187,16 @@ export default class WSServer {
 
     if (!user) return conn.close(CLOSE_VIOLATED_POLICY, 'user not found');
 
+    function sendVote(vote) {
+      vote.redis.lrem('booth:upvotes', 0, user._id);
+      vote.redis.lrem('booth:downvotes', 0, user._id);
+      vote.redis.lpush(payload.data > 0 ? 'booth:upvotes' : 'booth:downvotes', user._id);
+      vote.broadcast(createCommand('vote', {
+        _id: user._id,
+        value: payload.data
+      }));
+    }
+
     switch (payload.command) {
     case 'sendChat':
       this.broadcast(createCommand('chatMessage', {
@@ -199,25 +209,16 @@ export default class WSServer {
     case 'vote':
       this.redis.get('booth:historyID')
       .then(historyID => {
-        if(historyID !== null) {
-          var sendVote = function(vote) {
-            vote.redis.lrem('booth:upvotes', 0, user._id);
-            vote.redis.lrem('booth:downvotes', 0, user._id);
-            vote.redis.lpush(payload.data > 0 ? 'booth:upvotes' : 'booth:downvotes', user._id);
-            vote.broadcast(createCommand('vote', {
-              _id: user._id,
-              value: payload.data
-            }));
-          }
-          if(payload.data > 0) {
+        if (historyID !== null) {
+          if (payload.data > 0) {
             this.redis.lrange('booth:upvotes', 0, -1)
             .then(upvoted => {
-              if(upvoted.indexOf(user._id) === -1) sendVote(this);
+              if (upvoted.indexOf(user._id) === -1) sendVote(this);
             });
           } else {
             this.redis.lrange('booth:downvotes', 0, -1)
             .then(downvoted => {
-              if(downvoted.indexOf(user._id) === -1) sendVote(this);
+              if (downvoted.indexOf(user._id) === -1) sendVote(this);
             });
           }
         }
@@ -259,7 +260,7 @@ export default class WSServer {
         })
         .catch(e => {
           log(e);
-            this.redis.del(['booth:historyID', 'booth:upvotes', 'booth:downvotes']);
+          this.redis.del(['booth:historyID', 'booth:upvotes', 'booth:downvotes']);
         });
       } else if (_command.command === 'checkAdvance') {
         this.redis.get('waitlist:lock')
