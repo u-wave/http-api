@@ -106,13 +106,14 @@ export function changeUsername(moderatorID, id, name, uwave) {
     user.username = name;
     user.slug = name.toLowerCase();
 
+    return user.save();
+  })
+  .then(user => {
     uwave.redis.publish('v1', createCommand('nameChange', {
       moderatorID,
       userID: id,
       username: user.username
     }));
-
-    return user.save();
   });
 }
 
