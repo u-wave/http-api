@@ -108,7 +108,7 @@ export function changeUsername(moderatorID, id, name, uwave) {
 
     return user.save();
   })
-  .then(user => {
+  .tap(user => {
     uwave.redis.publish('v1', createCommand('nameChange', {
       moderatorID,
       userID: id,
