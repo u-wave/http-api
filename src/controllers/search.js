@@ -41,12 +41,22 @@ function getRegionRestriction(contentDetails) {
   return [];
 }
 
+// Create a getArtistTitle plugin to fall back to the given artist name when no
+// other plugins detected an artist/title combination.
+function fallBackToArtist(artist) {
+  return {
+    splitArtistTitle: title => [artist, title]
+  };
+}
+
 function convertSoundcloudMedia(media) {
+  const [artist, title] = getArtistTitle(media.title, [
+    'base', fallBackToArtist(media.user.username)
+  ]);
   return {
     sourceType: 'soundcloud',
     sourceID: media.id,
-    artist: media.user.username,
-    title: media.title,
+    artist, title,
     duration: Math.round(parseInt(media.duration / 1000, 10)),
     thumbnail: media.artwork_url || media.waveform_url,
     nsfw: false,
@@ -55,8 +65,9 @@ function convertSoundcloudMedia(media) {
 }
 
 function convertYoutubeMedia(item) {
-  const [artist, title] = getArtistTitle(item.snippet.title) ||
-    [item.snippet.channelTitle, item.snippet.title];
+  const [artist, title] = getArtistTitle(item.snippet.title, [
+    'base', fallBackToArtist(item.snippet.channelTitle)
+  ]);
 
   return {
     sourceType: 'youtube',
