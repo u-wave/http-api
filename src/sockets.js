@@ -207,20 +207,25 @@ export default class WSServer {
       break;
 
     case 'vote':
-      this.redis.get('booth:historyID')
-      .then(historyID => {
-        if (historyID !== null) {
-          if (payload.data > 0) {
-            this.redis.lrange('booth:upvotes', 0, -1)
-            .then(upvoted => {
-              if (upvoted.indexOf(user._id) === -1) sendVote(this);
-            });
-          } else {
-            this.redis.lrange('booth:downvotes', 0, -1)
-            .then(downvoted => {
-              if (downvoted.indexOf(user._id) === -1) sendVote(this);
-            });
-          }
+      this.redis.get('booth:currentDJ')
+      .then(currentDJ => {
+        if (currentDJ !== null && currentDJ !== user._id) {
+          this.redis.get('booth:historyID')
+          .then(historyID => {
+            if (historyID !== null) {
+              if (payload.data > 0) {
+                this.redis.lrange('booth:upvotes', 0, -1)
+                .then(upvoted => {
+                  if (upvoted.indexOf(user._id) === -1) sendVote(this);
+                });
+              } else {
+                this.redis.lrange('booth:downvotes', 0, -1)
+                .then(downvoted => {
+                  if (downvoted.indexOf(user._id) === -1) sendVote(this);
+                });
+              }
+            }
+          });
         }
       });
       break;
@@ -245,8 +250,12 @@ export default class WSServer {
         advance(this.mongo, this.redis)
         .then(now => {
           if (now) {
-            this.redis.del(['booth:historyID', 'booth:upvotes', 'booth:downvotes']);
+            this.redis.del(['booth:historyID',
+                'booth:upvotes',
+                'booth:downvotes',
+                'booth:currentDJ']);
             this.redis.set('booth:historyID', now.historyID);
+            this.redis.set('booth:currentDJ', now.userID);
             this.broadcast(createCommand('advance', now));
             this.advanceTimer = setTimeout(
               this._handleMessage.bind(this),
@@ -254,7 +263,10 @@ export default class WSServer {
               'v1p', createCommand('cycleWaitlist', null)
             );
           } else {
-            this.redis.del(['booth:historyID', 'booth:upvotes', 'booth:downvotes']);
+            this.redis.del(['booth:historyID',
+                'booth:upvotes',
+                'booth:downvotes',
+                'booth:currentDJ']);
             this.broadcast(createCommand('advance', null));
           }
         })
