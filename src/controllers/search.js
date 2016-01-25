@@ -2,12 +2,12 @@ import Promise from 'bluebird';
 import debug from 'debug';
 import https from 'https';
 import parseIsoDuration from 'parse-iso-duration';
+import getArtistTitle from 'get-artist-title';
 
 import { stringify } from 'querystring';
 import { GenericError } from '../errors';
 
 const log = debug('uwave:api:v1:search');
-const rxTitle = /[-_]/;
 
 function sendRequest(opts) {
   return new Promise((resolve, reject) => {
@@ -41,32 +41,12 @@ function getRegionRestriction(contentDetails) {
   return [];
 }
 
-function splitTitle(title) {
-  const metadata = title.split(rxTitle);
-
-  if (metadata.length < 2) {
-    const median = title.length / 2;
-    const idx = title.indexOf(' ', median / 2);
-
-    if (idx > 0) {
-      metadata[0] = title.slice(0, idx).trim();
-      metadata[1] = title.slice(idx + 1).trim();
-    } else {
-      metadata[0] = title;
-      metadata[1] = '';
-    }
-  }
-
-  return metadata;
-}
-
 function convertSoundcloudMedia(media) {
-  const [artist, title] = splitTitle(media.title);
-
   return {
     sourceType: 'soundcloud',
     sourceID: media.id,
-    artist, title,
+    artist: media.user.username,
+    title: media.title,
     duration: Math.round(parseInt(media.duration / 1000, 10)),
     thumbnail: media.artwork_url || media.waveform_url,
     nsfw: false,
@@ -75,7 +55,8 @@ function convertSoundcloudMedia(media) {
 }
 
 function convertYoutubeMedia(item) {
-  const [artist, title] = splitTitle(item.snippet.title);
+  const [artist, title] = getArtistTitle(item.snippet.title) ||
+    [item.snippet.channelTitle, item.snippet.title];
 
   return {
     sourceType: 'youtube',
