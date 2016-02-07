@@ -82,7 +82,7 @@ export function favorite(id, playlistID, historyID, uwave) {
   const Playlist = uwave.mongo.model('Playlist');
   const History = uwave.mongo.model('History');
 
-  let _mediaID;
+  let playlistItem;
 
   return History.findOne(new ObjectId(historyID))
   .then(history => {
@@ -93,7 +93,7 @@ export function favorite(id, playlistID, historyID, uwave) {
       throw new GenericError(403, 'you can\'t grab your own song');
     }
 
-    _mediaID = history.media.toString();
+    playlistItem = history.item.toString();
     return Playlist.findOne(new ObjectId(playlistID));
   })
   .then(playlist => {
@@ -102,7 +102,7 @@ export function favorite(id, playlistID, historyID, uwave) {
       throw new GenericError(403, 'you are not allowed to edit playlists of other users');
     }
 
-    playlist.media.push(_mediaID);
+    playlist.media.push(playlistItem);
 
     uwave.redis.lrem('booth:favorite', 0, id);
     uwave.redis.lpush('booth:favorite', id);
