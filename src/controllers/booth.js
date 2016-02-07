@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import Promise from 'bluebird';
 
 import { createCommand } from '../sockets';
 import { paginate } from '../utils';
@@ -18,7 +19,7 @@ export function getBooth(uwave) {
     stats: {
       upvotes: 0,
       downvotes: 0,
-      favorite: 0
+      favorites: 0
     }
   };
 
@@ -35,18 +36,14 @@ export function getBooth(uwave) {
       booth.media = entry.media;
     }
 
-    return uwave.redis.llen('booth:upvotes');
+    return Promise.props({
+      upvotes: uwave.redis.lrange('booth:upvotes', 0, -1),
+      downvotes: uwave.redis.lrange('booth:downvotes', 0, -1),
+      favorites: uwave.redis.lrange('booth:favorites', 0, -1)
+    });
   })
-  .then(upvotes => {
-    booth.stats.upvotes = upvotes;
-    return uwave.redis.llen('booth:downvotes');
-  })
-  .then(downvotes => {
-    booth.stats.downvotes = downvotes;
-    return uwave.redis.llen('booth:favorite');
-  })
-  .then(favorites => {
-    booth.stats.favorite = favorites;
+  .then(stats => {
+    booth.stats = stats;
     return booth.userID !== null ? booth : null;
   });
 }
@@ -104,8 +101,8 @@ export function favorite(id, playlistID, historyID, uwave) {
 
     playlist.media.push(playlistItem);
 
-    uwave.redis.lrem('booth:favorite', 0, id);
-    uwave.redis.lpush('booth:favorite', id);
+    uwave.redis.lrem('booth:favorites', 0, id);
+    uwave.redis.lpush('booth:favorites', id);
     uwave.redis.publish('v1', createCommand('favorite', {
       userID: id,
       playlistID
