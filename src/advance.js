@@ -38,6 +38,8 @@ export default function advance(mongo, redis) {
       .then(playlist => {
         if (!playlist) throw new GenericError(404, 'playlist not found');
 
+        now.playlistID = playlist.id;
+
         const item = playlist.media.shift();
         playlist.media.push(item);
         playlist.save();
@@ -59,6 +61,7 @@ export default function advance(mongo, redis) {
 
         return new History({
           user: now.userID,
+          playlist: now.playlistID,
           item: now.item,
           media: now.media
         }).save();
