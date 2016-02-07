@@ -3,6 +3,7 @@ export default function (mongoose) {
 
   const historySchema = new Schema({
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    playlist: { type: Schema.Types.ObjectId, ref: 'Playlist' },
     item: { type: Schema.Types.ObjectId, ref: 'PlaylistItem' },
     media: {
       media: { type: Schema.Types.ObjectId, ref: 'Media', required: true },
