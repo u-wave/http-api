@@ -201,6 +201,12 @@ export function activatePlaylist(id, playlistID, uwave) {
   });
 }
 
+function isValidPlaylistItem(item) {
+  return typeof item === 'object' &&
+    typeof item.sourceType === 'string' &&
+    (typeof item.sourceID === 'string' || typeof item.sourceID === 'number');
+}
+
 export function createPlaylistItems(id, playlistID, after, items, uwave) {
   const PlaylistItem = uwave.mongo.model('PlaylistItem');
   const Playlist = uwave.mongo.model('Playlist');
@@ -248,11 +254,7 @@ export function createPlaylistItems(id, playlistID, after, items, uwave) {
     }
 
     for (let i = 0, l = items.length; i < l; i++) {
-      if (typeof items[i] !== 'object') continue;
-      if (
-        typeof items[i].sourceType !== 'string' ||
-        (typeof items[i].sourceID !== 'string' && typeof items[i].sourceID !== 'number')
-      ) continue;
+      if (!isValidPlaylistItem(items[i])) continue;
 
       _items.push(_addMedia(items[i].sourceType, items[i].sourceID));
     }
