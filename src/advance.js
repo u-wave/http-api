@@ -38,22 +38,29 @@ export default function advance(mongo, redis) {
       .then(playlist => {
         if (!playlist) throw new GenericError(404, 'playlist not found');
 
-        now.playlistID = playlist.id;
-
-        now.media = playlist.media.shift();
-        playlist.media.push(now.media);
+        const item = playlist.media.shift();
+        playlist.media.push(item);
         playlist.save();
 
-        return PlaylistItem.findOne(now.media).populate('media');
+        return PlaylistItem.findOne(item).populate('media');
       })
-      .then(media => {
-        if (!media) throw new GenericError(404, 'media not found');
-        now.media = media;
+      .then(playlistItem => {
+        if (!playlistItem) {
+          throw new GenericError(404, 'media not found');
+        }
+        now.item = playlistItem.id;
+        now.media = {
+          media: playlistItem.media,
+          artist: playlistItem.artist,
+          title: playlistItem.title,
+          start: playlistItem.start,
+          end: playlistItem.end
+        };
 
         return new History({
           user: now.userID,
-          media: now.media.id,
-          playlist: now.playlistID
+          item: now.item,
+          media: now.media
         }).save();
       })
       .then(history => {
