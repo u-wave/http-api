@@ -134,7 +134,7 @@ export function getHistory(id, page, limit, mongo) {
     .skip(_page * _limit)
     .limit(_limit)
     .sort({ played: -1 })
-    .populate('media user')
+    .populate('media.media user')
     .then(history => paginate(_page, _limit, history))
     .catch(e => {
       throw new PaginateError(e);

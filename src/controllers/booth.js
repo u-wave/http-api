@@ -25,16 +25,12 @@ export function getBooth(uwave) {
   return uwave.redis.get('booth:historyID')
   .then(historyID => {
     booth.historyID = historyID;
-    return History.findOne(new ObjectId(historyID)).populate('media')
-    .then(entry => {
-      if (!entry) return null;
-      return History.populate(entry, { path: 'media.media', model: 'Media' });
-    });
+    return History.findOne(new ObjectId(historyID))
+      .populate('media.media');
   })
   .then(entry => {
     if (entry) {
       booth.userID = entry.user.toString();
-      booth.playlistID = entry.playlist.toString();
       booth.played = Date.parse(entry.played);
       booth.media = entry.media;
     }
@@ -86,7 +82,7 @@ export function favorite(id, playlistID, historyID, uwave) {
   const Playlist = uwave.mongo.model('Playlist');
   const History = uwave.mongo.model('History');
 
-  let _mediaID;
+  let playlistItem;
 
   return History.findOne(new ObjectId(historyID))
   .then(history => {
@@ -97,7 +93,7 @@ export function favorite(id, playlistID, historyID, uwave) {
       throw new GenericError(403, 'you can\'t grab your own song');
     }
 
-    _mediaID = history.media.toString();
+    playlistItem = history.item.toString();
     return Playlist.findOne(new ObjectId(playlistID));
   })
   .then(playlist => {
@@ -106,7 +102,7 @@ export function favorite(id, playlistID, historyID, uwave) {
       throw new GenericError(403, 'you are not allowed to edit playlists of other users');
     }
 
-    playlist.media.push(_mediaID);
+    playlist.media.push(playlistItem);
 
     uwave.redis.lrem('booth:favorite', 0, id);
     uwave.redis.lpush('booth:favorite', id);
@@ -128,8 +124,7 @@ export function getHistory(page, limit, mongo) {
     .skip(_page * _limit)
     .limit(_limit)
     .sort({ played: -1 })
-    .populate('media user')
-    .then(history => History.populate(history, { path: 'media.media', model: 'Media' }))
+    .populate('media.media user')
     .then(history => paginate(_page, _limit, history))
     .catch(e => {
       throw new PaginateError(e);
