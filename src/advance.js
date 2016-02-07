@@ -24,7 +24,7 @@ function savePreviousStats(mongo, redis) {
       return Promise.props({
         upvotes: redis.lrange('booth:upvotes', 0, -1),
         downvotes: redis.lrange('booth:downvotes', 0, -1),
-        favorites: redis.lrange('booth:favorite', 0, -1)
+        favorites: redis.lrange('booth:favorites', 0, -1)
       }).then(stats => {
         log('previous track:', entry.media.artist, '—', entry.media.title,
           `👍 ${stats.upvotes.length} ` +
