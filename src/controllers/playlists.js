@@ -212,36 +212,41 @@ export function createPlaylistItems(id, playlistID, after, items, uwave) {
   const Playlist = uwave.mongo.model('Playlist');
   const Media = uwave.mongo.model('Media');
 
-  const _items = [];
-
-  const _addMedia = (sourceType, sourceID) => {
-    let _playlistItem = null;
+  const createItem = props => {
+    const { sourceType, sourceID, artist, title } = props;
+    let { start, end } = props;
 
     return Media.findOne({ sourceType, sourceID })
-    .then(media => {
-      if (!media) {
-        return addMedia(sourceType, sourceID, uwave.keys, Media);
-      }
-      return media;
-    })
-    .then(media => {
-      _playlistItem = new PlaylistItem({
-        media,
-        artist: media.artist,
-        title: media.title,
-        end: media.duration
+      .then(media =>
+        media || addMedia(sourceType, sourceID, uwave.keys, Media)
+      )
+      .then(media => {
+        // Fix up custom start/end times
+        if (!start || start < 0) {
+          start = 0;
+        } else if (start > media.duration) {
+          start = media.duration;
+        }
+        if (!end || end > media.duration) {
+          end = media.duration;
+        } else if (end < start) {
+          end = start;
+        }
+
+        const playlistItem = new PlaylistItem({
+          media,
+          artist: artist || media.artist,
+          title: title || media.title,
+          start, end
+        });
+
+        return playlistItem.save();
+      })
+      .then(playlistItem => {
+        if (!playlistItem) throw new Error('couldn\'t save media');
+
+        return playlistItem;
       });
-
-      return _playlistItem.save();
-    })
-    .then(playlistItem => {
-      if (!playlistItem) throw new Error('couldn\'t save media');
-
-      return playlistItem;
-    }, e => {
-      if (_playlistItem) _playlistItem.remove();
-      throw e;
-    });
   };
 
   return Playlist.findOne(new ObjectId(playlistID))
@@ -253,13 +258,9 @@ export function createPlaylistItems(id, playlistID, after, items, uwave) {
       throw new GenericError(403, 'you can\'t edit the playlist of another user');
     }
 
-    for (let i = 0, l = items.length; i < l; i++) {
-      if (!isValidPlaylistItem(items[i])) continue;
+    const addingItems = items.filter(isValidPlaylistItem).map(createItem);
 
-      _items.push(_addMedia(items[i].sourceType, items[i].sourceID));
-    }
-
-    return Promise.all(_items)
+    return Promise.all(addingItems)
     .then(playlistItems => {
       let pos = -1;
 
