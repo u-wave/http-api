@@ -58,11 +58,9 @@ export function replaceBooth(moderatorID, id, uwave) {
   .then(waitlist => {
     if (!waitlist.length) throw new GenericError(404, 'waitlist is empty');
 
-    for (let i = waitlist.length - 1; i >= 0; i--) {
-      if (waitlist[i] === id) {
-        uwave.redis.lrem('waitlist', 1, id);
-        return uwave.redis.lpush('waitlist', id);
-      }
+    if (waitlist.some(userID => userID === id)) {
+      uwave.redis.lrem('waitlist', 1, id);
+      return uwave.redis.lpush('waitlist', id);
     }
   })
   .then(waitlist => {

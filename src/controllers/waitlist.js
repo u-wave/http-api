@@ -6,6 +6,10 @@ import { GenericError } from '../errors';
 
 const ObjectId = mongoose.Types.ObjectId;
 
+function isInWaitlist(waitlist, userID) {
+  return waitlist.some(waitingID => waitingID === userID);
+}
+
 export function getWaitlist(redis) {
   return redis.lrange('waitlist', 0, -1);
 }
@@ -30,8 +34,8 @@ export function appendToWaitlist(userID, forceJoin, uwave) {
     return _getWaitlist(forceJoin, uwave.redis);
   })
   .then(waitlist => {
-    for (let i = waitlist.length - 1; i >= 0; i--) {
-      if (waitlist[i] === userID) throw new GenericError(403, 'already in waitlist');
+    if (isInWaitlist(waitlist, userID)) {
+      throw new GenericError(403, 'already in waitlist');
     }
 
     uwave.redis.rpush('waitlist', userID);
@@ -62,8 +66,8 @@ export function insertWaitlist(moderatorID, id, position, forceJoin, uwave) {
     const length = waitlist.length;
     clampedPosition = Math.max(Math.min(position, length - 1), 0);
 
-    for (let i = length - 1; i >= 0; i--) {
-      if (waitlist[i] === id) throw new GenericError(403, 'already in waitlist');
+    if (isInWaitlist(waitlist, id)) {
+      throw new GenericError(403, 'already in waitlist');
     }
 
     if (length > clampedPosition) {
@@ -91,19 +95,14 @@ export function insertWaitlist(moderatorID, id, position, forceJoin, uwave) {
 export function moveWaitlist(moderatorID, userID, position, uwave) {
   const User = uwave.mongo.model('User');
   let beforeID = null;
-  let _position = null;
+  const _position = Math.max(Math.min(position, length), 0);
 
   return uwave.redis.lrange('waitlist', 0, -1)
   .then(waitlist => {
-    const length = waitlist.length;
+    beforeID = waitlist[_position] || null;
 
-    for (let i = (length > 0 ? length - 1 : -1); i >= 0; i--) {
-      if (waitlist[i] === userID) {
-        _position = Math.max(Math.min(position, length), 0);
-        beforeID = length > 0 ? waitlist[_position] : null;
-
-        return User.findOne(new ObjectId(userID.toLowerCase()));
-      }
+    if (isInWaitlist(waitlist, userID)) {
+      return User.findOne(new ObjectId(userID.toLowerCase()));
     }
 
     throw new GenericError(404, `user ${userID} is not in waitlist`);
@@ -147,11 +146,9 @@ export function leaveWaitlist(moderatorID, id, uwave) {
   .then(user => {
     if (!user) throw new GenericError(404, `no user with id ${id}`);
 
-    for (let i = _waitlist.length - 1; i >= 0; i--) {
-      if (_waitlist[i] === user.id) {
-        uwave.redis.lrem('waitlist', 0, user.id);
-        return uwave.redis.lrange('waitlist', 0, -1);
-      }
+    if (isInWaitlist(_waitlist, user.id)) {
+      uwave.redis.lrem('waitlist', 0, user.id);
+      return uwave.redis.lrange('waitlist', 0, -1);
     }
 
     throw new GenericError(404, `user ${user.username} is not in waitlist`);

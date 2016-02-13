@@ -1,6 +1,5 @@
-export const checkFields = function checkFields(data, res, fields = [], types = []) {
+export function checkFields(data, res, fields = [], types = []) {
   const errors = [];
-  const fieldLen = fields.length;
   let typeLen = 0;
 
   // this will avoid redundancy when you have an array of fields of the same type
@@ -10,46 +9,45 @@ export const checkFields = function checkFields(data, res, fields = [], types = 
     typeLen = -1;
   }
 
-  for (let i = 0; i < fieldLen; i++) {
-    if (typeof data[fields[i]] === 'undefined') {
-      errors.push(`${fields[i]} is not set`);
-      continue;
+  fields.forEach((field, i) => {
+    if (typeof data[field] === 'undefined') {
+      errors.push(`${field} is not set`);
+      return;
     }
 
     if (typeLen > i) {
-      if (typeof data[fields[i]] !== types[i]) {
-        errors.push(`${data[fields[i]]} has to be of type ${types[i]}`);
+      if (typeof data[field] !== types[i]) {
+        errors.push(`${data[field]} has to be of type ${types[i]}`);
       }
     } else if (typeLen === -1) {
-      if (typeof data[fields[i]] !== types) {
-        errors.push(`${data[fields[i]]} has to be of type ${types}`);
+      if (typeof data[field] !== types) {
+        errors.push(`${data[field]} has to be of type ${types}`);
       }
     }
-  }
+  });
 
   if (errors.length > 0) {
     res.status(422).json(errors.join(', '));
     return false;
   }
   return true;
-};
+}
 
-export const escape = function escape(str) {
-  if (str) return str.replace('$', '\uFF04').replace('.', '\uFF0E');
-  return null;
-};
+export function escape(str) {
+  return str ? str.replace('$', '\uFF04').replace('.', '\uFF0E') : null;
+}
 
-export const handleDuplicate = function handleDuplicate(res, str, fields) {
-  for (let i = fields.length - 1; i >= 0; i--) {
+export function handleDuplicate(res, str, fields) {
+  for (let i = 0, l = fields.length; i < l; i++) {
     if (str.includes(fields[i])) {
       res.status(422).json(`${fields[i]} is already in use`);
       return true;
     }
   }
   return false;
-};
+}
 
-export const split = function split(arr, size) {
+export function split(arr, size) {
   if (!Array.isArray(arr)) return [];
 
   const length = arr.length;
@@ -60,10 +58,10 @@ export const split = function split(arr, size) {
   }
 
   return chunks;
-};
+}
 
-export const paginate = function paginate(page, size, result, error = null) {
+export function paginate(page, size, result, error = null) {
   return { page, size, result, error };
-};
+}
 
 export default checkFields;
