@@ -33,10 +33,6 @@ export function checkFields(data, res, fields = [], types = []) {
   return true;
 }
 
-export function escape(str) {
-  return str ? str.replace('$', '\uFF04').replace('.', '\uFF0E') : null;
-}
-
 export function handleDuplicate(res, str, fields) {
   for (let i = 0, l = fields.length; i < l; i++) {
     if (str.includes(fields[i])) {
@@ -45,19 +41,6 @@ export function handleDuplicate(res, str, fields) {
     }
   }
   return false;
-}
-
-export function split(arr, size) {
-  if (!Array.isArray(arr)) return [];
-
-  const length = arr.length;
-  const chunks = [];
-
-  for (let i = 0; i < length; i += size) {
-    chunks.push(arr.slice(i, size));
-  }
-
-  return chunks;
 }
 
 export function paginate(page, size, result, error = null) {
