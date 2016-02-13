@@ -19,8 +19,8 @@ export default function staffRoutes(router) {
     if (req.user.role < 4) {
       return res.status(403).json('you need to be at least manager to do this');
     }
-    if (!checkFields(req.body, res, ['sourceType', 'sourceID'], 'string')) {
-      return res.status(422).json('expected sourceType to be a string and sourceID to be a string');
+    if (!checkFields(res, req.body, { sourceType: 'string', sourceID: 'string' })) {
+      return null;
     }
 
     controller.getMedia(req.body.sourceType, req.body.sourceID, req.uwave.mongo)
@@ -32,8 +32,8 @@ export default function staffRoutes(router) {
     if (req.user.role < 4) {
       return res.status(403).json('you need to be at least manager to do this');
     }
-    if (!checkFields(req.body, res, ['sourceType', 'sourceID'], 'string')) {
-      return res.status(422).json('expected sourceType to be a string and sourceID to be a string');
+    if (!checkFields(res, req.body, { sourceType: 'string', sourceID: 'string' })) {
+      return null;
     }
 
     controller.addMedia(req.body.sourceType, req.body.sourceID, req.uwave.keys, req.uwave.mongo)
@@ -46,33 +46,23 @@ export default function staffRoutes(router) {
       return res.status(403).json('you need to be at least manager to do this');
     }
     if (!req.body.auto) {
-      if (!checkFields(req.body, res, [
-        'sourceType',
-        'sourceID',
-        'artist',
-        'title',
-        'nsfw',
-        'restricted'
-      ], [
-        'string',
-        'string',
-        'string',
-        'string',
-        'boolean'
-      ])) {
-        return res.status(422).json(
-          'expected sourceType to be a string, sourceID to be a string, ' +
-          'artist to be a string, title to be a string, nsfw to be boolean and' +
-          'restricted to be an array of strings'
-        );
+      if (!checkFields(res, req.body, {
+        sourceType: 'string',
+        sourceID: 'string',
+        artist: 'string',
+        title: 'string'
+      })) {
+        return null;
       }
 
       if (!Array.isArray(req.body.restricted)) {
         res.status(422).json('restricted has to be an array of strings');
       }
-    } else if (!checkFields(req.body, res,
-                            ['sourceType', 'sourceID', 'auto'],
-                            ['string', 'string', 'boolean'])) {
+    } else if (!checkFields(res, req.body, {
+      sourceType: 'string',
+      sourceID: 'string',
+      auto: 'boolean'
+    })) {
       return res.status(422).json(
         'expected sourceType to be a string, sourceID to be a string and auto to be boolean'
       );
@@ -87,7 +77,7 @@ export default function staffRoutes(router) {
     if (req.user.role < 4) {
       return res.status(403).json('you need to be at least manager to do this');
     }
-    if (!checkFields(req.body, res, ['sourceType', 'sourceID'], 'string')) {
+    if (!checkFields(res, req.body, { sourceType: 'string', sourceID: 'string' })) {
       return res.status(422).json('expected sourceType to be a string and sourceID to be a string');
     }
 

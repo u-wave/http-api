@@ -49,8 +49,8 @@ export default function waitlistRoutes(router) {
 
   /* ========== WAITLIST MOVE ========== */
   router.put('/waitlist/move', (req, res) => {
-    if (!checkFields(req.body, res, ['userID', 'position'], ['string', 'number'])) {
-      return res.status(422).json('expected userID to be a string and position to be a number');
+    if (!checkFields(res, req.body, { userID: 'string', position: 'number' })) {
+      return null;
     }
 
     if (req.user.role < 3) {
@@ -75,8 +75,8 @@ export default function waitlistRoutes(router) {
 
   /* ========== WAITLIST LOCK ========== */
   router.put('/waitlist/lock', (req, res) => {
-    if (!checkFields(req.body, res, ['lock', 'clear'], 'boolean')) {
-      return res.status(422).json('expected lock to be boolean and clear to be boolean');
+    if (!checkFields(res, req.body, { lock: 'boolean', clear: 'boolean' })) {
+      return null;
     }
     if (req.user.role < 3) {
       return res.status(403).json('you need to be at least a bouncer to do this');

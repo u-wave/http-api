@@ -18,8 +18,8 @@ export default function boothRoutes(router) {
       return res.status(412).json('you need to be at least bouncer to do this');
     }
 
-    if (!checkFields(req.body, res, ['userID', 'reason'], 'string')) {
-      return res.status(422).json('expected userID to be a string and reason to be a string');
+    if (!checkFields(res, req.body, { userID: 'string', reason: 'string' })) {
+      return null;
     }
 
     controller.skipBooth(req.user.id, req.body.userID, req.body.reason, req.uwave)
@@ -44,10 +44,8 @@ export default function boothRoutes(router) {
   });
 
   router.post('/booth/favorite', (req, res) => {
-    if (!checkFields(req.body, res, ['playlistID', 'historyID'], 'string')) {
-      return res.status(422).json(
-        'expected playlistID to be a string and historyID to be a string'
-      );
+    if (!checkFields(res, req.body, { playlistID: 'string', historyID: 'string' })) {
+      return null;
     }
 
     controller.favorite(req.user.id, req.body.playlistID, req.body.historyID, req.uwave)

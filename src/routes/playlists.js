@@ -16,15 +16,9 @@ export default function playlistRoutes(router) {
   })
 
   .post((req, res) => {
-    if (!checkFields(req.body, res, [
-      'name',
-      'description',
-      'shared'
-    ], [
-      'string',
-      'string',
-      'boolean'
-    ])) return;
+    if (!checkFields(res, req.body, { name: 'string', description: 'string', shared: 'boolean' })) {
+      return null;
+    }
 
     const data = {
       name: req.body.name,
@@ -78,13 +72,13 @@ export default function playlistRoutes(router) {
   });
 
   router.put('/playlists/:id/move', (req, res) => {
-    if (!checkFields(req.body, res, ['items', 'after'])) {
-      return res.status(422).json('missing items or after property');
+    if (!checkFields(res, req.body, { items: 'object' })) {
+      return null;
     }
 
     const { after, items } = req.body;
     if (!Array.isArray(items)) {
-      return res.status(422).json('items has to be an array');
+      return res.status(422).json('expected "items" to be an array');
     }
 
     controller.movePlaylistItems(req.user.id, req.params.id, after, items, req.uwave.mongo)
@@ -108,12 +102,12 @@ export default function playlistRoutes(router) {
   })
 
   .post((req, res) => {
-    if (!checkFields(req.body, res, ['items', 'after'])) {
-      return res.status(422).json('missing items or after property');
+    if (!checkFields(res, req.body, { items: 'object' })) {
+      return null;
     }
     const { after, items } = req.body;
     if (!Array.isArray(items)) {
-      return res.status(422).json('items has to be an array');
+      return res.status(422).json('expected "items" to be an array');
     }
 
     controller.createPlaylistItems(req.user.id, req.params.id, after, items, req.uwave)
@@ -137,17 +131,14 @@ export default function playlistRoutes(router) {
   })
 
   .put((req, res) => {
-    if (!checkFields(req.body, res, [
-      'artist',
-      'title',
-      'start',
-      'end'
-    ], [
-      'string',
-      'string',
-      'number',
-      'number'
-    ])) return;
+    if (!checkFields(res, req.body, {
+      artist: 'string',
+      title: 'string',
+      start: 'number',
+      end: 'number'
+    })) {
+      return null;
+    }
 
     const { body, params, user, uwave } = req;
 
@@ -171,7 +162,7 @@ export default function playlistRoutes(router) {
   });
 
   router.post('/playlists/:id/media/:mediaID/copy', (req, res) => {
-    if (!checkFields(req.body, res, ['toPlaylistID'], 'string')) return;
+    if (!checkFields(res, req.body, { toPlaylistID: 'string' })) return;
 
     controller.copyPlaylistItem(req.user.id, req.params.id, req.params.mediaID, req.uwave.mongo)
     .then(playlist => res.status(200).json(playlist))

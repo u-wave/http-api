@@ -16,15 +16,13 @@ export default function authenticateRoutes(v1, router) {
 
   /* ========== REGISTER ========== */
   router.post('/auth/register', (req, res) => {
-    if (!checkFields(req.body, res, [
-      'email',
-      'username',
-      'password',
-      'passwordRepeat'
-    ], 'string')) {
-      return res.status(422).json(
-        'expected email to be a string, username to be a string and password to be a string'
-      );
+    if (!checkFields(res, req.body, {
+      email: 'string',
+      username: 'string',
+      password: 'string',
+      passwordRepeat: 'string'
+    })) {
+      return null;
     }
 
     if (req.body.password !== req.body.passwordRepeat) {
@@ -46,11 +44,8 @@ export default function authenticateRoutes(v1, router) {
 
   /* ========== LOGIN ========== */
   router.post('/auth/login', (req, res) => {
-    if (!checkFields(req.body, res, [
-      'email',
-      'password'
-    ], 'string')) {
-      return res.status(422).json('expected email to be a string and password to be a string');
+    if (!checkFields(res, req.body, { email: 'string', password: 'string' })) {
+      return null;
     }
 
     controller.login(req.body.email, req.body.password, v1.getCert(), req.uwave)
@@ -60,11 +55,8 @@ export default function authenticateRoutes(v1, router) {
 
   /* ========== PASSWORD RESET ========== */
   router.post('/auth/password/reset', (req, res) => {
-    if (!req.body.email) {
-      return res.status(422).json('email is not set');
-    }
-    if (typeof req.body.email !== 'string') {
-      return res.status(422).json('email has to be of type string');
+    if (!checkFields(res, req.body, { email: 'string' })) {
+      return null;
     }
 
     controller.reset(req.body.email, req.uwave)
@@ -74,12 +66,12 @@ export default function authenticateRoutes(v1, router) {
 
   /* ========== PASSWORD RESET :RESET ========== */
   router.post('/auth/password/reset/:reset', (req, res) => {
-    if (!checkFields(req.body, res, [
-      'email',
-      'password',
-      'passwordRepeat'
-    ], 'string')) {
-      return res.status(422).json('expected email to be a string and password to be a string');
+    if (!checkFields(res, req.body, {
+      email: 'string',
+      password: 'string',
+      passwordRepeat: 'string'
+    })) {
+      return null;
     }
 
     if (req.body.password !== req.body.passwordRepeat) {
