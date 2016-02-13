@@ -1,3 +1,4 @@
+import clamp from 'clamp';
 import mongoose from 'mongoose';
 import Promise from 'bluebird';
 
@@ -64,7 +65,7 @@ export function insertWaitlist(moderatorID, id, position, forceJoin, uwave) {
   })
   .then(waitlist => {
     const length = waitlist.length;
-    clampedPosition = Math.max(Math.min(position, length - 1), 0);
+    clampedPosition = clamp(position, 0, length - 1);
 
     if (isInWaitlist(waitlist, id)) {
       throw new GenericError(403, 'already in waitlist');
@@ -95,10 +96,11 @@ export function insertWaitlist(moderatorID, id, position, forceJoin, uwave) {
 export function moveWaitlist(moderatorID, userID, position, uwave) {
   const User = uwave.mongo.model('User');
   let beforeID = null;
-  const _position = Math.max(Math.min(position, length), 0);
+  let _position = null;
 
   return uwave.redis.lrange('waitlist', 0, -1)
   .then(waitlist => {
+    _position = clamp(position, 0, waitlist.length);
     beforeID = waitlist[_position] || null;
 
     if (isInWaitlist(waitlist, userID)) {

@@ -1,3 +1,4 @@
+import clamp from 'clamp';
 import mongoose from 'mongoose';
 import Promise from 'bluebird';
 
@@ -82,7 +83,7 @@ export function changeRole(moderatorID, id, role, uwave) {
   .then(user => {
     if (!user) throw new GenericError(404, `user with ID ${id} not found`);
 
-    user.role = Math.max(Math.min(role, 6), 0);
+    user.role = clamp(role, 0, 6);
 
     uwave.redis.publish('v1', createCommand('roleChange', {
       moderatorID,
@@ -120,7 +121,7 @@ export function changeUsername(moderatorID, id, name, uwave) {
 export function setStatus(id, status, redis) {
   redis.publish('v1', createCommand('statusChange', {
     userID: id,
-    status: Math.max(Math.min(status, 3), 0)
+    status: clamp(status, 0, 3)
   }));
 }
 

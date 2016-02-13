@@ -26,6 +26,7 @@
     "array-find": "^1.0.0",
     "array-findindex": "^0.1.0",
     "bluebird": "^2.10.0",
+    "clamp": "^1.0.1",
     "debug": "^2.2.0",
     "express": "^4.13.3",
     "get-artist-title": "^0.0.2",
