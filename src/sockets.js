@@ -249,11 +249,14 @@ export default class WSServer {
 
         advance(this.mongo, this.redis)
         .then(now => {
+          this.redis.del([
+            'booth:historyID',
+            'booth:upvotes',
+            'booth:downvotes',
+            'booth:favorites',
+            'booth:currentDJ'
+          ]);
           if (now) {
-            this.redis.del(['booth:historyID',
-                'booth:upvotes',
-                'booth:downvotes',
-                'booth:currentDJ']);
             this.redis.set('booth:historyID', now.historyID);
             this.redis.set('booth:currentDJ', now.userID);
             this.broadcast(createCommand('advance', now));
@@ -263,10 +266,6 @@ export default class WSServer {
               'v1p', createCommand('cycleWaitlist', null)
             );
           } else {
-            this.redis.del(['booth:historyID',
-                'booth:upvotes',
-                'booth:downvotes',
-                'booth:currentDJ']);
             this.broadcast(createCommand('advance', null));
           }
         })
