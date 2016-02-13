@@ -19,14 +19,9 @@ export default function authenticateRoutes(v1, router) {
     if (!checkFields(res, req.body, {
       email: 'string',
       username: 'string',
-      password: 'string',
-      passwordRepeat: 'string'
+      password: 'string'
     })) {
       return null;
-    }
-
-    if (req.body.password !== req.body.passwordRepeat) {
-      return res.status(422).json('passwords don\'t match');
     }
 
     if (rx.test(req.body.username)) {
@@ -66,16 +61,8 @@ export default function authenticateRoutes(v1, router) {
 
   /* ========== PASSWORD RESET :RESET ========== */
   router.post('/auth/password/reset/:reset', (req, res) => {
-    if (!checkFields(res, req.body, {
-      email: 'string',
-      password: 'string',
-      passwordRepeat: 'string'
-    })) {
+    if (!checkFields(res, req.body, { email: 'string', password: 'string' })) {
       return null;
-    }
-
-    if (req.body.password !== req.body.passwordRepeat) {
-      return res.status(422).json('passwords don\'t match');
     }
 
     controller.changePassword(req.body.email, req.body.password, req.params.reset, req.uwave)
