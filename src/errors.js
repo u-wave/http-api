@@ -37,7 +37,7 @@ export class PaginateError extends Error {
   }
 }
 
-export const handleError = function handleError(res, e, log) {
+export function handleError(res, e, log) {
   if (log) {
     log(e);
   }
@@ -58,6 +58,6 @@ export const handleError = function handleError(res, e, log) {
       res.status(500).json('internal server error, please try again later');
     }
   }
-};
+}
 
 export default handleError;

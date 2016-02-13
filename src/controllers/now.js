@@ -5,7 +5,7 @@ import { getPlaylists } from './playlists';
 
 const ObjectId = mongoose.Types.ObjectId;
 
-export const getState = function getState(id, uwave) {
+export function getState(id, uwave) {
   const User = uwave.mongo.model('User');
 
   const playlists = getPlaylists(0, 50, id, uwave.mongo);
@@ -27,4 +27,4 @@ export const getState = function getState(id, uwave) {
     waitlistLocked,
     activePlaylist
   });
-};
+}
