@@ -63,5 +63,3 @@ export function split(arr, size) {
 export function paginate(page, size, result, error = null) {
   return { page, size, result, error };
 }
-
-export default checkFields;

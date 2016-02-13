@@ -1,7 +1,7 @@
 import debug from 'debug';
 
 import * as controller from '../controllers/staff';
-import checkFields from '../utils';
+import { checkFields } from '../utils';
 import handleError from '../errors';
 
 const log = debug('uwave:api:v1:staff');
