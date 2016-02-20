@@ -9,7 +9,7 @@ const log = debug('uwave:api:v1:staff');
 export default function staffRoutes(router) {
   router.get('/staff/media', (req, res) => {
     const { page, limit } = req.query;
-    controller.getAllMedia(parseInt(page, 10), parseInt(limit, 10), req.uwave.mongo)
+    controller.getAllMedia(req.uwave, parseInt(page, 10), parseInt(limit, 10))
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   });
@@ -23,7 +23,7 @@ export default function staffRoutes(router) {
       return null;
     }
 
-    controller.getMedia(req.body.sourceType, req.body.sourceID, req.uwave.mongo)
+    controller.getMedia(req.uwave, req.body.sourceType, req.body.sourceID)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   })
@@ -36,7 +36,7 @@ export default function staffRoutes(router) {
       return null;
     }
 
-    controller.addMedia(req.body.sourceType, req.body.sourceID, req.uwave.keys, req.uwave.mongo)
+    controller.addMedia(req.uwave, req.body.sourceType, req.body.sourceID)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   })
@@ -68,7 +68,7 @@ export default function staffRoutes(router) {
       );
     }
 
-    controller.editMedia(req.body, req.uwave.keys, req.uwave.mongo)
+    controller.editMedia(req.uwave, req.body)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   })
@@ -81,7 +81,7 @@ export default function staffRoutes(router) {
       return res.status(422).json('expected sourceType to be a string and sourceID to be a string');
     }
 
-    controller.removeMedia(req.body.sourceType, req.body.sourceID, req.uwave.mongo)
+    controller.removeMedia(req.uwave, req.body.sourceType, req.body.sourceID)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   });

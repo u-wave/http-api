@@ -22,7 +22,7 @@ export default function boothRoutes(router) {
       return null;
     }
 
-    controller.skipBooth(req.user.id, req.body.userID, req.body.reason, req.uwave)
+    controller.skipBooth(req.uwave, req.user.id, req.body.userID, req.body.reason)
     .then(skipped => res.status(200).json(skipped))
     .catch(e => handleError(res, e, log));
   });
@@ -38,7 +38,7 @@ export default function boothRoutes(router) {
       return res.status(422).json('userID has to be of type string');
     }
 
-    controller.replaceBooth(req.user.id, req.body.userID, req.uwave)
+    controller.replaceBooth(req.uwave, req.user.id, req.body.userID)
     .then(replaced => res.status(200).json(replaced))
     .catch(e => handleError(res, e, log));
   });
@@ -48,14 +48,14 @@ export default function boothRoutes(router) {
       return null;
     }
 
-    controller.favorite(req.user.id, req.body.playlistID, req.body.historyID, req.uwave)
+    controller.favorite(req.uwave, req.user.id, req.body.playlistID, req.body.historyID)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
 
   router.get('/booth/history', (req, res) => {
     const { page, limit } = req.query;
-    controller.getHistory(parseInt(page, 10), parseInt(limit, 10), req.uwave.mongo)
+    controller.getHistory(req.uwave, parseInt(page, 10), parseInt(limit, 10))
     .then(history => res.status(200).json(history))
     .catch(e => handleError(res, e, log));
   });

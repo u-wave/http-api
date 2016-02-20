@@ -1,15 +1,15 @@
 import { GenericError } from '../errors';
 import { fetchMedia } from './search';
 
-export function getAllMedia(page, limit, mongo) {
-  const Media = mongo.model('Media');
+export function getAllMedia(uw, page, limit) {
+  const Media = uw.mongo.model('Media');
   const _page = isNaN(page) ? 0 : page;
   const _limit = isNaN(limit) ? 200 : Math.min(limit, 200);
   return Media.find({}).setOptions({ limit: _limit, skip: _limit * _page });
 }
 
-export function getMedia(sourceType, sourceID, mongo) {
-  const Media = mongo.model('Media');
+export function getMedia(uw, sourceType, sourceID) {
+  const Media = uw.mongo.model('Media');
 
   return Media.find({ sourceType, sourceID })
   .then(media => {
@@ -19,16 +19,17 @@ export function getMedia(sourceType, sourceID, mongo) {
   });
 }
 
-export function addMedia(sourceType, sourceID, keys, mongo) {
-  const Media = mongo.model('Media');
-  return fetchMedia(sourceType, sourceID, keys)
+export function addMedia(uw, sourceType, sourceID) {
+  const Media = uw.mongo.model('Media');
+
+  return fetchMedia(sourceType, sourceID, uw.keys)
     .then(media => new Media(media).save());
 }
 
-export function editMedia(props, keys, mongo) {
-  const Media = mongo.model('Media');
+export function editMedia(uw, props) {
+  const Media = uw.mongo.model('Media');
   if (props.auto) {
-    return fetchMedia(props.sourceType, props.sourceID, keys)
+    return fetchMedia(props.sourceType, props.sourceID, uw.keys)
     .then(updatedMedia => {
       return Media.findOneAndUpdate(
         { sourceType: props.sourceType, sourceID: props.sourceID },
@@ -55,8 +56,8 @@ export function editMedia(props, keys, mongo) {
   });
 }
 
-export function removeMedia(sourceType, sourceID, mongo) {
-  const Media = mongo.model('Media');
+export function removeMedia(uw, sourceType, sourceID) {
+  const Media = uw.mongo.model('Media');
   return Media.findOneAndRemove({ sourceType, sourceID })
   .then(media => {
     if (!media) throw new GenericError(404, 'no media found');

@@ -10,7 +10,7 @@ export default function waitlistRoutes(router) {
   router.route('/waitlist')
   /* ========== WAITLIST[GET] ========== */
   .get((req, res) => {
-    controller.getWaitlist(req.uwave.redis)
+    controller.getWaitlist(req.uwave)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   })
@@ -29,8 +29,8 @@ export default function waitlistRoutes(router) {
     const isModerator = req.user.role >= 2;
 
     const promise = _position < 0
-      ? controller.appendToWaitlist(targetID, isModerator, req.uwave)
-      : controller.insertWaitlist(req.user.id, targetID, _position, isModerator, req.uwave);
+      ? controller.appendToWaitlist(req.uwave, targetID, isModerator)
+      : controller.insertWaitlist(req.uwave, req.user.id, targetID, _position, isModerator);
     promise
       .then(waitlist => res.status(200).json(waitlist))
       .catch(e => handleError(res, e, log));
@@ -42,7 +42,7 @@ export default function waitlistRoutes(router) {
       return res.status(403).json('you need to be at least a manager to do this');
     }
 
-    controller.clearWaitlist(req.user.id, req.uwave.redis)
+    controller.clearWaitlist(req.uwave, req.user.id)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   });
@@ -57,7 +57,7 @@ export default function waitlistRoutes(router) {
       return res.status(403).json('you need to be at least a bouncer to do this');
     }
 
-    controller.moveWaitlist(req.user.id, req.body.userID, req.body.position, req.uwave)
+    controller.moveWaitlist(req.uwave, req.user.id, req.body.userID, req.body.position)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   });
@@ -68,7 +68,7 @@ export default function waitlistRoutes(router) {
       return res.status(403).json('you need to be at least a bouncer to do this');
     }
 
-    controller.leaveWaitlist(req.user.id, req.params.id, req.uwave)
+    controller.leaveWaitlist(req.uwave, req.user.id, req.params.id)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   });
@@ -82,7 +82,7 @@ export default function waitlistRoutes(router) {
       return res.status(403).json('you need to be at least a bouncer to do this');
     }
 
-    controller.lockWaitlist(req.user.id, req.body.lock, req.body.clear, req.uwave.redis)
+    controller.lockWaitlist(req.uwave, req.user.id, req.body.lock, req.body.clear)
     .then(state => res.status(200).json(state))
     .catch(e => handleError(res, e, log));
   });

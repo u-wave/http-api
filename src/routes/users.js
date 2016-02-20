@@ -14,13 +14,13 @@ export default function userRoutes(router) {
 
     const { page, limit } = req.query;
 
-    controller.getUsers(parseInt(page, 10), parseInt(limit, 10), req.uwave.mongo)
+    controller.getUsers(req.uwave, parseInt(page, 10), parseInt(limit, 10))
     .then(users => res.status(200).json(users))
     .catch(e => handleError(res, e, log));
   });
 
   router.get('/users/:id', (req, res) => {
-    controller.getUser(req.params.id, req.uwave.mongo)
+    controller.getUser(req.uwave, req.params.id)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });
@@ -41,7 +41,7 @@ export default function userRoutes(router) {
       return res.status(422).json('time can only be a number');
     }
 
-    controller.banUser(req.user.id, req.params.id, req.body.time, req.body.exiled, req.uwave)
+    controller.banUser(req.uwave, req.user.id, req.params.id, req.body.time, req.body.exiled)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   })
@@ -50,7 +50,7 @@ export default function userRoutes(router) {
     if (req.user.role < 4) return res.status(403, 'you need to be at least manager to do this');
     if (req.user.id === req.params.id) return res.status(403, 'you can\'t unban yourself');
 
-    controller.banUser(req.user.id, req.params.id, 0, false, req.uwave)
+    controller.banUser(req.uwave, req.user.id, req.params.id, 0, false)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });
@@ -66,7 +66,7 @@ export default function userRoutes(router) {
       return res.status(422).json('time is not set');
     }
 
-    controller.muteUser(req.user.id, req.params.id, req.body.time, req.uwave)
+    controller.muteUser(req.uwave, req.user.id, req.params.id, req.body.time)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   })
@@ -75,7 +75,7 @@ export default function userRoutes(router) {
     if (req.user.role < 3) return res.status(403, 'you need to be at least bouncer to do this');
     if (req.user.id === req.params.id) return res.status(403, 'you can\'t unmute yourself');
 
-    controller.muteUser(req.user.id, req.params.id, 0, req.uwave)
+    controller.muteUser(req.uwave, req.user.id, req.params.id, 0)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });
@@ -95,7 +95,7 @@ export default function userRoutes(router) {
       return res.status(403).json('you can\'t promote users above or equal to your own level');
     }
 
-    controller.changeRole(req.user.id, req.params.id, req.body.role, req.uwave)
+    controller.changeRole(req.uwave, req.user.id, req.params.id, req.body.role)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });
@@ -111,7 +111,7 @@ export default function userRoutes(router) {
       return res.status(403).json('you need to be at least cohost to do this');
     }
 
-    controller.changeUsername(req.user.id, req.params.id, req.body.username, req.uwave)
+    controller.changeUsername(req.uwave, req.user.id, req.params.id, req.body.username)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });
@@ -127,7 +127,7 @@ export default function userRoutes(router) {
       return res.status(403).json('you need to be at least manager to do this');
     }
 
-    controller.setAvatar(req.user.id, req.params.id, req.body.avatar, req.uwave)
+    controller.setAvatar(req.uwave, req.user.id, req.params.id, req.body.avatar)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });
@@ -143,14 +143,14 @@ export default function userRoutes(router) {
       return res.status(403).json('you can\'t change the status of another user');
     }
 
-    controller.setStatus(req.user.id, req.body.status, req.uwave.redis)
+    controller.setStatus(req.uwave, req.user.id, req.body.status)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });
 
   router.get('/users/:id/history', (req, res) => {
     const { page, limit } = req.query;
-    controller.getHistory(req.params.id, parseInt(page, 10), parseInt(limit, 10), req.uwave.mongo)
+    controller.getHistory(req.uwave, req.params.id, parseInt(page, 10), parseInt(limit, 10))
     .then(history => res.status(200).json(history))
     .catch(e => handleError(res, e, log));
   });

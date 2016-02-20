@@ -6,7 +6,7 @@ export default function chatRoutes(router) {
       return res.status(403).json('you need to be at least manager to do this');
     }
 
-    controller.chatDelete(req.user, req.uwave.redis);
+    controller.chatDelete(req.uwave, req.user);
     res.status(200).json('deleted chat');
   });
 
@@ -15,7 +15,7 @@ export default function chatRoutes(router) {
       return res.status(403).json('you need to be at least manager to do this');
     }
 
-    controller.chatDeleteByUser(req.user, req.params.id, req.uwave.redis);
+    controller.chatDeleteByUser(req.uwave, req.user, req.params.id);
     res.status(200).json(`deleted chat ${req.params.id}`);
   });
 
@@ -24,7 +24,7 @@ export default function chatRoutes(router) {
       return res.status(403).json('you need to be at least manager to do this');
     }
 
-    controller.chatDeleteByID(req.user, req.params.id, req.uwave.redis);
+    controller.chatDeleteByID(req.uwave, req.user, req.params.id);
     res.status(200).json(`deleted chat by user ${req.params.id}`);
   });
 }

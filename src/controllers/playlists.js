@@ -9,7 +9,9 @@ import { fetchMedia } from './search';
 
 const ObjectId = mongoose.Types.ObjectId;
 
-function addMedia(sourceType, sourceID, keys, Media) {
+function addMedia(uw, sourceType, sourceID, keys) {
+  const Media = uw.mongo.model('Media');
+
   return fetchMedia(sourceType, sourceID, keys)
     .then(media => new Media(media).save());
 }
@@ -25,8 +27,8 @@ const toPlaylistResponse = model => ({
   size: model.media.length
 });
 
-export function getPlaylists(page, limit, id, mongo) {
-  const Playlist = mongo.model('Playlist');
+export function getPlaylists(uw, page, limit, id) {
+  const Playlist = uw.mongo.model('Playlist');
 
   const _page = isNaN(page) ? 0 : page;
   const _limit = isNaN(limit) ? 50 : Math.min(limit, 50);
@@ -37,9 +39,9 @@ export function getPlaylists(page, limit, id, mongo) {
   .then(playlists => playlists.map(toPlaylistResponse));
 }
 
-export function createPlaylist(data, mediaArray, mongo) {
-  const PlaylistItem = mongo.model('PlaylistItem');
-  const Playlist = mongo.model('Playlist');
+export function createPlaylist(uw, data, mediaArray) {
+  const PlaylistItem = uw.mongo.model('PlaylistItem');
+  const Playlist = uw.mongo.model('Playlist');
 
   const playlist = new Playlist(data);
 
@@ -52,8 +54,8 @@ export function createPlaylist(data, mediaArray, mongo) {
   });
 }
 
-export function getPlaylist(id, playlistID, mongo) {
-  const Playlist = mongo.model('Playlist');
+export function getPlaylist(uw, id, playlistID) {
+  const Playlist = uw.mongo.model('Playlist');
 
   return Playlist.findOne({ _id: playlistID, author: id })
   .then(playlist => {
@@ -63,11 +65,11 @@ export function getPlaylist(id, playlistID, mongo) {
   });
 }
 
-export function deletePlaylist(id, playlistID, uwave) {
-  const Playlist = uwave.mongo.model('Playlist');
+export function deletePlaylist(uw, id, playlistID) {
+  const Playlist = uw.mongo.model('Playlist');
   let _active = null;
 
-  return uwave.redis.get(`playlist:${id}`)
+  return uw.redis.get(`playlist:${id}`)
   .then(active => {
     _active = active;
     return Playlist.findOne(new ObjectId(playlistID));
@@ -85,8 +87,8 @@ export function deletePlaylist(id, playlistID, uwave) {
   });
 }
 
-export function renamePlaylist(id, playlistID, name, mongo) {
-  const Playlist = mongo.model('Playlist');
+export function renamePlaylist(uw, id, playlistID, name) {
+  const Playlist = uw.mongo.model('Playlist');
 
   return Playlist.findOne(new ObjectId(playlistID))
   .then(playlist => {
@@ -100,8 +102,8 @@ export function renamePlaylist(id, playlistID, name, mongo) {
   });
 }
 
-export function sharePlaylist(id, playlistID, shared, mongo) {
-  const Playlist = mongo.model('Playlist');
+export function sharePlaylist(uw, id, playlistID, shared) {
+  const Playlist = uw.mongo.model('Playlist');
 
   return Playlist.findOne(new ObjectId(playlistID)).then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
@@ -114,9 +116,9 @@ export function sharePlaylist(id, playlistID, shared, mongo) {
   });
 }
 
-export function getPlaylistItems(page, limit, id, playlistID, mongo) {
-  const Playlist = mongo.model('Playlist');
-  const PlaylistItem = mongo.model('PlaylistItem');
+export function getPlaylistItems(uw, page, limit, id, playlistID) {
+  const Playlist = uw.mongo.model('Playlist');
+  const PlaylistItem = uw.mongo.model('PlaylistItem');
   const _page = isNaN(page) ? 0 : page;
   const _limit = isNaN(limit) ? 100 : Math.min(limit, 100);
 
@@ -142,8 +144,8 @@ export function getPlaylistItems(page, limit, id, playlistID, mongo) {
   .then(media => paginate(_page, _limit, media));
 }
 
-export function movePlaylistItems(id, playlistID, afterID, movingItems, mongo) {
-  const Playlist = mongo.model('Playlist');
+export function movePlaylistItems(uw, id, playlistID, afterID, movingItems) {
+  const Playlist = uw.mongo.model('Playlist');
 
   return Playlist.findOne(new ObjectId(playlistID))
   .then(playlist => {
@@ -165,8 +167,8 @@ export function movePlaylistItems(id, playlistID, afterID, movingItems, mongo) {
   });
 }
 
-export function activatePlaylist(id, playlistID, uwave) {
-  const Playlist = uwave.mongo.model('Playlist');
+export function activatePlaylist(uw, id, playlistID) {
+  const Playlist = uw.mongo.model('Playlist');
   return Playlist.findOne(new ObjectId(playlistID)).populate('author')
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
@@ -174,8 +176,8 @@ export function activatePlaylist(id, playlistID, uwave) {
       throw new GenericError(403, `${playlist.author.username} has made ${playlist.name} private`);
     }
 
-    uwave.redis.set(`playlist:${id}`, playlist.id);
-    return uwave.redis.get(`playlist:${id}`);
+    uw.redis.set(`playlist:${id}`, playlist.id);
+    return uw.redis.get(`playlist:${id}`);
   });
 }
 
@@ -185,10 +187,10 @@ function isValidPlaylistItem(item) {
     (typeof item.sourceID === 'string' || typeof item.sourceID === 'number');
 }
 
-export function createPlaylistItems(id, playlistID, after, items, uwave) {
-  const PlaylistItem = uwave.mongo.model('PlaylistItem');
-  const Playlist = uwave.mongo.model('Playlist');
-  const Media = uwave.mongo.model('Media');
+export function createPlaylistItems(uw, id, playlistID, after, items) {
+  const PlaylistItem = uw.mongo.model('PlaylistItem');
+  const Playlist = uw.mongo.model('Playlist');
+  const Media = uw.mongo.model('Media');
 
   const createItem = props => {
     const { sourceType, sourceID, artist, title } = props;
@@ -196,7 +198,7 @@ export function createPlaylistItems(id, playlistID, after, items, uwave) {
 
     return Media.findOne({ sourceType, sourceID })
       .then(media =>
-        media || addMedia(sourceType, sourceID, uwave.keys, Media)
+        media || addMedia(uw, sourceType, sourceID, uw.keys)
       )
       .then(media => {
         // Fix up custom start/end times
@@ -250,8 +252,8 @@ export function createPlaylistItems(id, playlistID, after, items, uwave) {
   });
 }
 
-export function getPlaylistItem(id, playlistID, mediaID, mongo) {
-  const Playlist = mongo.model('Playlist');
+export function getPlaylistItem(uw, id, playlistID, mediaID) {
+  const Playlist = uw.mongo.model('Playlist');
 
   return Playlist.findOne(new ObjectId(playlistID)).populate('media')
   .then(playlist => {
@@ -270,9 +272,9 @@ export function getPlaylistItem(id, playlistID, mediaID, mongo) {
   });
 }
 
-export function updatePlaylistItem(id, playlistID, mediaID, metadata, mongo) {
-  const PlaylistItem = mongo.model('PlaylistItem');
-  const Playlist = mongo.model('Playlist');
+export function updatePlaylistItem(uw, id, playlistID, mediaID, metadata) {
+  const PlaylistItem = uw.mongo.model('PlaylistItem');
+  const Playlist = uw.mongo.model('Playlist');
 
   return Playlist.findOne(new ObjectId(playlistID))
   .then(playlist => {
@@ -288,9 +290,9 @@ export function updatePlaylistItem(id, playlistID, mediaID, metadata, mongo) {
   });
 }
 
-export function deletePlaylistItems(id, playlistID, items, mongo) {
-  const PlaylistItem = mongo.model('PlaylistItem');
-  const Playlist = mongo.model('Playlist');
+export function deletePlaylistItems(uw, id, playlistID, items) {
+  const PlaylistItem = uw.mongo.model('PlaylistItem');
+  const Playlist = uw.mongo.model('Playlist');
 
   return Playlist.findOneAndUpdate(
     { _id: playlistID, author: id },
@@ -311,9 +313,9 @@ export function deletePlaylistItems(id, playlistID, items, mongo) {
   });
 }
 
-export function copyPlaylistItem(id, fromPlaylistID, mediaID, toPlaylistID, mongo) {
-  const PlaylistItem = mongo.model('PlaylistItem');
-  const Playlist = mongo.model('Playlist');
+export function copyPlaylistItem(uw, id, fromPlaylistID, mediaID, toPlaylistID) {
+  const PlaylistItem = uw.mongo.model('PlaylistItem');
+  const Playlist = uw.mongo.model('Playlist');
 
   let _playlistItem = null;
 

@@ -9,7 +9,7 @@ const rx = /\s|%20/;
 
 export default function authenticateRoutes(v1, router) {
   router.get('/auth', (req, res) => {
-    controller.getCurrentUser(req.user.id, req.uwave.mongo)
+    controller.getCurrentUser(req.uwave, req.user.id)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });
@@ -28,7 +28,7 @@ export default function authenticateRoutes(v1, router) {
       return res.status(422).json('username contains invalid characters e.g. space');
     }
 
-    controller.createUser(req.body.email, req.body.username, req.body.password, req.uwave.mongo)
+    controller.createUser(req.uwave, req.body.email, req.body.username, req.body.password)
     .then(user => res.status(200).json(user))
     .catch(e => {
       if (!e.errmsg || !handleDuplicate(res, e.errmsg, ['email', 'username'])) {
@@ -43,7 +43,7 @@ export default function authenticateRoutes(v1, router) {
       return null;
     }
 
-    controller.login(req.body.email, req.body.password, v1.getCert(), req.uwave)
+    controller.login(req.uwave, req.body.email, req.body.password, v1.getCert())
     .then(token => res.status(200).json(token))
     .catch(e => handleError(res, e, log));
   });
@@ -54,7 +54,7 @@ export default function authenticateRoutes(v1, router) {
       return null;
     }
 
-    controller.reset(req.body.email, req.uwave)
+    controller.reset(req.uwave, req.body.email)
     .then(token => res.status(200).json(token))
     .catch(e => handleError(res, e, log));
   });
@@ -65,7 +65,7 @@ export default function authenticateRoutes(v1, router) {
       return null;
     }
 
-    controller.changePassword(req.body.email, req.body.password, req.params.reset, req.uwave)
+    controller.changePassword(req.uwave, req.body.email, req.body.password, req.params.reset)
     .then(auth => res.status(200).json(auth))
     .catch(e => handleError(res, e, log));
   });
@@ -76,7 +76,7 @@ export default function authenticateRoutes(v1, router) {
       return res.status(403).json('you need to be at least a manager to do this');
     }
 
-    controller.removeSession(req.params.id, req.uwave)
+    controller.removeSession(req.uwave, req.params.id)
     .then(user => {
       if (!Object.keys(user).length) {
         res.status(200).json('logged out');

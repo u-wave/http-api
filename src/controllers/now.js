@@ -5,18 +5,18 @@ import { getPlaylists } from './playlists';
 
 const ObjectId = mongoose.Types.ObjectId;
 
-export function getState(id, uwave) {
-  const User = uwave.mongo.model('User');
+export function getState(uw, id) {
+  const User = uw.mongo.model('User');
 
-  const playlists = getPlaylists(0, 50, id, uwave.mongo);
-  const booth = getBooth(uwave);
+  const playlists = getPlaylists(uw, 0, 50, id);
+  const booth = getBooth(uw);
   const user = User.findOne(new ObjectId(id));
-  const users = uwave.redis.lrange('users', 0, -1)
+  const users = uw.redis.lrange('users', 0, -1)
     .then(userIDs => User.find({ _id: { $in: userIDs } }));
-  const waitlist = uwave.redis.lrange('waitlist', 0, -1);
-  const waitlistLocked = uwave.redis.get('waitlist:lock')
+  const waitlist = uw.redis.lrange('waitlist', 0, -1);
+  const waitlistLocked = uw.redis.get('waitlist:lock')
     .then(lock => lock ? true : false);
-  const activePlaylist = uwave.redis.get(`playlist:${id}`);
+  const activePlaylist = uw.redis.get(`playlist:${id}`);
 
   return Promise.props({
     playlists,
