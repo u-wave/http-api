@@ -116,16 +116,14 @@ export default class WSServer {
   }
 
   _heartbeat() {
-    const keys = Object.keys(this.clients);
-
-    for (let i = keys.length - 1; i >= 0; i--) {
-      const client = this.clients[keys[i]];
+    Object.keys(this.clients).forEach(id => {
+      const client = this.clients[id];
       if (client) {
         if (client.heartbeat - Date.now() >= 60 * 1000) {
           client.conn.close(CLOSE_VIOLATED_POLICY, 'idled too long');
         }
       }
-    }
+    });
   }
 
   _authenticate(conn, token) {
@@ -312,10 +310,8 @@ export default class WSServer {
   }
 
   broadcast(command) {
-    const keys = Object.keys(this.clients);
-
-    for (let i = keys.length - 1; i >= 0; i--) {
-      this.clients[keys[i]].conn.send(command);
-    }
+    Object.keys(this.clients).forEach(id => {
+      this.clients[id].conn.send(command);
+    });
   }
 }

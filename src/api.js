@@ -1,4 +1,4 @@
-import { Router as createRouter } from 'express';
+import createRouter from 'router';
 import debug from 'debug';
 import fs from 'fs';
 

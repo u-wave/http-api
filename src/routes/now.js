@@ -11,7 +11,7 @@ export default function nowRoute(router) {
       req.user = { id: null };
     }
 
-    controller.getState(req.user.id, req.uwave)
+    controller.getState(req.uwave, req.user.id)
     .then(state => res.status(200).json(state))
     .catch(e => handleError(res, e, log));
   });
