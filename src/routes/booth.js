@@ -14,14 +14,14 @@ export default function boothRoutes(router) {
   });
 
   router.post('/booth/skip', (req, res) => {
-    if (req.user == null) {
+    if (!req.user) {
       return res.status(403).json('you need to be logged in');
     }
 
     if (Object.keys(req.body).length === 0) {
       controller.getBooth(req.uwave)
       .then(booth => {
-        if(booth == null || booth.userID != req.user.id) {
+        if (!booth || booth.userID !== req.user.id) {
           return res.status(412).json('you are not currently playing');
         }
 
@@ -46,7 +46,7 @@ export default function boothRoutes(router) {
   });
 
   router.post('/booth/replace', (req, res) => {
-    if (req.user == null) {
+    if (!req.user) {
       return res.status(403).json('you need to be logged in');
     }
 
@@ -66,14 +66,13 @@ export default function boothRoutes(router) {
   });
 
   router.post('/booth/favorite', (req, res) => {
-    if (req.user == null) {
+    if (!req.user) {
       return res.status(403).json('you need to be logged in');
     }
-    
+
     if (!checkFields(res, req.body, { playlistID: 'string', historyID: 'string' })) {
       return null;
     }
-
 
     controller.favorite(req.uwave, req.user.id, req.body.playlistID, req.body.historyID)
     .then(playlist => res.status(200).json(playlist))
