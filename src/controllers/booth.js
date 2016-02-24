@@ -51,6 +51,7 @@ export function getBooth(uwave) {
 export function skipBooth(moderatorID, userID, reason, uwave) {
   uwave.redis.publish('v1', createCommand('skip', { moderatorID, userID, reason }));
   uwave.redis.publish('v1p', createCommand('advance', null));
+  return Promise.resolve(true);
 }
 
 export function replaceBooth(moderatorID, id, uwave) {
