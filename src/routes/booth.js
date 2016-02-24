@@ -18,17 +18,31 @@ export default function boothRoutes(router) {
       return res.status(403).json('you need to be logged in');
     }
 
-    if (req.user.role < 3) {
-      return res.status(412).json('you need to be at least bouncer to do this');
-    }
+    if (Object.keys(req.body).length === 0) {
+      controller.getBooth(req.uwave)
+      .then(booth => {
+        if(booth == null || booth.userID != req.user.id) {
+          return res.status(412).json('you are not currently playing');
+        }
 
-    if (!checkFields(req.body, res, ['userID', 'reason'], 'string')) {
-      return res.status(422).json('expected userID to be a string and reason to be a string');
-    }
+        controller.skipBooth(null, req.user.id, null, req.uwave)
+        .then(skipped => res.status(200).json(skipped))
+        .catch(e => handleError(res, e, log));
+      })
+      .catch(e => handleError(res, e, log));
+    } else {
+      if (req.user.role < 3) {
+        return res.status(412).json('you need to be at least bouncer to do this');
+      }
 
-    controller.skipBooth(req.user.id, req.body.userID, req.body.reason, req.uwave)
-    .then(skipped => res.status(200).json(skipped))
-    .catch(e => handleError(res, e, log));
+      if (!checkFields(req.body, res, ['userID', 'reason'], 'string')) {
+        return res.status(422).json('expected userID to be a string and reason to be a string');
+      }
+
+      controller.skipBooth(req.user.id, req.body.userID, req.body.reason, req.uwave)
+      .then(skipped => res.status(200).json(skipped))
+      .catch(e => handleError(res, e, log));
+    }
   });
 
   router.post('/booth/replace', (req, res) => {
