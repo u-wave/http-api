@@ -51,6 +51,7 @@ export function getBooth(uw) {
 export function skipBooth(uw, moderatorID, userID, reason) {
   uw.redis.publish('v1', createCommand('skip', { moderatorID, userID, reason }));
   uw.redis.publish('v1p', createCommand('advance', null));
+  return Promise.resolve(true);
 }
 
 export function replaceBooth(uw, moderatorID, id) {

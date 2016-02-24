@@ -14,20 +14,42 @@ export default function boothRoutes(router) {
   });
 
   router.post('/booth/skip', (req, res) => {
-    if (req.user.role < 3) {
-      return res.status(412).json('you need to be at least bouncer to do this');
+    if (!req.user) {
+      return res.status(403).json('you need to be logged in');
     }
 
-    if (!checkFields(res, req.body, { userID: 'string', reason: 'string' })) {
-      return null;
-    }
+    if (Object.keys(req.body).length === 0) {
+      controller.getBooth(req.uwave)
+      .then(booth => {
+        if (!booth || booth.userID !== req.user.id) {
+          return res.status(412).json('you are not currently playing');
+        }
 
-    controller.skipBooth(req.uwave, req.user.id, req.body.userID, req.body.reason)
-    .then(skipped => res.status(200).json(skipped))
-    .catch(e => handleError(res, e, log));
+        controller.skipBooth(req.uwave, null, req.user.id, null)
+        .then(skipped => res.status(200).json(skipped))
+        .catch(e => handleError(res, e, log));
+      })
+      .catch(e => handleError(res, e, log));
+    } else {
+      if (req.user.role < 3) {
+        return res.status(412).json('you need to be at least bouncer to do this');
+      }
+
+      if (!checkFields(res, req.body, { userID: 'string', reason: 'string' })) {
+        return null;
+      }
+
+      controller.skipBooth(req.uwave, req.user.id, req.body.userID, req.body.reason)
+      .then(skipped => res.status(200).json(skipped))
+      .catch(e => handleError(res, e, log));
+    }
   });
 
   router.post('/booth/replace', (req, res) => {
+    if (!req.user) {
+      return res.status(403).json('you need to be logged in');
+    }
+
     if (req.user.role < 3) {
       return res.status(412).json('you need to be at least bouncer to do this');
     }
@@ -44,6 +66,10 @@ export default function boothRoutes(router) {
   });
 
   router.post('/booth/favorite', (req, res) => {
+    if (!req.user) {
+      return res.status(403).json('you need to be logged in');
+    }
+
     if (!checkFields(res, req.body, { playlistID: 'string', historyID: 'string' })) {
       return null;
     }
