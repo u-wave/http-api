@@ -7,8 +7,8 @@ import { GenericError, PaginateError } from '../errors';
 
 const ObjectId = mongoose.Types.ObjectId;
 
-export function getBooth(uwave) {
-  const History = uwave.mongo.model('History');
+export function getBooth(uw) {
+  const History = uw.mongo.model('History');
 
   const booth = {
     historyID: null,
@@ -23,7 +23,7 @@ export function getBooth(uwave) {
     }
   };
 
-  return uwave.redis.get('booth:historyID')
+  return uw.redis.get('booth:historyID')
   .then(historyID => {
     booth.historyID = historyID;
     return History.findOne(new ObjectId(historyID))
@@ -37,9 +37,9 @@ export function getBooth(uwave) {
     }
 
     return Promise.props({
-      upvotes: uwave.redis.lrange('booth:upvotes', 0, -1),
-      downvotes: uwave.redis.lrange('booth:downvotes', 0, -1),
-      favorites: uwave.redis.lrange('booth:favorites', 0, -1)
+      upvotes: uw.redis.lrange('booth:upvotes', 0, -1),
+      downvotes: uw.redis.lrange('booth:downvotes', 0, -1),
+      favorites: uw.redis.lrange('booth:favorites', 0, -1)
     });
   })
   .then(stats => {
@@ -48,37 +48,35 @@ export function getBooth(uwave) {
   });
 }
 
-export function skipBooth(moderatorID, userID, reason, uwave) {
-  uwave.redis.publish('v1', createCommand('skip', { moderatorID, userID, reason }));
-  uwave.redis.publish('v1p', createCommand('advance', null));
+export function skipBooth(uw, moderatorID, userID, reason) {
+  uw.redis.publish('v1', createCommand('skip', { moderatorID, userID, reason }));
+  uw.redis.publish('v1p', createCommand('advance', null));
   return Promise.resolve(true);
 }
 
-export function replaceBooth(moderatorID, id, uwave) {
-  uwave.redis.lrange('waitlist', 0, -1)
+export function replaceBooth(uw, moderatorID, id) {
+  uw.redis.lrange('waitlist', 0, -1)
   .then(waitlist => {
     if (!waitlist.length) throw new GenericError(404, 'waitlist is empty');
 
-    for (let i = waitlist.length - 1; i >= 0; i--) {
-      if (waitlist[i] === id) {
-        uwave.redis.lrem('waitlist', 1, id);
-        return uwave.redis.lpush('waitlist', id);
-      }
+    if (waitlist.some(userID => userID === id)) {
+      uw.redis.lrem('waitlist', 1, id);
+      return uw.redis.lpush('waitlist', id);
     }
   })
   .then(waitlist => {
-    uwave.redis.publish('v1', createCommand('boothReplace', {
+    uw.redis.publish('v1', createCommand('boothReplace', {
       moderatorID,
       userID: id
     }));
-    uwave.redis.publish('v1p', createCommand('advance', null));
+    uw.redis.publish('v1p', createCommand('advance', null));
     return waitlist;
   });
 }
 
-export function favorite(id, playlistID, historyID, uwave) {
-  const Playlist = uwave.mongo.model('Playlist');
-  const History = uwave.mongo.model('History');
+export function favorite(uw, id, playlistID, historyID) {
+  const Playlist = uw.mongo.model('Playlist');
+  const History = uw.mongo.model('History');
 
   let playlistItem;
 
@@ -102,9 +100,9 @@ export function favorite(id, playlistID, historyID, uwave) {
 
     playlist.media.push(playlistItem);
 
-    uwave.redis.lrem('booth:favorites', 0, id);
-    uwave.redis.lpush('booth:favorites', id);
-    uwave.redis.publish('v1', createCommand('favorite', {
+    uw.redis.lrem('booth:favorites', 0, id);
+    uw.redis.lpush('booth:favorites', id);
+    uw.redis.publish('v1', createCommand('favorite', {
       userID: id,
       playlistID
     }));
@@ -112,11 +110,11 @@ export function favorite(id, playlistID, historyID, uwave) {
   });
 }
 
-export function getHistory(page, limit, mongo) {
-  const History = mongo.model('History');
+export function getHistory(uw, page, limit) {
+  const History = uw.mongo.model('History');
 
-  const _page = (!isNaN(page) ? page : 0);
-  const _limit = (!isNaN(limit) ? limit : 25);
+  const _page = !isNaN(page) ? page : 0;
+  const _limit = !isNaN(limit) ? limit : 25;
 
   return History.find({})
     .skip(_page * _limit)

@@ -37,15 +37,15 @@ export function generateHashPair(password, length) {
   });
 }
 
-export function getCurrentUser(id, mongo) {
-  const User = mongo.model('User');
+export function getCurrentUser(uw, id) {
+  const User = uw.mongo.model('User');
 
   return User.findOne(new ObjectId(id));
 }
 
-export function createUser(email, username, password, mongo) {
-  const User = mongo.model('User');
-  const Authentication = mongo.model('Authentication');
+export function createUser(uw, email, username, password) {
+  const User = uw.mongo.model('User');
+  const Authentication = uw.mongo.model('Authentication');
   let _auth = null;
 
   log(`creating new user ${username}`);
@@ -72,8 +72,8 @@ export function createUser(email, username, password, mongo) {
   });
 }
 
-export function login(email, password, secret, uwave) {
-  const Authentication = uwave.mongo.model('Authentication');
+export function login(uw, email, password, secret) {
+  const Authentication = uw.mongo.model('Authentication');
   let _auth = null;
 
   return Authentication.findOne({ email }).populate('user').exec()
@@ -101,8 +101,8 @@ export function login(email, password, secret, uwave) {
   });
 }
 
-export function reset(email, uwave) {
-  const Authentication = uwave.mongo.model('Authentication');
+export function reset(uw, email) {
+  const Authentication = uw.mongo.model('Authentication');
 
   return Authentication.findOne({ email })
   .then(auth => {
@@ -111,16 +111,16 @@ export function reset(email, uwave) {
   })
   .then(buf => {
     const token = buf.toString('hex');
-    uwave.redis.set(`reset:${email}`, token);
-    uwave.redis.expire(`reset${email}`, 24 * 60 * 60);
+    uw.redis.set(`reset:${email}`, token);
+    uw.redis.expire(`reset${email}`, 24 * 60 * 60);
     return token;
   });
 }
 
-export function changePassword(email, password, resetToken, uwave) {
-  const Authentication = uwave.mongo.model('Authentication');
+export function changePassword(uw, email, password, resetToken) {
+  const Authentication = uw.mongo.model('Authentication');
 
-  return uwave.redis.get(`reset:${email}`)
+  return uw.redis.get(`reset:${email}`)
   .then(token => {
     if (!token || token !== resetToken) throw new TokenError('reset token invalid');
 
@@ -134,16 +134,16 @@ export function changePassword(email, password, resetToken, uwave) {
   )
   .then(auth => {
     if (!auth) throw new GenericError(404, `no user with email ${email} found`);
-    uwave.redis.del(`reset:${email}`);
+    uw.redis.del(`reset:${email}`);
     return `updated password for ${email}`;
   });
 }
 
-export function removeSession(id, uwave) {
-  const Authentication = uwave.mongo.model('Authentication');
+export function removeSession(uw, id) {
+  const Authentication = uw.mongo.model('Authentication');
   return Authentication.findOne(new ObjectId(id)).then(auth => {
     if (!auth) throw new GenericError(404, 'user not found');
 
-    uwave.redis.publish('v1p', createCommand('closeSocket', auth.id));
+    uw.redis.publish('v1p', createCommand('closeSocket', auth.id));
   });
 }

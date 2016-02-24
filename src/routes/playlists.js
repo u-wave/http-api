@@ -1,7 +1,7 @@
 import debug from 'debug';
 
 import * as controller from '../controllers/playlists';
-import checkFields from '../utils';
+import { checkFields } from '../utils';
 import handleError from '../errors';
 
 const log = debug('uwave:api:v1:playlists');
@@ -10,21 +10,15 @@ export default function playlistRoutes(router) {
   router.route('/playlists')
   .get((req, res) => {
     const { page, limit } = req.query;
-    controller.getPlaylists(parseInt(page, 10), parseInt(limit, 10), req.user.id, req.uwave.mongo)
+    controller.getPlaylists(req.uwave, parseInt(page, 10), parseInt(limit, 10), req.user.id)
     .then(playlists => res.status(200).json(playlists))
     .catch(e => handleError(res, e, log));
   })
 
   .post((req, res) => {
-    if (!checkFields(req.body, res, [
-      'name',
-      'description',
-      'shared'
-    ], [
-      'string',
-      'string',
-      'boolean'
-    ])) return;
+    if (!checkFields(res, req.body, { name: 'string', description: 'string', shared: 'boolean' })) {
+      return null;
+    }
 
     const data = {
       name: req.body.name,
@@ -33,20 +27,20 @@ export default function playlistRoutes(router) {
       author: req.user.id
     };
 
-    controller.createPlaylist(data, [], req.uwave.mongo)
+    controller.createPlaylist(req.uwave, data, [])
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
 
   router.route('/playlists/:id')
   .get((req, res) => {
-    controller.getPlaylist(req.user.id, req.params.id, req.uwave.mongo)
+    controller.getPlaylist(req.uwave, req.user.id, req.params.id)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   })
 
   .delete((req, res) => {
-    controller.deletePlaylist(req.user.id, req.params.id, req.uwave)
+    controller.deletePlaylist(req.uwave, req.user.id, req.params.id)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
@@ -59,7 +53,7 @@ export default function playlistRoutes(router) {
       return res.status(422).json('name has to be of type string');
     }
 
-    controller.renamePlaylist(req.user.id, req.params.id, req.body.name, req.uwave.mongo)
+    controller.renamePlaylist(req.uwave, req.user.id, req.params.id, req.body.name)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
@@ -72,28 +66,28 @@ export default function playlistRoutes(router) {
       return res.status(422).json('share has to be of type boolean');
     }
 
-    controller.sharePlaylist(req.user.id, req.params.id, req.body.share, req.uwave.mongo)
+    controller.sharePlaylist(req.uwave, req.user.id, req.params.id, req.body.share)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
 
   router.put('/playlists/:id/move', (req, res) => {
-    if (!checkFields(req.body, res, ['items', 'after'])) {
-      return res.status(422).json('missing items or after property');
+    if (!checkFields(res, req.body, { items: 'object' })) {
+      return null;
     }
 
     const { after, items } = req.body;
     if (!Array.isArray(items)) {
-      return res.status(422).json('items has to be an array');
+      return res.status(422).json('expected "items" to be an array');
     }
 
-    controller.movePlaylistItems(req.user.id, req.params.id, after, items, req.uwave.mongo)
+    controller.movePlaylistItems(req.uwave, req.user.id, req.params.id, after, items)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
 
   router.put('/playlists/:id/activate', (req, res) => {
-    controller.activatePlaylist(req.user.id, req.params.id, req.uwave)
+    controller.activatePlaylist(req.uwave, req.user.id, req.params.id)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
@@ -101,22 +95,25 @@ export default function playlistRoutes(router) {
   router.route('/playlists/:id/media')
   .get((req, res) => {
     const { page, limit } = req.query;
-    controller.getPlaylistItems(parseInt(page, 10), parseInt(limit, 10),
-                                req.user.id, req.params.id, req.uwave.mongo)
+    controller.getPlaylistItems(
+      req.uwave,
+      parseInt(page, 10), parseInt(limit, 10),
+      req.user.id, req.params.id
+    )
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   })
 
   .post((req, res) => {
-    if (!checkFields(req.body, res, ['items', 'after'])) {
-      return res.status(422).json('missing items or after property');
+    if (!checkFields(res, req.body, { items: 'object' })) {
+      return null;
     }
     const { after, items } = req.body;
     if (!Array.isArray(items)) {
-      return res.status(422).json('items has to be an array');
+      return res.status(422).json('expected "items" to be an array');
     }
 
-    controller.createPlaylistItems(req.user.id, req.params.id, after, items, req.uwave)
+    controller.createPlaylistItems(req.uwave, req.user.id, req.params.id, after, items)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   })
@@ -124,32 +121,29 @@ export default function playlistRoutes(router) {
   .delete((req, res) => {
     if (!Array.isArray(req.body.items)) return res.status(422).json('items is not set');
 
-    controller.deletePlaylistItems(req.user.id, req.params.id, req.body.items, req.uwave.mongo)
+    controller.deletePlaylistItems(req.uwave, req.user.id, req.params.id, req.body.items)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
 
   router.route('/playlists/:id/media/:mediaID')
   .get((req, res) => {
-    controller.getPlaylistItem(req.user.id, req.params.id, req.params.mediaID, req.uwave.mongo)
+    controller.getPlaylistItem(req.uwave, req.user.id, req.params.id, req.params.mediaID)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   })
 
   .put((req, res) => {
-    if (!checkFields(req.body, res, [
-      'artist',
-      'title',
-      'start',
-      'end'
-    ], [
-      'string',
-      'string',
-      'number',
-      'number'
-    ])) return;
+    if (!checkFields(res, req.body, {
+      artist: 'string',
+      title: 'string',
+      start: 'number',
+      end: 'number'
+    })) {
+      return null;
+    }
 
-    const { body, params, user, uwave } = req;
+    const { body, params, user } = req;
 
     const metadata = {
       artist: body.artist,
@@ -158,22 +152,22 @@ export default function playlistRoutes(router) {
       end: body.end
     };
 
-    controller.updatePlaylistItem(user.id, params.id, params.mediaID, metadata, uwave.mongo)
+    controller.updatePlaylistItem(req.uwave, user.id, params.id, params.mediaID, metadata)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   })
 
   .delete((req, res) => {
-    const { params, user, uwave } = req;
-    controller.deletePlaylistItems(user.id, params.id, [params.mediaID], uwave.mongo)
+    const { params, user } = req;
+    controller.deletePlaylistItems(req.uwave, user.id, params.id, [params.mediaID])
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
 
   router.post('/playlists/:id/media/:mediaID/copy', (req, res) => {
-    if (!checkFields(req.body, res, ['toPlaylistID'], 'string')) return;
+    if (!checkFields(res, req.body, { toPlaylistID: 'string' })) return;
 
-    controller.copyPlaylistItem(req.user.id, req.params.id, req.params.mediaID, req.uwave.mongo)
+    controller.copyPlaylistItem(req.uwave, req.user.id, req.params.id, req.params.mediaID)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });

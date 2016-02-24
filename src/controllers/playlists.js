@@ -1,4 +1,5 @@
 import find from 'array-find';
+import findIndex from 'array-findindex';
 import mongoose from 'mongoose';
 import Promise from 'bluebird';
 
@@ -8,7 +9,9 @@ import { fetchMedia } from './search';
 
 const ObjectId = mongoose.Types.ObjectId;
 
-function addMedia(sourceType, sourceID, keys, Media) {
+function addMedia(uw, sourceType, sourceID, keys) {
+  const Media = uw.mongo.model('Media');
+
   return fetchMedia(sourceType, sourceID, keys)
     .then(media => new Media(media).save());
 }
@@ -24,8 +27,8 @@ const toPlaylistResponse = model => ({
   size: model.media.length
 });
 
-export function getPlaylists(page, limit, id, mongo) {
-  const Playlist = mongo.model('Playlist');
+export function getPlaylists(uw, page, limit, id) {
+  const Playlist = uw.mongo.model('Playlist');
 
   const _page = isNaN(page) ? 0 : page;
   const _limit = isNaN(limit) ? 50 : Math.min(limit, 50);
@@ -33,20 +36,12 @@ export function getPlaylists(page, limit, id, mongo) {
   return Playlist.find({ author: id })
   .setOptions({ limit: _limit, skip: _limit * _page })
   .exec()
-  .then(playlists => {
-    const _playlists = [];
-
-    for (let i = playlists.length - 1; i >= 0; i--) {
-      _playlists.push(toPlaylistResponse(playlists[i]));
-    }
-
-    return _playlists;
-  });
+  .then(playlists => playlists.map(toPlaylistResponse));
 }
 
-export function createPlaylist(data, mediaArray, mongo) {
-  const PlaylistItem = mongo.model('PlaylistItem');
-  const Playlist = mongo.model('Playlist');
+export function createPlaylist(uw, data, mediaArray) {
+  const PlaylistItem = uw.mongo.model('PlaylistItem');
+  const Playlist = uw.mongo.model('Playlist');
 
   const playlist = new Playlist(data);
 
@@ -54,14 +49,13 @@ export function createPlaylist(data, mediaArray, mongo) {
   .then(() => {
     if (!mediaArray.length) return playlist.save();
 
-    for (let i = 0, l = mediaArray.length; i < l; i++) {
-      new PlaylistItem(mediaArray[i]).save();
-    }
+    // TODO save Playlist, too.
+    return PlaylistItem.create(mediaArray);
   });
 }
 
-export function getPlaylist(id, playlistID, mongo) {
-  const Playlist = mongo.model('Playlist');
+export function getPlaylist(uw, id, playlistID) {
+  const Playlist = uw.mongo.model('Playlist');
 
   return Playlist.findOne({ _id: playlistID, author: id })
   .then(playlist => {
@@ -71,11 +65,11 @@ export function getPlaylist(id, playlistID, mongo) {
   });
 }
 
-export function deletePlaylist(id, playlistID, uwave) {
-  const Playlist = uwave.mongo.model('Playlist');
+export function deletePlaylist(uw, id, playlistID) {
+  const Playlist = uw.mongo.model('Playlist');
   let _active = null;
 
-  return uwave.redis.get(`playlist:${id}`)
+  return uw.redis.get(`playlist:${id}`)
   .then(active => {
     _active = active;
     return Playlist.findOne(new ObjectId(playlistID));
@@ -93,8 +87,8 @@ export function deletePlaylist(id, playlistID, uwave) {
   });
 }
 
-export function renamePlaylist(id, playlistID, name, mongo) {
-  const Playlist = mongo.model('Playlist');
+export function renamePlaylist(uw, id, playlistID, name) {
+  const Playlist = uw.mongo.model('Playlist');
 
   return Playlist.findOne(new ObjectId(playlistID))
   .then(playlist => {
@@ -108,8 +102,8 @@ export function renamePlaylist(id, playlistID, name, mongo) {
   });
 }
 
-export function sharePlaylist(id, playlistID, shared, mongo) {
-  const Playlist = mongo.model('Playlist');
+export function sharePlaylist(uw, id, playlistID, shared) {
+  const Playlist = uw.mongo.model('Playlist');
 
   return Playlist.findOne(new ObjectId(playlistID)).then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
@@ -122,9 +116,9 @@ export function sharePlaylist(id, playlistID, shared, mongo) {
   });
 }
 
-export function getPlaylistItems(page, limit, id, playlistID, mongo) {
-  const Playlist = mongo.model('Playlist');
-  const PlaylistItem = mongo.model('PlaylistItem');
+export function getPlaylistItems(uw, page, limit, id, playlistID) {
+  const Playlist = uw.mongo.model('Playlist');
+  const PlaylistItem = uw.mongo.model('PlaylistItem');
   const _page = isNaN(page) ? 0 : page;
   const _limit = isNaN(limit) ? 100 : Math.min(limit, 100);
 
@@ -150,45 +144,31 @@ export function getPlaylistItems(page, limit, id, playlistID, mongo) {
   .then(media => paginate(_page, _limit, media));
 }
 
-export function movePlaylistItems(id, playlistID, after, items, mongo) {
-  const Playlist = mongo.model('Playlist');
-  let pos = -1;
+export function movePlaylistItems(uw, id, playlistID, afterID, movingItems) {
+  const Playlist = uw.mongo.model('Playlist');
 
   return Playlist.findOne(new ObjectId(playlistID))
   .then(playlist => {
-    if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+    if (!playlist) {
+      throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+    }
     if (id !== playlist.author.toString()) {
       throw new GenericError(403, 'you can\'t edit the playlist of another user');
     }
 
-    const _items = [];
+    const newMedia = playlist.media.filter(item =>
+      movingItems.indexOf(`${item}`) === -1
+    );
+    const insertIndex = findIndex(newMedia, item => `${item}` === afterID);
+    newMedia.splice(insertIndex + 1, 0, ...movingItems);
+    playlist.media = newMedia;
 
-    for (let i = playlist.media.length - 1; i >= 0; i--) {
-      const _id = playlist.media[i].toString();
-
-      for (let j = items.length - 1; j >= 0; j--) {
-        if (_id === items[j]) {
-          _items.push(playlist.media.splice(i, 1)[0]);
-          items.splice(j, 1);
-          break;
-        }
-      }
-    }
-
-    for (let i = playlist.media.length - 1; i >= 0; i--) {
-      if (playlist.media[i].toString() === after) {
-        pos = i;
-        break;
-      }
-    }
-
-    playlist.media.splice(pos + 1, 0, ..._items);
     return playlist.save();
   });
 }
 
-export function activatePlaylist(id, playlistID, uwave) {
-  const Playlist = uwave.mongo.model('Playlist');
+export function activatePlaylist(uw, id, playlistID) {
+  const Playlist = uw.mongo.model('Playlist');
   return Playlist.findOne(new ObjectId(playlistID)).populate('author')
   .then(playlist => {
     if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
@@ -196,8 +176,8 @@ export function activatePlaylist(id, playlistID, uwave) {
       throw new GenericError(403, `${playlist.author.username} has made ${playlist.name} private`);
     }
 
-    uwave.redis.set(`playlist:${id}`, playlist.id);
-    return uwave.redis.get(`playlist:${id}`);
+    uw.redis.set(`playlist:${id}`, playlist.id);
+    return uw.redis.get(`playlist:${id}`);
   });
 }
 
@@ -207,10 +187,10 @@ function isValidPlaylistItem(item) {
     (typeof item.sourceID === 'string' || typeof item.sourceID === 'number');
 }
 
-export function createPlaylistItems(id, playlistID, after, items, uwave) {
-  const PlaylistItem = uwave.mongo.model('PlaylistItem');
-  const Playlist = uwave.mongo.model('Playlist');
-  const Media = uwave.mongo.model('Media');
+export function createPlaylistItems(uw, id, playlistID, after, items) {
+  const PlaylistItem = uw.mongo.model('PlaylistItem');
+  const Playlist = uw.mongo.model('Playlist');
+  const Media = uw.mongo.model('Media');
 
   const createItem = props => {
     const { sourceType, sourceID, artist, title } = props;
@@ -218,7 +198,7 @@ export function createPlaylistItems(id, playlistID, after, items, uwave) {
 
     return Media.findOne({ sourceType, sourceID })
       .then(media =>
-        media || addMedia(sourceType, sourceID, uwave.keys, Media)
+        media || addMedia(uw, sourceType, sourceID, uw.keys)
       )
       .then(media => {
         // Fix up custom start/end times
@@ -260,18 +240,9 @@ export function createPlaylistItems(id, playlistID, after, items, uwave) {
 
     const addingItems = items.filter(isValidPlaylistItem).map(createItem);
 
-    return Promise.all(addingItems)
-    .then(playlistItems => {
-      let pos = -1;
-
-      for (let i = playlist.media.length - 1; i >= 0; i--) {
-        if (playlist.media[i].toString() === after) {
-          pos = i;
-          break;
-        }
-      }
-
-      playlist.media.splice(pos + 1, 0, ...playlistItems);
+    return Promise.all(addingItems).then(playlistItems => {
+      const insertIndex = findIndex(playlist.media, item => `${item}` === after);
+      playlist.media.splice(insertIndex + 1, 0, ...playlistItems);
 
       return playlist.save().then(() => ({
         added: playlistItems,
@@ -281,8 +252,8 @@ export function createPlaylistItems(id, playlistID, after, items, uwave) {
   });
 }
 
-export function getPlaylistItem(id, playlistID, mediaID, mongo) {
-  const Playlist = mongo.model('Playlist');
+export function getPlaylistItem(uw, id, playlistID, mediaID) {
+  const Playlist = uw.mongo.model('Playlist');
 
   return Playlist.findOne(new ObjectId(playlistID)).populate('media')
   .then(playlist => {
@@ -291,18 +262,19 @@ export function getPlaylistItem(id, playlistID, mediaID, mongo) {
       throw new GenericError(403, 'this playlist is private');
     }
 
-    for (let i = playlist.media.length - 1; i >= 0; i--) {
-      if (playlist.media[i].id === mediaID) {
-        return playlist.media[i];
-      }
+    return find(playlist.media, item => item.id === mediaID);
+  })
+  .then(item => {
+    if (!item) {
+      throw new GenericError(404, 'media not found');
     }
-    throw new GenericError(404, 'media not found');
+    return item;
   });
 }
 
-export function updatePlaylistItem(id, playlistID, mediaID, metadata, mongo) {
-  const PlaylistItem = mongo.model('PlaylistItem');
-  const Playlist = mongo.model('Playlist');
+export function updatePlaylistItem(uw, id, playlistID, mediaID, metadata) {
+  const PlaylistItem = uw.mongo.model('PlaylistItem');
+  const Playlist = uw.mongo.model('Playlist');
 
   return Playlist.findOne(new ObjectId(playlistID))
   .then(playlist => {
@@ -318,9 +290,9 @@ export function updatePlaylistItem(id, playlistID, mediaID, metadata, mongo) {
   });
 }
 
-export function deletePlaylistItems(id, playlistID, items, mongo) {
-  const PlaylistItem = mongo.model('PlaylistItem');
-  const Playlist = mongo.model('Playlist');
+export function deletePlaylistItems(uw, id, playlistID, items) {
+  const PlaylistItem = uw.mongo.model('PlaylistItem');
+  const Playlist = uw.mongo.model('Playlist');
 
   return Playlist.findOneAndUpdate(
     { _id: playlistID, author: id },
@@ -341,9 +313,9 @@ export function deletePlaylistItems(id, playlistID, items, mongo) {
   });
 }
 
-export function copyPlaylistItem(id, fromPlaylistID, mediaID, toPlaylistID, mongo) {
-  const PlaylistItem = mongo.model('PlaylistItem');
-  const Playlist = mongo.model('Playlist');
+export function copyPlaylistItem(uw, id, fromPlaylistID, mediaID, toPlaylistID) {
+  const PlaylistItem = uw.mongo.model('PlaylistItem');
+  const Playlist = uw.mongo.model('Playlist');
 
   let _playlistItem = null;
 
@@ -356,11 +328,10 @@ export function copyPlaylistItem(id, fromPlaylistID, mediaID, toPlaylistID, mong
       throw new GenericError(403, 'originating playlist is private');
     }
 
-    for (let i = playlist.media.length - 1; i >= 0; i--) {
-      if (playlist.media[i].id === mediaID) {
-        return PlaylistItem.findOne(new ObjectId(mediaID), '-id');
-      }
+    if (playlist.media.some(item => item.id === mediaID)) {
+      return PlaylistItem.findOne(new ObjectId(mediaID), '-id');
     }
+    throw new GenericError(404, 'Playlist item not found');
   })
   .then(playlistItem => new PlaylistItem(playlistItem))
   .then(playlistItem => {

@@ -1,3 +1,4 @@
+import clamp from 'clamp';
 import mongoose from 'mongoose';
 import Promise from 'bluebird';
 
@@ -7,22 +8,22 @@ import { GenericError, PaginateError } from '../errors';
 
 const ObjectId = mongoose.Types.ObjectId;
 
-export function getUsers(page, limit, mongo) {
-  const User = mongo.model('User');
+export function getUsers(uw, page, limit) {
+  const User = uw.mongo.model('User');
   const _page = isNaN(page) ? 0 : page;
   const _limit = isNaN(limit) ? 50 : Math.min(limit, 50);
 
   return User.find().setOptions({ limit: _limit, page: _limit * _page });
 }
 
-export function getUser(id, mongo) {
-  const User = mongo.model('User');
+export function getUser(uw, id) {
+  const User = uw.mongo.model('User');
 
   return User.findOne(new ObjectId(id));
 }
 
-export function banUser(moderatorID, id, time, exiled, uwave) {
-  const User = uwave.mongo.model('User');
+export function banUser(uw, moderatorID, id, time, exiled) {
+  const User = uw.mongo.model('User');
 
   return User.findOne(new ObjectId(id))
   .then(user => {
@@ -43,7 +44,7 @@ export function banUser(moderatorID, id, time, exiled, uwave) {
       }
 
       if (time !== 0) {
-        uwave.redis.publish('v1', createCommand(time > 0 ? 'ban' : 'unban', {
+        uw.redis.publish('v1', createCommand(time > 0 ? 'ban' : 'unban', {
           moderatorID,
           userID: user.id,
           banned: user.banned,
@@ -55,17 +56,17 @@ export function banUser(moderatorID, id, time, exiled, uwave) {
   });
 }
 
-export function muteUser(moderatorID, id, time, uwave) {
-  const User = uwave.mongo.model('User');
+export function muteUser(uw, moderatorID, id, time) {
+  const User = uw.mongo.model('User');
 
   return User.findOne(new ObjectId(id))
   .then(user => {
     if (!user) throw new GenericError(404, `user with ID ${id} not found`);
 
-    uwave.redis.set(`mute:${id}`, 'expire', Date.now() + time);
+    uw.redis.set(`mute:${id}`, 'expire', Date.now() + time);
 
     return new Promise(resolve => {
-      uwave.redis.publish('v1', createCommand(time > 0 ? 'mute' : 'unmute', {
+      uw.redis.publish('v1', createCommand(time > 0 ? 'mute' : 'unmute', {
         moderatorID,
         userID: id,
         expires: time
@@ -75,16 +76,16 @@ export function muteUser(moderatorID, id, time, uwave) {
   });
 }
 
-export function changeRole(moderatorID, id, role, uwave) {
-  const User = uwave.mongo.model('User');
+export function changeRole(uw, moderatorID, id, role) {
+  const User = uw.mongo.model('User');
 
   return User.findOne(new ObjectId(id))
   .then(user => {
     if (!user) throw new GenericError(404, `user with ID ${id} not found`);
 
-    user.role = Math.max(Math.min(role, 6), 0);
+    user.role = clamp(role, 0, 6);
 
-    uwave.redis.publish('v1', createCommand('roleChange', {
+    uw.redis.publish('v1', createCommand('roleChange', {
       moderatorID,
       userID: user.id,
       role: user.role
@@ -93,8 +94,8 @@ export function changeRole(moderatorID, id, role, uwave) {
   });
 }
 
-export function changeUsername(moderatorID, id, name, uwave) {
-  const User = uwave.mongo.model('User');
+export function changeUsername(uw, moderatorID, id, name) {
+  const User = uw.mongo.model('User');
 
   return User.findOne(new ObjectId(id))
   .then(user => {
@@ -109,7 +110,7 @@ export function changeUsername(moderatorID, id, name, uwave) {
     return user.save();
   })
   .tap(user => {
-    uwave.redis.publish('v1', createCommand('nameChange', {
+    uw.redis.publish('v1', createCommand('nameChange', {
       moderatorID,
       userID: id,
       username: user.username
@@ -117,18 +118,18 @@ export function changeUsername(moderatorID, id, name, uwave) {
   });
 }
 
-export function setStatus(id, status, redis) {
-  redis.publish('v1', createCommand('statusChange', {
+export function setStatus(uw, id, status) {
+  uw.redis.publish('v1', createCommand('statusChange', {
     userID: id,
-    status: Math.max(Math.min(status, 3), 0)
+    status: clamp(status, 0, 3)
   }));
 }
 
-export function getHistory(id, page, limit, mongo) {
-  const History = mongo.model('History');
+export function getHistory(uw, id, page, limit) {
+  const History = uw.mongo.model('History');
 
-  const _page = (!isNaN(page) ? page : 0);
-  const _limit = (!isNaN(limit) ? limit : 25);
+  const _page = !isNaN(page) ? page : 0;
+  const _limit = !isNaN(limit) ? limit : 25;
 
   return History.find({ user: id })
     .skip(_page * _limit)
