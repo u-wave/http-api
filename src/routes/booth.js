@@ -14,6 +14,10 @@ export default function boothRoutes(router) {
   });
 
   router.post('/booth/skip', (req, res) => {
+    if (req.user == null) {
+      return res.status(403).json('you need to be logged in');
+    }
+
     if (req.user.role < 3) {
       return res.status(412).json('you need to be at least bouncer to do this');
     }
@@ -28,6 +32,10 @@ export default function boothRoutes(router) {
   });
 
   router.post('/booth/replace', (req, res) => {
+    if (req.user == null) {
+      return res.status(403).json('you need to be logged in');
+    }
+
     if (req.user.role < 3) {
       return res.status(412).json('you need to be at least bouncer to do this');
     }
@@ -44,6 +52,10 @@ export default function boothRoutes(router) {
   });
 
   router.post('/booth/favorite', (req, res) => {
+    if (req.user == null) {
+      return res.status(403).json('you need to be logged in');
+    }
+
     if (!checkFields(req.body, res, ['playlistID', 'historyID'], 'string')) {
       return res.status(422).json(
         'expected playlistID to be a string and historyID to be a string'
