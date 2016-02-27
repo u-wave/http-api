@@ -38,14 +38,14 @@ export function generateHashPair(password, length) {
 }
 
 export function getCurrentUser(uw, id) {
-  const User = uw.mongo.model('User');
+  const User = uw.model('User');
 
   return User.findOne(new ObjectId(id));
 }
 
 export function createUser(uw, email, username, password) {
-  const User = uw.mongo.model('User');
-  const Authentication = uw.mongo.model('Authentication');
+  const User = uw.model('User');
+  const Authentication = uw.model('Authentication');
   let _auth = null;
 
   log(`creating new user ${username}`);
@@ -73,7 +73,7 @@ export function createUser(uw, email, username, password) {
 }
 
 export function login(uw, email, password, secret) {
-  const Authentication = uw.mongo.model('Authentication');
+  const Authentication = uw.model('Authentication');
   let _auth = null;
 
   return Authentication.findOne({ email }).populate('user').exec()
@@ -102,7 +102,7 @@ export function login(uw, email, password, secret) {
 }
 
 export function reset(uw, email) {
-  const Authentication = uw.mongo.model('Authentication');
+  const Authentication = uw.model('Authentication');
 
   return Authentication.findOne({ email })
   .then(auth => {
@@ -118,7 +118,7 @@ export function reset(uw, email) {
 }
 
 export function changePassword(uw, email, password, resetToken) {
-  const Authentication = uw.mongo.model('Authentication');
+  const Authentication = uw.model('Authentication');
 
   return uw.redis.get(`reset:${email}`)
   .then(token => {
@@ -140,7 +140,7 @@ export function changePassword(uw, email, password, resetToken) {
 }
 
 export function removeSession(uw, id) {
-  const Authentication = uw.mongo.model('Authentication');
+  const Authentication = uw.model('Authentication');
   return Authentication.findOne(new ObjectId(id)).then(auth => {
     if (!auth) throw new GenericError(404, 'user not found');
 

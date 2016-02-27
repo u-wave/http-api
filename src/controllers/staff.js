@@ -2,14 +2,14 @@ import { GenericError } from '../errors';
 import { fetchMedia } from './search';
 
 export function getAllMedia(uw, page, limit) {
-  const Media = uw.mongo.model('Media');
+  const Media = uw.model('Media');
   const _page = isNaN(page) ? 0 : page;
   const _limit = isNaN(limit) ? 200 : Math.min(limit, 200);
   return Media.find({}).setOptions({ limit: _limit, skip: _limit * _page });
 }
 
 export function getMedia(uw, sourceType, sourceID) {
-  const Media = uw.mongo.model('Media');
+  const Media = uw.model('Media');
 
   return Media.find({ sourceType, sourceID })
   .then(media => {
@@ -20,14 +20,14 @@ export function getMedia(uw, sourceType, sourceID) {
 }
 
 export function addMedia(uw, sourceType, sourceID) {
-  const Media = uw.mongo.model('Media');
+  const Media = uw.model('Media');
 
   return fetchMedia(sourceType, sourceID, uw.keys)
     .then(media => new Media(media).save());
 }
 
 export function editMedia(uw, props) {
-  const Media = uw.mongo.model('Media');
+  const Media = uw.model('Media');
   if (props.auto) {
     return fetchMedia(props.sourceType, props.sourceID, uw.keys)
     .then(updatedMedia => {
@@ -57,7 +57,7 @@ export function editMedia(uw, props) {
 }
 
 export function removeMedia(uw, sourceType, sourceID) {
-  const Media = uw.mongo.model('Media');
+  const Media = uw.model('Media');
   return Media.findOneAndRemove({ sourceType, sourceID })
   .then(media => {
     if (!media) throw new GenericError(404, 'no media found');

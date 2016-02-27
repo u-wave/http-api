@@ -6,7 +6,7 @@ import { getPlaylists } from './playlists';
 const ObjectId = mongoose.Types.ObjectId;
 
 export async function getState(uw, id) {
-  const User = uw.mongo.model('User');
+  const User = uw.model('User');
 
   const playlists = getPlaylists(uw, 0, 50, id);
   const booth = getBooth(uw);

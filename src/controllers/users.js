@@ -9,7 +9,7 @@ import { GenericError, PaginateError } from '../errors';
 const ObjectId = mongoose.Types.ObjectId;
 
 export function getUsers(uw, page, limit) {
-  const User = uw.mongo.model('User');
+  const User = uw.model('User');
   const _page = isNaN(page) ? 0 : page;
   const _limit = isNaN(limit) ? 50 : Math.min(limit, 50);
 
@@ -17,13 +17,13 @@ export function getUsers(uw, page, limit) {
 }
 
 export function getUser(uw, id) {
-  const User = uw.mongo.model('User');
+  const User = uw.model('User');
 
   return User.findOne(new ObjectId(id));
 }
 
 export function banUser(uw, moderatorID, id, time, exiled) {
-  const User = uw.mongo.model('User');
+  const User = uw.model('User');
 
   return User.findOne(new ObjectId(id))
   .then(user => {
@@ -57,7 +57,7 @@ export function banUser(uw, moderatorID, id, time, exiled) {
 }
 
 export function muteUser(uw, moderatorID, id, time) {
-  const User = uw.mongo.model('User');
+  const User = uw.model('User');
 
   return User.findOne(new ObjectId(id))
   .then(user => {
@@ -77,7 +77,7 @@ export function muteUser(uw, moderatorID, id, time) {
 }
 
 export function changeRole(uw, moderatorID, id, role) {
-  const User = uw.mongo.model('User');
+  const User = uw.model('User');
 
   return User.findOne(new ObjectId(id))
   .then(user => {
@@ -95,7 +95,7 @@ export function changeRole(uw, moderatorID, id, role) {
 }
 
 export function changeUsername(uw, moderatorID, id, name) {
-  const User = uw.mongo.model('User');
+  const User = uw.model('User');
 
   return User.findOne(new ObjectId(id))
   .then(user => {
@@ -126,7 +126,7 @@ export function setStatus(uw, id, status) {
 }
 
 export function getHistory(uw, id, page, limit) {
-  const History = uw.mongo.model('History');
+  const History = uw.model('History');
 
   const _page = !isNaN(page) ? page : 0;
   const _limit = !isNaN(limit) ? limit : 25;

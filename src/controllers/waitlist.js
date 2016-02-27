@@ -23,7 +23,7 @@ async function _getWaitlist(uw, forceJoin) {
 }
 
 export async function appendToWaitlist(uw, userID, forceJoin) {
-  const User = uw.mongo.model('User');
+  const User = uw.model('User');
 
   const user = await User.findOne(new ObjectId(userID));
 
@@ -49,7 +49,7 @@ export async function appendToWaitlist(uw, userID, forceJoin) {
 }
 
 export async function insertWaitlist(uw, moderatorID, id, position, forceJoin) {
-  const User = uw.mongo.model('User');
+  const User = uw.model('User');
 
   const user = await User.find(new ObjectId(id));
 
@@ -84,7 +84,7 @@ export async function insertWaitlist(uw, moderatorID, id, position, forceJoin) {
 }
 
 export async function moveWaitlist(uw, moderatorID, userID, position) {
-  const User = uw.mongo.model('User');
+  const User = uw.model('User');
 
   let waitlist = await getWaitlist(uw);
 
@@ -118,7 +118,7 @@ export async function moveWaitlist(uw, moderatorID, userID, position) {
 }
 
 export async function leaveWaitlist(uw, moderatorID, id) {
-  const User = uw.mongo.model('User');
+  const User = uw.model('User');
   let waitlist = await getWaitlist(uw);
 
   if (waitlist.length === 0) {
