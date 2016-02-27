@@ -6,6 +6,7 @@ import WebSocket from 'ws';
 import debug from 'debug';
 
 import advance from './advance';
+import { getWaitlist } from './controllers/waitlist';
 
 // websocket error codes
 const CLOSE_NORMAL = 1000;
@@ -21,14 +22,15 @@ export function createCommand(command, data) {
 }
 
 export default class WSServer {
-  constructor(v1, uwave, config) {
+  constructor(v1, uw, config) {
     this.v1 = v1;
-    this.mongo = uwave.getMongo();
-    this.redis = uwave.getRedis();
+    this.uw = uw;
+    this.mongo = uw.mongo;
+    this.redis = uw.redis;
     this.sub = new Redis(config.redis.port, config.redis.host, config.redis.options);
 
     this.wss = new WebSocket.Server({
-      server: uwave.getServer(),
+      server: uw.server,
       clientTracking: false
     });
 
@@ -39,7 +41,10 @@ export default class WSServer {
     this.advanceTimer = null;
 
     this.sub.on('ready', () => this.sub.subscribe('v1', 'v1p'));
-    this.sub.on('message', this._handleMessage.bind(this));
+    this.sub.on('message', (channel, command) => {
+      this._handleMessage(channel, command)
+        .catch(e => { throw e; });
+    });
 
     this.wss.on('connection', this._onConnection.bind(this));
   }
@@ -56,33 +61,37 @@ export default class WSServer {
     return payload;
   }
 
-  _removeUser(id) {
+  async _removeUser(id) {
     const History = this.mongo.model('History');
-    const removeFromWaitlist = () => {
-      return this.redis.lrange('waitlist', 0, -1).then(waitlist => {
-        const i = waitlist.indexOf(id);
-        if (i !== -1) {
-          waitlist.splice(i, 1);
-          this.redis.lrem('waitlist', 0, id);
-          this.broadcast(createCommand('waitlistLeave', {
-            userID: id,
-            waitlist
-          }));
-        }
-      });
+    // Currently `this` doesn't work well in async arrow functions:
+    // https://phabricator.babeljs.io/T2765
+    // So we'll use `sThis` as a workaround for now.
+    const sThis = this;
+
+    const skipIfCurrentDJ = async () => {
+      const historyID = await sThis.redis.get('booth:historyID');
+      const entry = await History.findOne({ _id: historyID });
+      if (entry && `${entry.user}` === id) {
+        sThis.redis.publish('v1p', createCommand('advance', null));
+      }
     };
-    const skipIfCurrentDJ = () => {
-      return this.redis.get('booth:historyID')
-        .then(historyID => History.findOne({ _id: historyID }))
-        .then(entry => {
-          if (entry && entry.user + '' === id) {
-            this.redis.publish('v1p', createCommand('advance', null));
-          }
-        });
+
+    const removeFromWaitlist = async () => {
+      const waitlist = await getWaitlist(sThis.uw);
+      const i = waitlist.indexOf(id);
+      if (i !== -1) {
+        waitlist.splice(i, 1);
+        sThis.redis.lrem('waitlist', 0, id);
+        sThis.broadcast(createCommand('waitlistLeave', {
+          userID: id,
+          waitlist
+        }));
+      }
     };
-    this.redis.lrem('users', 0, id);
-    skipIfCurrentDJ()
-      .then(removeFromWaitlist);
+
+    await skipIfCurrentDJ();
+    await removeFromWaitlist();
+    await this.redis.lrem('users', 0, id);
   }
 
   _close(id, code) {
@@ -101,7 +110,18 @@ export default class WSServer {
 
   _onConnection(conn) {
     log('new connection');
-    conn.on('message', msg => this._authenticate(conn, msg));
+    conn.on('message', msg => {
+      log('message', msg);
+      this._authenticate(conn, msg)
+        .catch(jwt.JsonWebTokenError, e => {
+          log(e);
+          conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'token was not valid.'));
+        })
+        .catch(e => {
+          log(e);
+          conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'internal server error'));
+        });
+    });
     conn.on('close', code => {
       this._close(conn.id, code);
     });
@@ -126,74 +146,81 @@ export default class WSServer {
     });
   }
 
-  _authenticate(conn, token) {
+  async _authenticate(conn, token) {
     const User = this.mongo.model('User');
+    // Currently `this` doesn't work well in async arrow functions:
+    // https://phabricator.babeljs.io/T2765
+    // So we'll use `sThis` as a workaround for now.
+    const sThis = this;
 
-    return verify(token, this.v1.getCert())
-    .then(user => {
-      conn.removeAllListeners();
-      conn.on('message', msg => this._handleIncomingCommands(conn, msg));
-      conn.on('error', e => log(e));
-      conn.on('close', code => {
-        const client = this.clients[conn.id];
+    log('authenticate', token);
 
-        this._close(conn.id, code);
-        this._removeUser(client._id);
-        this.broadcast(createCommand('leave', client._id));
-      });
+    const user = await verify(token, this.v1.getCert());
 
-      conn.on('ping', () => {
-        conn.pong();
-        if (this.clients[conn.id]) {
-          this.clients[conn.id].heartbeat = Date.now();
-        } else {
-          conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'unknown user'));
-        }
-      });
+    conn.removeAllListeners();
+    conn.on('message', msg => this._handleIncomingCommands(conn, msg));
+    conn.on('error', e => log(e));
+    conn.on('close', async code => {
+      const client = sThis.clients[conn.id];
 
-      this.clients[conn.id]._id = user.id;
-      User.findOne(new ObjectId(user.id), { __v: 0 })
-      .then(userModel => {
-        if (!userModel) {
-          return conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'unknown user'));
-        }
-        this.redis.lpush('users', userModel.id);
-        this.broadcast(createCommand('join', userModel));
-      })
-      .catch(e => {
-        log(e);
-        conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'internal server error'));
-      });
-    })
-    .catch(jwt.JsonWebTokenError, e => {
-      log(e);
-      conn.close(CLOSE_VIOLATED_POLICY, 'token was not valid.');
-    })
-    .catch(e => {
-      log(e);
-      conn.close(CLOSE_VIOLATED_POLICY, 'that\'s no no');
+      sThis._close(conn.id, code);
+      await sThis._removeUser(client._id);
+      sThis.broadcast(createCommand('leave', client._id));
     });
+
+    conn.on('ping', () => {
+      conn.pong();
+      if (this.clients[conn.id]) {
+        this.clients[conn.id].heartbeat = Date.now();
+      } else {
+        conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'unknown user'));
+      }
+    });
+
+    this.clients[conn.id]._id = user.id;
+    const userModel = await User.findOne(new ObjectId(user.id), { __v: 0 });
+    if (!userModel) {
+      return conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'unknown user'));
+    }
+
+    await this.redis.lpush('users', userModel.id);
+
+    this.broadcast(createCommand('join', userModel));
   }
 
-  _handleIncomingCommands(conn, msg) {
+  async _handleIncomingCommands(conn, msg) {
+    log('incoming', msg);
     const payload = WSServer.parseMessage(msg);
     const user = this.clients[conn.id];
+    // Currently `this` doesn't work well in async arrow functions:
+    // https://phabricator.babeljs.io/T2765
+    // So we'll use `sThis` as a workaround for now.
+    const sThis = this;
 
     if (!payload || typeof payload !== 'object' || typeof payload.command !== 'string') {
-      return conn.send(createCommand('error', 'command invalid'));
+      conn.send(createCommand('error', 'command invalid'));
+      return;
     }
 
-    if (!user) return conn.close(CLOSE_VIOLATED_POLICY, 'user not found');
+    if (!user) {
+      conn.close(CLOSE_VIOLATED_POLICY, 'user not found');
+      return;
+    }
 
-    function sendVote(vote) {
-      vote.redis.lrem('booth:upvotes', 0, user._id);
-      vote.redis.lrem('booth:downvotes', 0, user._id);
-      vote.redis.lpush(payload.data > 0 ? 'booth:upvotes' : 'booth:downvotes', user._id);
-      vote.broadcast(createCommand('vote', {
+    const sendVote = async direction => {
+      await Promise.all([
+        sThis.redis.lrem('booth:upvotes', 0, user._id),
+        sThis.redis.lrem('booth:downvotes', 0, user._id)
+      ]);
+      await sThis.redis.lpush(
+        direction > 0 ? 'booth:upvotes' : 'booth:downvotes',
+        user._id
+      );
+      sThis.broadcast(createCommand('vote', {
         _id: user._id,
-        value: payload.data
+        value: direction
       }));
-    }
+    };
 
     switch (payload.command) {
     case 'sendChat':
@@ -205,27 +232,22 @@ export default class WSServer {
       break;
 
     case 'vote':
-      this.redis.get('booth:currentDJ')
-      .then(currentDJ => {
-        if (currentDJ !== null && currentDJ !== user._id) {
-          this.redis.get('booth:historyID')
-          .then(historyID => {
-            if (historyID !== null) {
-              if (payload.data > 0) {
-                this.redis.lrange('booth:upvotes', 0, -1)
-                .then(upvoted => {
-                  if (upvoted.indexOf(user._id) === -1) sendVote(this);
-                });
-              } else {
-                this.redis.lrange('booth:downvotes', 0, -1)
-                .then(downvoted => {
-                  if (downvoted.indexOf(user._id) === -1) sendVote(this);
-                });
-              }
-            }
-          });
+      const currentDJ = await this.redis.get('booth:currentDJ');
+      if (currentDJ !== null && currentDJ !== user._id) {
+        const historyID = await this.redis.get('booth:historyID');
+        if (historyID === null) return;
+        if (payload.data > 0) {
+          const upvoted = await this.redis.lrange('booth:upvotes', 0, -1);
+          if (upvoted.indexOf(user._id) === -1) {
+            await sendVote(1);
+          }
+        } else {
+          const downvoted = await this.redis.lrange('booth:downvotes', 0, -1);
+          if (downvoted.indexOf(user._id) === -1) {
+            await sendVote(-1);
+          }
         }
-      });
+      }
       break;
 
     default:
@@ -233,7 +255,7 @@ export default class WSServer {
     }
   }
 
-  _handleMessage(channel, command) {
+  async _handleMessage(channel, command) {
     const _command = JSON.parse(command);
 
     const getDuration = playlistItem => playlistItem.end - playlistItem.start;
@@ -245,56 +267,51 @@ export default class WSServer {
         clearTimeout(this.advanceTimer);
         this.advanceTimer = null;
 
-        advance(this.mongo, this.redis)
-        .then(now => {
-          this.redis.del([
-            'booth:historyID',
-            'booth:upvotes',
-            'booth:downvotes',
-            'booth:favorites',
-            'booth:currentDJ'
+        const now = await advance(this.uw);
+        await this.redis.del([
+          'booth:historyID',
+          'booth:upvotes',
+          'booth:downvotes',
+          'booth:favorites',
+          'booth:currentDJ'
+        ]);
+
+        if (now) {
+          await Promise.all([
+            this.redis.set('booth:historyID', now.historyID),
+            this.redis.set('booth:currentDJ', now.userID)
           ]);
-          if (now) {
-            this.redis.set('booth:historyID', now.historyID);
-            this.redis.set('booth:currentDJ', now.userID);
-            this.broadcast(createCommand('advance', now));
-            this.advanceTimer = setTimeout(
-              this._handleMessage.bind(this),
-              getDuration(now.media) * 1000,
-              'v1p', createCommand('cycleWaitlist', null)
-            );
-          } else {
-            this.broadcast(createCommand('advance', null));
-          }
-        })
-        .catch(e => {
-          log(e);
-          this.redis.del(['booth:historyID', 'booth:upvotes', 'booth:downvotes']);
-        });
+
+          this.broadcast(createCommand('advance', now));
+
+          this.advanceTimer = setTimeout(
+            () => {
+              this.redis.publish('v1p', createCommand('cycleWaitlist', null));
+            },
+            getDuration(now.media) * 1000
+          );
+        } else {
+          this.broadcast(createCommand('advance', null));
+        }
       } else if (_command.command === 'checkAdvance') {
-        this.redis.get('waitlist:lock')
-        .then(lock => {
-          if (this.advanceTimer === null && (!lock || (lock && _command.data > 3))) {
-            this._handleMessage('v1p', createCommand('advance', null));
-          }
-        });
+        const isLocked = await this.redis.get('waitlist:lock');
+        const userRole = _command.data;
+        const skipIsAllowed = !isLocked || userRole > 3;
+        if (this.advanceTimer === null && skipIsAllowed) {
+          this.redis.publish('v1p', createCommand('advance', null));
+        }
       } else if (_command.command === 'cycleWaitlist') {
-        this.redis.get('booth:historyID')
-        .then(historyID => {
-          const History = this.mongo.model('History');
+        const History = this.mongo.model('History');
+        const historyID = await this.redis.get('booth:historyID');
+        const entry = await History.findOne({ _id: historyID });
+        if (!entry) return;
 
-          return History.findOne(new ObjectId(historyID));
-        })
-        .then(entry => {
-          if (!entry) return;
+        await this.redis.rpush('waitlist', entry.user.toString());
 
-          this.redis.rpush('waitlist', entry.user.toString());
-          this.redis.lrange('waitlist', 0, -1)
-          .then(waitlist => {
-            this.redis.publish('v1', createCommand('waitlistUpdate', waitlist));
-            this.redis.publish('v1p', createCommand('advance', null));
-          });
-        });
+        const waitlist = await getWaitlist(this.uw);
+
+        this.redis.publish('v1', createCommand('waitlistUpdate', waitlist));
+        this.redis.publish('v1p', createCommand('advance', null));
       } else if (_command.command === 'closeSocket') {
         this._close(_command.data, CLOSE_NORMAL);
       }

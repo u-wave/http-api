@@ -5,7 +5,7 @@ import { getPlaylists } from './playlists';
 
 const ObjectId = mongoose.Types.ObjectId;
 
-export function getState(uw, id) {
+export async function getState(uw, id) {
   const User = uw.mongo.model('User');
 
   const playlists = getPlaylists(uw, 0, 50, id);
@@ -18,7 +18,7 @@ export function getState(uw, id) {
     .then(lock => lock ? true : false);
   const activePlaylist = uw.redis.get(`playlist:${id}`);
 
-  return Promise.props({
+  return await Promise.props({
     playlists,
     booth,
     user,
