@@ -96,7 +96,12 @@ export async function favorite(uw, id, playlistID, historyID) {
     playlistID
   }));
 
-  return await playlist.save();
+  await playlist.save();
+
+  return {
+    playlistSize: playlist.media.length,
+    added: [playlistItem]
+  };
 }
 
 export async function getHistory(uw, page, limit) {
