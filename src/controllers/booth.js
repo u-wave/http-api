@@ -61,9 +61,11 @@ export async function replaceBooth(uw, moderatorID, id) {
 
 export async function favorite(uw, id, playlistID, historyID) {
   const Playlist = uw.mongo.model('Playlist');
+  const PlaylistItem = uw.mongo.model('PlaylistItem');
   const History = uw.mongo.model('History');
 
-  const historyEntry = await History.findOne(new ObjectId(historyID));
+  const historyEntry = await History.findOne(new ObjectId(historyID))
+    .populate('media.media');
 
   if (!historyEntry) {
     throw new GenericError(404, `history entry with ID ${historyID} not found`);
@@ -72,15 +74,20 @@ export async function favorite(uw, id, playlistID, historyID) {
     throw new GenericError(403, 'you can\'t grab your own song');
   }
 
-  const playlistItem = `${historyEntry.item}`;
-  const playlist = Playlist.findOne(new ObjectId(playlistID));
+  const playlist = await Playlist.findOne(new ObjectId(playlistID));
 
   if (!playlist) throw new GenericError(404, `Playlist with ID ${playlistID} not found`);
-  if (playlist.author + '' !== id) {
+  if (`${playlist.author}` !== id) {
     throw new GenericError(403, 'you are not allowed to edit playlists of other users');
   }
 
-  playlist.media.push(playlistItem);
+  // `.media` has the same shape as `.item`, but is guaranteed to exist and have
+  // the same properties as when the playlist item was actually played.
+  const playlistItem = new PlaylistItem(historyEntry.media.toJSON());
+
+  await playlistItem.save();
+
+  playlist.media.push(playlistItem.id);
 
   uw.redis.lrem('booth:favorites', 0, id);
   uw.redis.lpush('booth:favorites', id);
