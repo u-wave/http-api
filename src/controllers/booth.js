@@ -36,7 +36,7 @@ export async function getBooth(uw) {
 
 export function skipBooth(uw, moderatorID, userID, reason) {
   uw.redis.publish('v1', createCommand('skip', { moderatorID, userID, reason }));
-  uw.redis.publish('v1p', createCommand('advance', null));
+  uw.redis.publish('v1p', createCommand('advance'));
   return Promise.resolve(true);
 }
 
@@ -55,7 +55,7 @@ export async function replaceBooth(uw, moderatorID, id) {
     moderatorID,
     userID: id
   }));
-  uw.redis.publish('v1p', createCommand('advance', null));
+  uw.redis.publish('v1p', createCommand('advance'));
   return waitlist;
 }
 

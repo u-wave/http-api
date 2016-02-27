@@ -72,7 +72,9 @@ export default class WSServer {
       const historyID = await sThis.redis.get('booth:historyID');
       const entry = await History.findOne({ _id: historyID });
       if (entry && `${entry.user}` === id) {
-        sThis.redis.publish('v1p', createCommand('advance', null));
+        sThis.redis.publish('v1p', createCommand('advance', {
+          remove: true
+        }));
       }
     };
 
@@ -267,28 +269,22 @@ export default class WSServer {
         clearTimeout(this.advanceTimer);
         this.advanceTimer = null;
 
-        const now = await advance(this.uw);
-        await this.redis.del([
-          'booth:historyID',
-          'booth:upvotes',
-          'booth:downvotes',
-          'booth:favorites',
-          'booth:currentDJ'
-        ]);
-
-        if (now) {
-          await Promise.all([
-            this.redis.set('booth:historyID', now.historyID),
-            this.redis.set('booth:currentDJ', now.userID)
-          ]);
-
-          this.broadcast(createCommand('advance', now));
+        const { historyEntry, waitlist } = await advance(this.uw, _command.data);
+        this.redis.publish('v1', createCommand('waitlistUpdate', waitlist));
+        if (historyEntry) {
+          this.redis.publish('v1', createCommand('advance', {
+            historyID: historyEntry.id,
+            userID: historyEntry.user.id,
+            item: historyEntry.item.id,
+            media: historyEntry.media,
+            played: new Date(historyEntry.played).getTime()
+          }));
 
           this.advanceTimer = setTimeout(
             () => {
-              this.redis.publish('v1p', createCommand('cycleWaitlist', null));
+              this.redis.publish('v1p', createCommand('advance'));
             },
-            getDuration(now.media) * 1000
+            getDuration(historyEntry.media) * 1000
           );
         } else {
           this.broadcast(createCommand('advance', null));
@@ -298,20 +294,8 @@ export default class WSServer {
         const userRole = _command.data;
         const skipIsAllowed = !isLocked || userRole > 3;
         if (this.advanceTimer === null && skipIsAllowed) {
-          this.redis.publish('v1p', createCommand('advance', null));
+          this.redis.publish('v1p', createCommand('advance'));
         }
-      } else if (_command.command === 'cycleWaitlist') {
-        const History = this.mongo.model('History');
-        const historyID = await this.redis.get('booth:historyID');
-        const entry = await History.findOne({ _id: historyID });
-        if (!entry) return;
-
-        await this.redis.rpush('waitlist', entry.user.toString());
-
-        const waitlist = await getWaitlist(this.uw);
-
-        this.redis.publish('v1', createCommand('waitlistUpdate', waitlist));
-        this.redis.publish('v1p', createCommand('advance', null));
       } else if (_command.command === 'closeSocket') {
         this._close(_command.data, CLOSE_NORMAL);
       }
