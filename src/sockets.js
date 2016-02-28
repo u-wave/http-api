@@ -25,7 +25,6 @@ export default class WSServer {
   constructor(v1, uw, config) {
     this.v1 = v1;
     this.uw = uw;
-    this.mongo = uw.mongo;
     this.redis = uw.redis;
     this.sub = new Redis(config.redis.port, config.redis.host, config.redis.options);
 
@@ -62,7 +61,7 @@ export default class WSServer {
   }
 
   async _removeUser(id) {
-    const History = this.mongo.model('History');
+    const History = this.uw.model('History');
     // Currently `this` doesn't work well in async arrow functions:
     // https://phabricator.babeljs.io/T2765
     // So we'll use `sThis` as a workaround for now.
@@ -149,7 +148,7 @@ export default class WSServer {
   }
 
   async _authenticate(conn, token) {
-    const User = this.mongo.model('User');
+    const User = this.uw.model('User');
     // Currently `this` doesn't work well in async arrow functions:
     // https://phabricator.babeljs.io/T2765
     // So we'll use `sThis` as a workaround for now.

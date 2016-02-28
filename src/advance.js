@@ -10,7 +10,7 @@ const ObjectId = mongoose.Types.ObjectId;
 const log = debug('uwave:advance');
 
 async function getPreviousEntry(uw) {
-  const History = uw.mongo.model('History');
+  const History = uw.model('History');
   const historyID = await uw.redis.get('booth:historyID');
   if (!historyID) {
     return null;
@@ -43,10 +43,10 @@ async function cyclePlaylist(uw, playlist) {
 }
 
 async function getNextEntry(uw) {
-  const PlaylistItem = uw.mongo.model('PlaylistItem');
-  const Playlist = uw.mongo.model('Playlist');
-  const HistoryEntry = uw.mongo.model('History');
-  const User = uw.mongo.model('User');
+  const PlaylistItem = uw.model('PlaylistItem');
+  const Playlist = uw.model('Playlist');
+  const HistoryEntry = uw.model('History');
+  const User = uw.model('User');
 
   let userID = await uw.redis.lindex('waitlist', 0);
   if (!userID) {

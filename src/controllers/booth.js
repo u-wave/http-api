@@ -8,7 +8,7 @@ import { GenericError } from '../errors';
 const ObjectId = mongoose.Types.ObjectId;
 
 export async function getBooth(uw) {
-  const History = uw.mongo.model('History');
+  const History = uw.model('History');
 
   const historyID = await uw.redis.get('booth:historyID');
   const historyEntry = await History.findOne(new ObjectId(historyID))
@@ -60,9 +60,9 @@ export async function replaceBooth(uw, moderatorID, id) {
 }
 
 export async function favorite(uw, id, playlistID, historyID) {
-  const Playlist = uw.mongo.model('Playlist');
-  const PlaylistItem = uw.mongo.model('PlaylistItem');
-  const History = uw.mongo.model('History');
+  const Playlist = uw.model('Playlist');
+  const PlaylistItem = uw.model('PlaylistItem');
+  const History = uw.model('History');
 
   const historyEntry = await History.findOne(new ObjectId(historyID))
     .populate('media.media');
@@ -105,7 +105,7 @@ export async function favorite(uw, id, playlistID, historyID) {
 }
 
 export async function getHistory(uw, page, limit) {
-  const History = uw.mongo.model('History');
+  const History = uw.model('History');
 
   const _page = !isNaN(page) ? page : 0;
   const _limit = !isNaN(limit) ? limit : 25;
