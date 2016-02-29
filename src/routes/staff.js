@@ -1,4 +1,5 @@
 import debug from 'debug';
+import createRouter from 'router';
 
 import * as controller from '../controllers/staff';
 import { checkFields } from '../utils';
@@ -6,16 +7,17 @@ import handleError from '../errors';
 
 const log = debug('uwave:api:v1:staff');
 
-export default function staffRoutes(router) {
-  router.get('/staff/media', (req, res) => {
+export default function staffRoutes() {
+  const router = createRouter();
+
+  router.get('/media', (req, res) => {
     const { page, limit } = req.query;
     controller.getAllMedia(req.uwave, parseInt(page, 10), parseInt(limit, 10))
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   });
 
-  router.route('/staff/media/:id')
-  .get((req, res) => {
+  router.get('/media/:id', (req, res) => {
     if (req.user.role < 4) {
       return res.status(403).json('you need to be at least manager to do this');
     }
@@ -26,9 +28,9 @@ export default function staffRoutes(router) {
     controller.getMedia(req.uwave, req.body.sourceType, req.body.sourceID)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
-  })
+  });
 
-  .post((req, res) => {
+  router.post('/media/:id', (req, res) => {
     if (req.user.role < 4) {
       return res.status(403).json('you need to be at least manager to do this');
     }
@@ -39,9 +41,9 @@ export default function staffRoutes(router) {
     controller.addMedia(req.uwave, req.body.sourceType, req.body.sourceID)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
-  })
+  });
 
-  .put((req, res) => {
+  router.put('/media/:id', (req, res) => {
     if (req.user.role < 4) {
       return res.status(403).json('you need to be at least manager to do this');
     }
@@ -71,9 +73,9 @@ export default function staffRoutes(router) {
     controller.editMedia(req.uwave, req.body)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
-  })
+  });
 
-  .delete((req, res) => {
+  router.delete('/media/:id', (req, res) => {
     if (req.user.role < 4) {
       return res.status(403).json('you need to be at least manager to do this');
     }
@@ -85,4 +87,6 @@ export default function staffRoutes(router) {
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   });
+
+  return router;
 }

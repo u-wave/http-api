@@ -42,15 +42,16 @@ export class V1 {
 
     this.router.use(authenticator(this));
 
-    authenticate(this, this.router);
-    playlist(this.router);
-    waitlist(this.router);
-    search(this.router);
-    booth(this.router);
-    users(this.router);
-    staff(this.router);
-    chat(this.router);
-    now(this.router);
+    this.router
+      .use('/auth', authenticate(this))
+      .use('/booth', booth(this))
+      .use('/chat', chat(this))
+      .use('/now', now(this))
+      .use('/playlists', playlist(this))
+      .use('/search', search(this))
+      .use('/staff', staff(this))
+      .use('/users', users(this))
+      .use('/waitlist', waitlist(this));
   }
 
   getRouter() {
