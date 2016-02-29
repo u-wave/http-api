@@ -13,14 +13,6 @@ import staff from './routes/staff';
 import chat from './routes/chat';
 import now from './routes/now';
 
-// models
-import installAuthenticationModel from './models/authentication';
-import installPlaylistItemModel from './models/playlistitem';
-import installPlaylistModel from './models/playlist';
-import installHistoryModel from './models/history';
-import installMediaModel from './models/media';
-import installUserModel from './models/user';
-
 // middleware
 import authenticator from './middleware/authenticator';
 import WSServer from './sockets';
@@ -66,16 +58,6 @@ export default class V1 {
 
   getCert() {
     return this.cert;
-  }
-
-  registerModels(uwave) {
-    const mongoose = uwave.getMongoose();
-    installAuthenticationModel(mongoose);
-    installPlaylistItemModel(mongoose);
-    installPlaylistModel(mongoose);
-    installHistoryModel(mongoose);
-    installMediaModel(mongoose);
-    installUserModel(mongoose);
   }
 
   registerWSServer(uwave) {
