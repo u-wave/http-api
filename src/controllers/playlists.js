@@ -197,7 +197,7 @@ export async function createPlaylistItems(uw, id, playlistID, after, items) {
 
     let media = await Media.findOne({ sourceType, sourceID });
     if (!media) {
-      media = await addMedia(uw, sourceType, sourceID, uw.keys);
+      media = await addMedia(uw, sourceType, sourceID, uw.config.keys);
     }
 
     // Fix up custom start/end times
