@@ -57,17 +57,13 @@ async function getNextEntry(uw) {
   const user = await User.findOne(new ObjectId(userID));
   if (!user) throw new GenericError(404, 'user not found');
 
-  const playlistID = await uw.redis.get(`playlist:${user.id}`);
-  if (!playlistID) throw new GenericError(404, 'user does not have an active playlist');
-
-  const playlist = await Playlist.findOne(new ObjectId(playlistID));
+  const playlist = await user.getActivePlaylist();
   if (!playlist) throw new GenericError(404, 'playlist not found');
 
-  const itemID = playlist.media[0];
-  if (!itemID) throw new GenericError(404, 'media not found');
-
-  const playlistItem = await PlaylistItem.findOne(itemID).populate('media');
+  const playlistItem = await playlist.getItemAt(0);
   if (!playlistItem) throw new GenericError(404, 'media not found');
+
+  await playlistItem.populate('media').execPopulate();
 
   await cyclePlaylist(uw, playlist);
 
