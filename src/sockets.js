@@ -25,7 +25,6 @@ export default class WSServer {
   constructor(v1, uw, config) {
     this.v1 = v1;
     this.uw = uw;
-    this.redis = uw.redis;
     this.sub = new Redis(config.redis.port, config.redis.host, config.redis.options);
 
     this.wss = new WebSocket.Server({
@@ -61,28 +60,29 @@ export default class WSServer {
   }
 
   async _removeUser(id) {
-    const History = this.uw.model('History');
+    const uw = this.uw;
+    const History = uw.model('History');
     // Currently `this` doesn't work well in async arrow functions:
     // https://phabricator.babeljs.io/T2765
     // So we'll use `sThis` as a workaround for now.
     const sThis = this;
 
     const skipIfCurrentDJ = async () => {
-      const historyID = await sThis.redis.get('booth:historyID');
+      const historyID = await uw.redis.get('booth:historyID');
       const entry = await History.findOne({ _id: historyID });
       if (entry && `${entry.user}` === id) {
-        sThis.redis.publish('v1p', createCommand('advance', {
+        uw.redis.publish('v1p', createCommand('advance', {
           remove: true
         }));
       }
     };
 
     const removeFromWaitlist = async () => {
-      const waitlist = await getWaitlist(sThis.uw);
+      const waitlist = await getWaitlist(uw);
       const i = waitlist.indexOf(id);
       if (i !== -1) {
         waitlist.splice(i, 1);
-        sThis.redis.lrem('waitlist', 0, id);
+        uw.redis.lrem('waitlist', 0, id);
         sThis.broadcast(createCommand('waitlistLeave', {
           userID: id,
           waitlist
@@ -92,7 +92,7 @@ export default class WSServer {
 
     await skipIfCurrentDJ();
     await removeFromWaitlist();
-    await this.redis.lrem('users', 0, id);
+    await uw.redis.lrem('users', 0, id);
   }
 
   _close(id, code) {
@@ -148,7 +148,8 @@ export default class WSServer {
   }
 
   async _authenticate(conn, token) {
-    const User = this.uw.model('User');
+    const uw = this.uw;
+    const User = uw.model('User');
     // Currently `this` doesn't work well in async arrow functions:
     // https://phabricator.babeljs.io/T2765
     // So we'll use `sThis` as a workaround for now.
@@ -184,13 +185,14 @@ export default class WSServer {
       return conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'unknown user'));
     }
 
-    await this.redis.lpush('users', userModel.id);
+    await uw.redis.lpush('users', userModel.id);
 
     this.broadcast(createCommand('join', userModel));
   }
 
   async _handleIncomingCommands(conn, msg) {
     log('incoming', msg);
+    const uw = this.uw;
     const payload = WSServer.parseMessage(msg);
     const user = this.clients[conn.id];
     // Currently `this` doesn't work well in async arrow functions:
@@ -210,10 +212,10 @@ export default class WSServer {
 
     const sendVote = async direction => {
       await Promise.all([
-        sThis.redis.lrem('booth:upvotes', 0, user._id),
-        sThis.redis.lrem('booth:downvotes', 0, user._id)
+        uw.redis.lrem('booth:upvotes', 0, user._id),
+        uw.redis.lrem('booth:downvotes', 0, user._id)
       ]);
-      await sThis.redis.lpush(
+      await uw.redis.lpush(
         direction > 0 ? 'booth:upvotes' : 'booth:downvotes',
         user._id
       );
@@ -233,17 +235,17 @@ export default class WSServer {
       break;
 
     case 'vote':
-      const currentDJ = await this.redis.get('booth:currentDJ');
+      const currentDJ = await uw.redis.get('booth:currentDJ');
       if (currentDJ !== null && currentDJ !== user._id) {
-        const historyID = await this.redis.get('booth:historyID');
+        const historyID = await uw.redis.get('booth:historyID');
         if (historyID === null) return;
         if (payload.data > 0) {
-          const upvoted = await this.redis.lrange('booth:upvotes', 0, -1);
+          const upvoted = await uw.redis.lrange('booth:upvotes', 0, -1);
           if (upvoted.indexOf(user._id) === -1) {
             await sendVote(1);
           }
         } else {
-          const downvoted = await this.redis.lrange('booth:downvotes', 0, -1);
+          const downvoted = await uw.redis.lrange('booth:downvotes', 0, -1);
           if (downvoted.indexOf(user._id) === -1) {
             await sendVote(-1);
           }
@@ -257,6 +259,7 @@ export default class WSServer {
   }
 
   async _handleMessage(channel, command) {
+    const uw = this.uw;
     const _command = JSON.parse(command);
 
     const getDuration = playlistItem => playlistItem.end - playlistItem.start;
@@ -268,10 +271,10 @@ export default class WSServer {
         clearTimeout(this.advanceTimer);
         this.advanceTimer = null;
 
-        const { historyEntry, waitlist } = await advance(this.uw, _command.data);
-        this.redis.publish('v1', createCommand('waitlistUpdate', waitlist));
+        const { historyEntry, waitlist } = await advance(uw, _command.data);
+        uw.redis.publish('v1', createCommand('waitlistUpdate', waitlist));
         if (historyEntry) {
-          this.redis.publish('v1', createCommand('advance', {
+          uw.redis.publish('v1', createCommand('advance', {
             historyID: historyEntry.id,
             userID: historyEntry.user.id,
             item: historyEntry.item.id,
@@ -281,7 +284,7 @@ export default class WSServer {
 
           this.advanceTimer = setTimeout(
             () => {
-              this.redis.publish('v1p', createCommand('advance'));
+              uw.redis.publish('v1p', createCommand('advance'));
             },
             getDuration(historyEntry.media) * 1000
           );
@@ -289,11 +292,11 @@ export default class WSServer {
           this.broadcast(createCommand('advance', null));
         }
       } else if (_command.command === 'checkAdvance') {
-        const isLocked = await this.redis.get('waitlist:lock');
+        const isLocked = await uw.redis.get('waitlist:lock');
         const userRole = _command.data;
         const skipIsAllowed = !isLocked || userRole > 3;
         if (this.advanceTimer === null && skipIsAllowed) {
-          this.redis.publish('v1p', createCommand('advance'));
+          uw.redis.publish('v1p', createCommand('advance'));
         }
       } else if (_command.command === 'closeSocket') {
         this._close(_command.data, CLOSE_NORMAL);
