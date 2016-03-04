@@ -43,8 +43,6 @@ async function cyclePlaylist(uw, playlist) {
 }
 
 async function getNextEntry(uw) {
-  const PlaylistItem = uw.model('PlaylistItem');
-  const Playlist = uw.model('Playlist');
   const HistoryEntry = uw.model('History');
   const User = uw.model('User');
 
