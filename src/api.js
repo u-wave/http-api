@@ -25,10 +25,18 @@ const log = debug('uwave:api:v1');
  * @param {Object} options - router config, for more information see {@link http://expressjs.com/4x/api.html#router}
  **/
 export default class V1 {
-  constructor(config = {}) {
+  constructor(uw, config = {}) {
+    if (!uw || !('mongo' in uw)) {
+      throw new Error(`
+        Expected a u-wave-core instance in the first parameter. If you are
+        developing, you may have to upgrade your u-wave-* modules.
+      `.replace(/\s+/g, ' ').trim());
+    }
+
+    this.uw = uw;
     this.router = createRouter(config.router);
     this.cert = '';
-    this.wsserver = null;
+    this.sockets = new WSServer(this, uw, config);
 
     this.setCert(config.cert);
 
@@ -60,17 +68,9 @@ export default class V1 {
     return this.cert;
   }
 
-  registerWSServer(uwave) {
-    if (!this.wsserver) {
-      this.wsserver = new WSServer(this, uwave, uwave.getConfig());
-    } else {
-      this.log('wsserver is already registered');
-    }
-  }
-
   destroy() {
-    this.wsserver.destroy();
-    this.wsserver = null;
+    this.sockets.destroy();
+    this.sockets = null;
     this.router = null;
   }
 }
