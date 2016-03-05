@@ -24,7 +24,7 @@ const log = debug('uwave:api:v1');
  *
  * @param {Object} options - router config, for more information see {@link http://expressjs.com/4x/api.html#router}
  **/
-export default class V1 {
+export class V1 {
   constructor(uw, config = {}) {
     if (!uw || !('mongo' in uw)) {
       throw new Error(`
@@ -73,4 +73,8 @@ export default class V1 {
     this.sockets = null;
     this.router = null;
   }
+}
+
+export default function api(uw, opts = {}) {
+  return new V1(uw, opts);
 }
