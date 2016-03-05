@@ -43,7 +43,7 @@ export async function appendToWaitlist(uw, userID, forceJoin) {
     userID: user.id,
     waitlist
   }));
-  uw.redis.publish('v1p', createCommand('checkAdvance', user.role));
+  uw.publish('advance:check', user.role);
 
   return waitlist;
 }
@@ -78,7 +78,7 @@ export async function insertWaitlist(uw, moderatorID, id, position, forceJoin) {
     waitlist
   }));
 
-  uw.redis.publish('v1p', createCommand('checkAdvance', user.role));
+  uw.publish('advance:check', user.role);
 
   return waitlist;
 }

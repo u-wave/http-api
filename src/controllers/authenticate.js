@@ -144,6 +144,6 @@ export function removeSession(uw, id) {
   return Authentication.findOne(new ObjectId(id)).then(auth => {
     if (!auth) throw new GenericError(404, 'user not found');
 
-    uw.redis.publish('v1p', createCommand('closeSocket', auth.id));
+    uw.publish('api-v1:socket:close', auth.id);
   });
 }

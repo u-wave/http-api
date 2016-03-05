@@ -25,7 +25,7 @@ export default class WSServer {
   constructor(v1, uw, config) {
     this.v1 = v1;
     this.uw = uw;
-    this.sub = new Redis(config.redis.port, config.redis.host, config.redis.options);
+    this.sub = uw.subscription();
 
     this.wss = new WebSocket.Server({
       server: uw.server,
@@ -38,7 +38,7 @@ export default class WSServer {
     this.heartbeatInt = setInterval(this._heartbeat.bind(this), 30 * 1000);
     this.advanceTimer = null;
 
-    this.sub.on('ready', () => this.sub.subscribe('v1', 'v1p'));
+    this.sub.on('ready', () => this.sub.subscribe('v1'));
     this.sub.on('message', (channel, command) => {
       this._handleMessage(channel, command)
         .catch(e => { throw e; });
@@ -71,9 +71,7 @@ export default class WSServer {
       const historyID = await uw.redis.get('booth:historyID');
       const entry = await History.findOne({ _id: historyID });
       if (entry && `${entry.user}` === id) {
-        uw.redis.publish('v1p', createCommand('advance', {
-          remove: true
-        }));
+        uw.publish('advance', { remove: true });
       }
     };
 
@@ -266,7 +264,7 @@ export default class WSServer {
 
     if (channel === 'v1') {
       this.broadcast(command);
-    } else if (channel === 'v1p') {
+    } else if (channel === 'uwave') {
       if (_command.command === 'advance') {
         clearTimeout(this.advanceTimer);
         this.advanceTimer = null;
@@ -283,22 +281,20 @@ export default class WSServer {
           }));
 
           this.advanceTimer = setTimeout(
-            () => {
-              uw.redis.publish('v1p', createCommand('advance'));
-            },
+            () => uw.publish('advance'),
             getDuration(historyEntry.media) * 1000
           );
         } else {
           this.broadcast(createCommand('advance', null));
         }
-      } else if (_command.command === 'checkAdvance') {
+      } else if (_command.command === 'advance:check') {
         const isLocked = await uw.redis.get('waitlist:lock');
         const userRole = _command.data;
         const skipIsAllowed = !isLocked || userRole > 3;
         if (this.advanceTimer === null && skipIsAllowed) {
-          uw.redis.publish('v1p', createCommand('advance'));
+          uw.publish('advance');
         }
-      } else if (_command.command === 'closeSocket') {
+      } else if (_command.command === 'api-v1:socket:close') {
         this._close(_command.data, CLOSE_NORMAL);
       }
     }
@@ -307,7 +303,7 @@ export default class WSServer {
   destroy() {
     clearInterval(this.heartbeatInt);
     this.sub.removeAllListeners();
-    this.sub.unsubscribe('v1', 'v1p');
+    this.sub.unsubscribe('v1', 'uwave');
     this.sub.close();
     this.wss.shutdown();
   }
