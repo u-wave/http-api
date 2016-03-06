@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import debug from 'debug';
 
-import { createCommand } from '../sockets';
 import { PasswordError, TokenError, GenericError } from '../errors';
 
 const PASS_LENGTH = 256;

@@ -1,7 +1,6 @@
 import Mongoose from 'mongoose';
 import bluebird from 'bluebird';
 import jwt from 'jsonwebtoken';
-import Redis from 'ioredis';
 import WebSocket from 'ws';
 import debug from 'debug';
 
@@ -22,7 +21,7 @@ export function createCommand(command, data) {
 }
 
 export default class WSServer {
-  constructor(v1, uw, config) {
+  constructor(v1, uw) {
     this.v1 = v1;
     this.uw = uw;
     this.sub = uw.subscription();
