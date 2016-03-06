@@ -47,7 +47,7 @@ export function createPlaylist(uw, data, mediaArray) {
 
   return playlist.validate()
   .then(() => {
-    if (!mediaArray.length) return playlist.save();
+    if (!mediaArray.length) return playlist.save().then(toPlaylistResponse);
 
     // TODO save Playlist, too.
     return PlaylistItem.create(mediaArray);
@@ -83,7 +83,7 @@ export function deletePlaylist(uw, id, playlistID) {
       throw new GenericError(403, 'you can\'t delete an active playlist');
     }
 
-    return playlist.remove();
+    return playlist.remove().then(toPlaylistResponse);
   });
 }
 
@@ -98,7 +98,7 @@ export function renamePlaylist(uw, id, playlistID, name) {
     }
 
     playlist.name = name;
-    return playlist.save();
+    return playlist.save().then(toPlaylistResponse);
   });
 }
 
@@ -112,7 +112,7 @@ export function sharePlaylist(uw, id, playlistID, shared) {
     }
 
     playlist.shared = shared;
-    return playlist.save();
+    return playlist.save().then(toPlaylistResponse);
   });
 }
 
