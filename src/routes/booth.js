@@ -19,9 +19,9 @@ export default function boothRoutes(router) {
     }
 
     if (Object.keys(req.body).length === 0) {
-      controller.getBooth(req.uwave)
-      .then(booth => {
-        if (!booth || booth.userID !== req.user.id) {
+      controller.getCurrentDJ(req.uwave)
+      .then(currentDJ => {
+        if (!currentDJ || currentDJ !== req.user.id) {
           return res.status(412).json('you are not currently playing');
         }
 
