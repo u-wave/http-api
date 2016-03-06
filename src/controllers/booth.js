@@ -34,6 +34,10 @@ export async function getBooth(uw) {
   };
 }
 
+export async function getCurrentDJ(uw) {
+  return await uw.redis.get('booth:currentDJ');
+}
+
 export function skipBooth(uw, moderatorID, userID, reason) {
   uw.redis.publish('v1', createCommand('skip', { moderatorID, userID, reason }));
   uw.publish('advance');

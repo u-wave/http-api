@@ -1,7 +1,7 @@
 import clamp from 'clamp';
 import mongoose from 'mongoose';
 
-import { getBooth } from '../controllers/booth';
+import { getCurrentDJ } from '../controllers/booth';
 import { createCommand } from '../sockets';
 import { GenericError } from '../errors';
 
@@ -12,8 +12,8 @@ function isInWaitlist(waitlist, userID) {
 }
 
 async function isCurrentDJ(uw, userID) {
-  const booth = await getBooth(uw);
-  return booth !== null && booth.userID === userID;
+  const dj = await getCurrentDJ(uw);
+  return dj !== null && dj === userID;
 }
 
 export async function getWaitlist(uw) {
