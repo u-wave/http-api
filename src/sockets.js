@@ -330,4 +330,22 @@ export default class WSServer {
       }));
     });
   }
+
+  /**
+   * Send a command to a single user.
+   *
+   * @param {Object|string} user User or user ID to send the command to.
+   * @param {string} command Command name.
+   * @param {*} data Command data.
+   */
+  sendTo(user, command, data) {
+    const userID = typeof user === 'object' ? user._id : user;
+    this.eachClient(client => {
+      if (client._id === userID) {
+        client.conn.send(JSON.stringify({
+          command, data
+        }));
+      }
+    });
+  }
 }
