@@ -1,6 +1,7 @@
 import clamp from 'clamp';
 import mongoose from 'mongoose';
 
+import { getCurrentDJ } from '../controllers/booth';
 import { createCommand } from '../sockets';
 import { GenericError } from '../errors';
 
@@ -8,6 +9,11 @@ const ObjectId = mongoose.Types.ObjectId;
 
 function isInWaitlist(waitlist, userID) {
   return waitlist.some(waitingID => waitingID === userID);
+}
+
+async function isCurrentDJ(uw, userID) {
+  const dj = await getCurrentDJ(uw);
+  return dj !== null && dj === userID;
 }
 
 export async function getWaitlist(uw) {
@@ -33,6 +39,10 @@ export async function appendToWaitlist(uw, userID, forceJoin) {
 
   if (isInWaitlist(waitlist, user.id)) {
     throw new GenericError(403, 'already in waitlist');
+  }
+
+  if (await isCurrentDJ(uw, user.id)) {
+    throw new GenericError(403, 'already playing');
   }
 
   await uw.redis.rpush('waitlist', user.id);
@@ -63,6 +73,10 @@ export async function insertWaitlist(uw, moderatorID, id, position, forceJoin) {
     throw new GenericError(403, 'already in waitlist');
   }
 
+  if (await isCurrentDJ(uw, id)) {
+    throw new GenericError(403, 'already playing');
+  }
+
   if (waitlist.length > clampedPosition) {
     await uw.redis.linsert('waitlist', 'BEFORE', waitlist[clampedPosition], id);
   } else {
@@ -90,6 +104,10 @@ export async function moveWaitlist(uw, moderatorID, userID, position) {
 
   if (!isInWaitlist(waitlist, userID)) {
     throw new GenericError(404, `user ${userID} is not in waitlist`);
+  }
+
+  if (await isCurrentDJ(uw, userID)) {
+    throw new GenericError(403, `user ${userID} is currently playing`);
   }
 
   const user = await User.findOne(new ObjectId(userID.toLowerCase()));
