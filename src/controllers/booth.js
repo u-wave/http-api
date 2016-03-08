@@ -65,6 +65,39 @@ export async function replaceBooth(uw, moderatorID, id) {
   return waitlist;
 }
 
+async function addVote(uw, userID, direction) {
+  await Promise.all([
+    uw.redis.lrem('booth:upvotes', 0, userID),
+    uw.redis.lrem('booth:downvotes', 0, userID)
+  ]);
+  await uw.redis.lpush(
+    direction > 0 ? 'booth:upvotes' : 'booth:downvotes',
+    userID
+  );
+  uw.publish('booth:vote', {
+    userID, direction
+  });
+}
+
+export async function vote(uw, userID, direction) {
+  const currentDJ = await uw.redis.get('booth:currentDJ');
+  if (currentDJ !== null && currentDJ !== userID) {
+    const historyID = await uw.redis.get('booth:historyID');
+    if (historyID === null) return;
+    if (direction > 0) {
+      const upvoted = await uw.redis.lrange('booth:upvotes', 0, -1);
+      if (upvoted.indexOf(userID) === -1) {
+        await addVote(uw, userID, 1);
+      }
+    } else {
+      const downvoted = await uw.redis.lrange('booth:downvotes', 0, -1);
+      if (downvoted.indexOf(userID) === -1) {
+        await addVote(uw, userID, -1);
+      }
+    }
+  }
+}
+
 export async function favorite(uw, id, playlistID, historyID) {
   const Playlist = uw.model('Playlist');
   const PlaylistItem = uw.model('PlaylistItem');

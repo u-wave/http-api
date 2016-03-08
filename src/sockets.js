@@ -5,6 +5,7 @@ import WebSocket from 'ws';
 import debug from 'debug';
 
 import advance from './advance';
+import { vote } from './controllers/booth';
 import { getWaitlist } from './controllers/waitlist';
 
 // websocket error codes
@@ -189,10 +190,6 @@ export default class WSServer {
     const uw = this.uw;
     const payload = WSServer.parseMessage(msg);
     const user = this.clients[conn.id];
-    // Currently `this` doesn't work well in async arrow functions:
-    // https://phabricator.babeljs.io/T2765
-    // So we'll use `sThis` as a workaround for now.
-    const sThis = this;
 
     if (!payload || typeof payload !== 'object' || typeof payload.command !== 'string') {
       conn.send(createCommand('error', 'command invalid'));
@@ -204,21 +201,6 @@ export default class WSServer {
       return;
     }
 
-    const sendVote = async direction => {
-      await Promise.all([
-        uw.redis.lrem('booth:upvotes', 0, user._id),
-        uw.redis.lrem('booth:downvotes', 0, user._id)
-      ]);
-      await uw.redis.lpush(
-        direction > 0 ? 'booth:upvotes' : 'booth:downvotes',
-        user._id
-      );
-      sThis.broadcast('vote', {
-        _id: user._id,
-        value: direction
-      });
-    };
-
     switch (payload.command) {
     case 'sendChat':
       this.broadcast('chatMessage', {
@@ -229,22 +211,7 @@ export default class WSServer {
       break;
 
     case 'vote':
-      const currentDJ = await uw.redis.get('booth:currentDJ');
-      if (currentDJ !== null && currentDJ !== user._id) {
-        const historyID = await uw.redis.get('booth:historyID');
-        if (historyID === null) return;
-        if (payload.data > 0) {
-          const upvoted = await uw.redis.lrange('booth:upvotes', 0, -1);
-          if (upvoted.indexOf(user._id) === -1) {
-            await sendVote(1);
-          }
-        } else {
-          const downvoted = await uw.redis.lrange('booth:downvotes', 0, -1);
-          if (downvoted.indexOf(user._id) === -1) {
-            await sendVote(-1);
-          }
-        }
-      }
+      await vote(uw, user._id, payload.data);
       break;
 
     default:
@@ -290,6 +257,12 @@ export default class WSServer {
         if (this.advanceTimer === null && skipIsAllowed) {
           uw.publish('advance');
         }
+      } else if (_command.command === 'booth:vote') {
+        const { userID, direction } = _command.data;
+        this.broadcast('vote', {
+          _id: userID,
+          value: direction
+        });
       } else if (_command.command === 'playlist:cycle') {
         const { userID, playlistID } = _command.data;
         this.sendTo(userID, 'playlistCycle', { playlistID });
