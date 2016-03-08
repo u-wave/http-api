@@ -6,6 +6,7 @@ import debug from 'debug';
 
 import advance from './advance';
 import { vote } from './controllers/booth';
+import { sendChatMessage } from './controllers/chat';
 import { getWaitlist } from './controllers/waitlist';
 
 // websocket error codes
@@ -203,11 +204,7 @@ export default class WSServer {
 
     switch (payload.command) {
     case 'sendChat':
-      this.broadcast('chatMessage', {
-        _id: user._id,
-        message: payload.data,
-        timestamp: Date.now()
-      });
+      await sendChatMessage(uw, user._id, payload.data);
       break;
 
     case 'vote':
@@ -257,6 +254,12 @@ export default class WSServer {
         if (this.advanceTimer === null && skipIsAllowed) {
           uw.publish('advance');
         }
+      } else if (_command.command === 'chat:message') {
+        const { userID, message, timestamp } = _command.data;
+        this.broadcast('chatMessage', {
+          _id: userID,
+          message, timestamp
+        });
       } else if (_command.command === 'booth:vote') {
         const { userID, direction } = _command.data;
         this.broadcast('vote', {
