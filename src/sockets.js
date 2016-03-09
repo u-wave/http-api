@@ -80,10 +80,10 @@ export default class WSServer {
       if (i !== -1) {
         waitlist.splice(i, 1);
         uw.redis.lrem('waitlist', 0, id);
-        sThis.broadcast(createCommand('waitlistLeave', {
+        sThis.broadcast('waitlistLeave', {
           userID: id,
           waitlist
-        }));
+        });
       }
     };
 
@@ -134,12 +134,9 @@ export default class WSServer {
   }
 
   _heartbeat() {
-    Object.keys(this.clients).forEach(id => {
-      const client = this.clients[id];
-      if (client) {
-        if (client.heartbeat - Date.now() >= 60 * 1000) {
-          client.conn.close(CLOSE_VIOLATED_POLICY, 'idled too long');
-        }
+    this.eachClient(client => {
+      if (client.heartbeat - Date.now() >= 60 * 1000) {
+        client.conn.close(CLOSE_VIOLATED_POLICY, 'idled too long');
       }
     });
   }
@@ -164,7 +161,7 @@ export default class WSServer {
 
       sThis._close(conn.id, code);
       await sThis._removeUser(client._id);
-      sThis.broadcast(createCommand('leave', client._id));
+      sThis.broadcast('leave', client._id);
     });
 
     conn.on('ping', () => {
@@ -184,7 +181,7 @@ export default class WSServer {
 
     await uw.redis.lpush('users', userModel.id);
 
-    this.broadcast(createCommand('join', userModel));
+    this.broadcast('join', userModel);
   }
 
   async _handleIncomingCommands(conn, msg) {
@@ -216,19 +213,19 @@ export default class WSServer {
         direction > 0 ? 'booth:upvotes' : 'booth:downvotes',
         user._id
       );
-      sThis.broadcast(createCommand('vote', {
+      sThis.broadcast('vote', {
         _id: user._id,
         value: direction
-      }));
+      });
     };
 
     switch (payload.command) {
     case 'sendChat':
-      this.broadcast(createCommand('chatMessage', {
+      this.broadcast('chatMessage', {
         _id: user._id,
         message: payload.data,
         timestamp: Date.now()
-      }));
+      });
       break;
 
     case 'vote':
@@ -262,7 +259,7 @@ export default class WSServer {
     const getDuration = playlistItem => playlistItem.end - playlistItem.start;
 
     if (channel === 'v1') {
-      this.broadcast(command);
+      this.broadcast(_command.command, _command.data);
     } else if (channel === 'uwave') {
       if (_command.command === 'advance') {
         clearTimeout(this.advanceTimer);
@@ -284,7 +281,7 @@ export default class WSServer {
             getDuration(historyEntry.media) * 1000
           );
         } else {
-          this.broadcast(createCommand('advance', null));
+          this.broadcast('advance', null);
         }
       } else if (_command.command === 'advance:check') {
         const isLocked = await uw.redis.get('waitlist:lock');
@@ -307,9 +304,48 @@ export default class WSServer {
     this.wss.shutdown();
   }
 
-  broadcast(command) {
+  /**
+   * Run a callback for every connected client.
+   *
+   * @param {Function} fn Callback. Client object in the first parameter, ID
+   *     in the second.
+   * @param {Object} [bind] `this` for the callback.
+   */
+  eachClient(fn, bind = null) {
     Object.keys(this.clients).forEach(id => {
-      this.clients[id].conn.send(command);
+      fn.call(bind, this.clients[id], id);
+    });
+  }
+
+  /**
+   * Broadcast a command to all connected clients.
+   *
+   * @param {string} command Command name.
+   * @param {*} data Command data.
+   */
+  broadcast(command, data) {
+    this.eachClient(({ conn }) => {
+      conn.send(JSON.stringify({
+        command, data
+      }));
+    });
+  }
+
+  /**
+   * Send a command to a single user.
+   *
+   * @param {Object|string} user User or user ID to send the command to.
+   * @param {string} command Command name.
+   * @param {*} data Command data.
+   */
+  sendTo(user, command, data) {
+    const userID = typeof user === 'object' ? user._id : user;
+    this.eachClient(client => {
+      if (client._id === userID) {
+        client.conn.send(JSON.stringify({
+          command, data
+        }));
+      }
     });
   }
 }
