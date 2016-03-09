@@ -290,6 +290,9 @@ export default class WSServer {
         if (this.advanceTimer === null && skipIsAllowed) {
           uw.publish('advance');
         }
+      } else if (_command.command === 'playlist:cycle') {
+        const { userID, playlistID } = _command.data;
+        this.sendTo(userID, 'playlistCycle', { playlistID });
       } else if (_command.command === 'api-v1:socket:close') {
         this._close(_command.data, CLOSE_NORMAL);
       }
