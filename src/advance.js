@@ -149,8 +149,17 @@ export default async function advance(uw, opts = {}) {
     await clearBooth(uw);
   }
 
+  const waitlist = await getWaitlist(uw);
+
+  if (next) {
+    await uw.publish('playlist:cycle', {
+      userID: next.user.id,
+      playlistID: next.playlist.id
+    });
+  }
+
   return {
     historyEntry: next,
-    waitlist: await getWaitlist(uw)
+    waitlist
   };
 }
