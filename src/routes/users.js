@@ -1,4 +1,5 @@
 import debug from 'debug';
+import createRouter from 'router';
 
 import * as controller from '../controllers/users';
 import { checkFields } from '../utils';
@@ -6,8 +7,10 @@ import handleError from '../errors';
 
 const log = debug('uwave:api:v1:users');
 
-export default function userRoutes(router) {
-  router.get('/users', (req, res) => {
+export default function userRoutes() {
+  const router = createRouter();
+
+  router.get('/', (req, res) => {
     if (req.user.role < 4) {
       return res.status(403).json('you need to be at least manager to do this');
     }
@@ -19,15 +22,13 @@ export default function userRoutes(router) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.get('/users/:id', (req, res) => {
+  router.get('/:id', (req, res) => {
     controller.getUser(req.uwave, req.params.id)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });
 
-  router.route('/users/:id/ban')
-
-  .post((req, res) => {
+  router.post('/:id/ban', (req, res) => {
     if (!checkFields(res, req.body, { time: 'number', exiled: 'boolean' })) {
       return null;
     }
@@ -44,9 +45,9 @@ export default function userRoutes(router) {
     controller.banUser(req.uwave, req.user.id, req.params.id, req.body.time, req.body.exiled)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
-  })
+  });
 
-  .delete((req, res) => {
+  router.delete('/:id/ban', (req, res) => {
     if (req.user.role < 4) return res.status(403, 'you need to be at least manager to do this');
     if (req.user.id === req.params.id) return res.status(403, 'you can\'t unban yourself');
 
@@ -55,9 +56,7 @@ export default function userRoutes(router) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.route('/users/:id/mute')
-
-  .post((req, res) => {
+  router.post('/:id/mute', (req, res) => {
     if (typeof req.body.time === 'undefined') return res.status(422).json('time is not set');
     if (req.user.role < 3) return res.status(403, 'you need to be at least bouncer to do this');
     if (req.user.id === req.params.id) return res.status(403, 'you can\'t mute yourself');
@@ -69,9 +68,9 @@ export default function userRoutes(router) {
     controller.muteUser(req.uwave, req.user.id, req.params.id, req.body.time)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
-  })
+  });
 
-  .delete((req, res) => {
+  router.delete('/:id/mute', (req, res) => {
     if (req.user.role < 3) return res.status(403, 'you need to be at least bouncer to do this');
     if (req.user.id === req.params.id) return res.status(403, 'you can\'t unmute yourself');
 
@@ -80,7 +79,7 @@ export default function userRoutes(router) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.put('/users/:id/role', (req, res) => {
+  router.put('/:id/role', (req, res) => {
     if (typeof req.body.role === 'undefined') return res.status(422).json('role is not set');
 
     if (typeof req.body.role !== 'number' || isNaN(req.body.role)) {
@@ -100,7 +99,7 @@ export default function userRoutes(router) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.put('/users/:id/username', (req, res) => {
+  router.put('/:id/username', (req, res) => {
     if (!req.body.username) return res.status(422).json('username is not set');
 
     if (typeof req.body.username !== 'string') {
@@ -116,7 +115,7 @@ export default function userRoutes(router) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.put('/users/:id/avatar', (req, res) => {
+  router.put('/:id/avatar', (req, res) => {
     if (!req.body.avatar) return res.status(422).json('avatar is not set');
 
     if (typeof req.body.avatar !== 'string') {
@@ -132,7 +131,7 @@ export default function userRoutes(router) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.put('/users/:id/status', (req, res) => {
+  router.put('/:id/status', (req, res) => {
     if (typeof req.body.status === 'undefined') return res.status(422).json('status is not set');
 
     if (typeof req.body.status !== 'number' || isNaN(req.body.status)) {
@@ -148,10 +147,12 @@ export default function userRoutes(router) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.get('/users/:id/history', (req, res) => {
+  router.get('/:id/history', (req, res) => {
     const { page, limit } = req.query;
     controller.getHistory(req.uwave, req.params.id, parseInt(page, 10), parseInt(limit, 10))
     .then(history => res.status(200).json(history))
     .catch(e => handleError(res, e, log));
   });
+
+  return router;
 }

@@ -1,4 +1,5 @@
 import debug from 'debug';
+import createRouter from 'router';
 
 import * as controller from '../controllers/authenticate';
 import { checkFields, handleDuplicate } from '../utils';
@@ -7,15 +8,16 @@ import handleError from '../errors';
 const log = debug('uwave:api:v1:auth');
 const rx = /\s|%20/;
 
-export default function authenticateRoutes(v1, router) {
-  router.get('/auth', (req, res) => {
+export default function authenticateRoutes(v1) {
+  const router = createRouter();
+
+  router.get('/', (req, res) => {
     controller.getCurrentUser(req.uwave, req.user.id)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });
 
-  /* ========== REGISTER ========== */
-  router.post('/auth/register', (req, res) => {
+  router.post('/register', (req, res) => {
     if (!checkFields(res, req.body, {
       email: 'string',
       username: 'string',
@@ -37,8 +39,7 @@ export default function authenticateRoutes(v1, router) {
     });
   });
 
-  /* ========== LOGIN ========== */
-  router.post('/auth/login', (req, res) => {
+  router.post('/login', (req, res) => {
     if (!checkFields(res, req.body, { email: 'string', password: 'string' })) {
       return null;
     }
@@ -48,8 +49,7 @@ export default function authenticateRoutes(v1, router) {
     .catch(e => handleError(res, e, log));
   });
 
-  /* ========== PASSWORD RESET ========== */
-  router.post('/auth/password/reset', (req, res) => {
+  router.post('/password/reset', (req, res) => {
     if (!checkFields(res, req.body, { email: 'string' })) {
       return null;
     }
@@ -59,8 +59,7 @@ export default function authenticateRoutes(v1, router) {
     .catch(e => handleError(res, e, log));
   });
 
-  /* ========== PASSWORD RESET :RESET ========== */
-  router.post('/auth/password/reset/:reset', (req, res) => {
+  router.post('/password/reset/:reset', (req, res) => {
     if (!checkFields(res, req.body, { email: 'string', password: 'string' })) {
       return null;
     }
@@ -70,8 +69,7 @@ export default function authenticateRoutes(v1, router) {
     .catch(e => handleError(res, e, log));
   });
 
-  /* ========== AUTH SESSION :ID ========== */
-  router.delete('/auth/session/:id', (req, res) => {
+  router.delete('/session/:id', (req, res) => {
     if (req.user.id !== req.params.id && req.user.role < 4) {
       return res.status(403).json('you need to be at least a manager to do this');
     }
@@ -86,4 +84,6 @@ export default function authenticateRoutes(v1, router) {
     })
     .catch(e => handleError(res, e, log));
   });
+
+  return router;
 }

@@ -1,4 +1,5 @@
 import debug from 'debug';
+import createRouter from 'router';
 
 import * as controller from '../controllers/playlists';
 import { checkFields } from '../utils';
@@ -6,16 +7,17 @@ import handleError from '../errors';
 
 const log = debug('uwave:api:v1:playlists');
 
-export default function playlistRoutes(router) {
-  router.route('/playlists')
-  .get((req, res) => {
+export default function playlistRoutes() {
+  const router = createRouter();
+
+  router.get('/', (req, res) => {
     const { page, limit } = req.query;
     controller.getPlaylists(req.uwave, parseInt(page, 10), parseInt(limit, 10), req.user.id)
     .then(playlists => res.status(200).json(playlists))
     .catch(e => handleError(res, e, log));
-  })
+  });
 
-  .post((req, res) => {
+  router.post('/', (req, res) => {
     if (!checkFields(res, req.body, { name: 'string', description: 'string', shared: 'boolean' })) {
       return null;
     }
@@ -32,20 +34,19 @@ export default function playlistRoutes(router) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.route('/playlists/:id')
-  .get((req, res) => {
+  router.get('/:id', (req, res) => {
     controller.getPlaylist(req.uwave, req.user.id, req.params.id)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
-  })
+  });
 
-  .delete((req, res) => {
+  router.delete('/:id', (req, res) => {
     controller.deletePlaylist(req.uwave, req.user.id, req.params.id)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
 
-  router.put('/playlists/:id/rename', (req, res) => {
+  router.put('/:id/rename', (req, res) => {
     if (!req.body.name) {
       return res.status(422).json('name is not set');
     }
@@ -58,7 +59,7 @@ export default function playlistRoutes(router) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.put('/playlists/:id/share', (req, res) => {
+  router.put('/:id/share', (req, res) => {
     if (typeof req.body.share === 'undefined') {
       return res.status(422).json('share is not set');
     }
@@ -71,7 +72,7 @@ export default function playlistRoutes(router) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.put('/playlists/:id/move', (req, res) => {
+  router.put('/:id/move', (req, res) => {
     if (!checkFields(res, req.body, { items: 'object' })) {
       return null;
     }
@@ -86,14 +87,13 @@ export default function playlistRoutes(router) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.put('/playlists/:id/activate', (req, res) => {
+  router.put('/:id/activate', (req, res) => {
     controller.activatePlaylist(req.uwave, req.user.id, req.params.id)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
 
-  router.route('/playlists/:id/media')
-  .get((req, res) => {
+  router.get('/:id/media', (req, res) => {
     const { page, limit } = req.query;
     controller.getPlaylistItems(
       req.uwave,
@@ -102,9 +102,9 @@ export default function playlistRoutes(router) {
     )
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
-  })
+  });
 
-  .post((req, res) => {
+  router.post('/:id/media', (req, res) => {
     if (!checkFields(res, req.body, { items: 'object' })) {
       return null;
     }
@@ -116,9 +116,9 @@ export default function playlistRoutes(router) {
     controller.createPlaylistItems(req.uwave, req.user.id, req.params.id, after, items)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
-  })
+  });
 
-  .delete((req, res) => {
+  router.delete('/:id/media', (req, res) => {
     if (!Array.isArray(req.body.items)) return res.status(422).json('items is not set');
 
     controller.deletePlaylistItems(req.uwave, req.user.id, req.params.id, req.body.items)
@@ -126,14 +126,13 @@ export default function playlistRoutes(router) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.route('/playlists/:id/media/:mediaID')
-  .get((req, res) => {
+  router.get('/:id/media/:mediaID', (req, res) => {
     controller.getPlaylistItem(req.uwave, req.user.id, req.params.id, req.params.mediaID)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
-  })
+  });
 
-  .put((req, res) => {
+  router.put('/:id/media/:mediaID', (req, res) => {
     if (!checkFields(res, req.body, {
       artist: 'string',
       title: 'string',
@@ -155,20 +154,22 @@ export default function playlistRoutes(router) {
     controller.updatePlaylistItem(req.uwave, user.id, params.id, params.mediaID, metadata)
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
-  })
+  });
 
-  .delete((req, res) => {
+  router.delete('/:id/media/:mediaID', (req, res) => {
     const { params, user } = req;
     controller.deletePlaylistItems(req.uwave, user.id, params.id, [params.mediaID])
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
 
-  router.post('/playlists/:id/media/:mediaID/copy', (req, res) => {
+  router.post('/:id/media/:mediaID/copy', (req, res) => {
     if (!checkFields(res, req.body, { toPlaylistID: 'string' })) return;
 
     controller.copyPlaylistItem(req.uwave, req.user.id, req.params.id, req.params.mediaID)
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
   });
+
+  return router;
 }

@@ -1,4 +1,5 @@
 import debug from 'debug';
+import createRouter from 'router';
 
 import * as controller from '../controllers/booth';
 import { checkFields } from '../utils';
@@ -6,14 +7,16 @@ import handleError from '../errors';
 
 const log = debug('uwave:api:v1:booth');
 
-export default function boothRoutes(router) {
-  router.get('/booth', (req, res) => {
+export default function boothRoutes() {
+  const router = createRouter();
+
+  router.get('/', (req, res) => {
     controller.getBooth(req.uwave)
     .then(booth => res.status(200).json(booth))
     .catch(e => handleError(res, e, log));
   });
 
-  router.post('/booth/skip', (req, res) => {
+  router.post('/skip', (req, res) => {
     if (!req.user) {
       return res.status(403).json('you need to be logged in');
     }
@@ -45,7 +48,7 @@ export default function boothRoutes(router) {
     }
   });
 
-  router.post('/booth/replace', (req, res) => {
+  router.post('/replace', (req, res) => {
     if (!req.user) {
       return res.status(403).json('you need to be logged in');
     }
@@ -65,7 +68,7 @@ export default function boothRoutes(router) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.post('/booth/favorite', (req, res) => {
+  router.post('/favorite', (req, res) => {
     if (!req.user) {
       return res.status(403).json('you need to be logged in');
     }
@@ -79,10 +82,12 @@ export default function boothRoutes(router) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.get('/booth/history', (req, res) => {
+  router.get('/history', (req, res) => {
     const { page, limit } = req.query;
     controller.getHistory(req.uwave, parseInt(page, 10), parseInt(limit, 10))
     .then(history => res.status(200).json(history))
     .catch(e => handleError(res, e, log));
   });
+
+  return router;
 }
