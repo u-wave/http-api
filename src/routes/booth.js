@@ -4,6 +4,7 @@ import createRouter from 'router';
 import * as controller from '../controllers/booth';
 import { checkFields } from '../utils';
 import handleError from '../errors';
+import { ROLE_MODERATOR } from '../roles';
 
 const log = debug('uwave:api:v1:booth');
 
@@ -34,8 +35,8 @@ export default function boothRoutes() {
       })
       .catch(e => handleError(res, e, log));
     } else {
-      if (req.user.role < 3) {
-        return res.status(412).json('you need to be at least bouncer to do this');
+      if (req.user.role < ROLE_MODERATOR) {
+        return res.status(412).json('you need to be at least a moderator to do this');
       }
 
       if (!checkFields(res, req.body, { userID: 'string', reason: 'string' })) {
@@ -53,8 +54,8 @@ export default function boothRoutes() {
       return res.status(403).json('you need to be logged in');
     }
 
-    if (req.user.role < 3) {
-      return res.status(412).json('you need to be at least bouncer to do this');
+    if (req.user.role < ROLE_MODERATOR) {
+      return res.status(412).json('you need to be at least a moderator to do this');
     }
     if (typeof req.body.userID === 'undefined') {
       return res.status(422).json('userID is not set');
