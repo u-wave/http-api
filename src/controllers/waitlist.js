@@ -111,12 +111,14 @@ export async function moveWaitlist(uw, moderatorID, userID, position) {
   }
 
   const user = await User.findOne(new ObjectId(userID.toLowerCase()));
-
-  if (!user) throw new GenericError(404, 'user not found');
+  if (!user) {
+    throw new GenericError(404, 'user not found');
+  }
 
   const clampedPosition = clamp(position, 0, waitlist.length);
   const beforeID = waitlist[clampedPosition] || null;
 
+  await uw.redis.lrem('waitlist', 0, user.id);
   if (beforeID) {
     await uw.redis.linsert('waitlist', 'BEFORE', beforeID, user.id);
   } else {
