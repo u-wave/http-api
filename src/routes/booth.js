@@ -1,6 +1,7 @@
 import debug from 'debug';
 import createRouter from 'router';
 
+import protect from '../middleware/protect';
 import * as controller from '../controllers/booth';
 import { checkFields } from '../utils';
 import handleError from '../errors';
@@ -17,11 +18,7 @@ export default function boothRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.post('/skip', (req, res) => {
-    if (!req.user) {
-      return res.status(403).json('you need to be logged in');
-    }
-
+  router.post('/skip', protect(), (req, res) => {
     const skippingSelf = !req.body.userID && !req.body.reason ||
       req.body.userID === req.user.id;
     const opts = { remove: !!req.body.remove };
@@ -53,14 +50,7 @@ export default function boothRoutes() {
     }
   });
 
-  router.post('/replace', (req, res) => {
-    if (!req.user) {
-      return res.status(403).json('you need to be logged in');
-    }
-
-    if (req.user.role < ROLE_MODERATOR) {
-      return res.status(412).json('you need to be at least a moderator to do this');
-    }
+  router.post('/replace', protect(ROLE_MODERATOR), (req, res) => {
     if (typeof req.body.userID === 'undefined') {
       return res.status(422).json('userID is not set');
     }
@@ -73,11 +63,7 @@ export default function boothRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.post('/favorite', (req, res) => {
-    if (!req.user) {
-      return res.status(403).json('you need to be logged in');
-    }
-
+  router.post('/favorite', protect(), (req, res) => {
     if (!checkFields(res, req.body, { playlistID: 'string', historyID: 'string' })) {
       return null;
     }

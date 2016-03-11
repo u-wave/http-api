@@ -13,6 +13,7 @@ import now from './routes/now';
 
 // middleware
 import authenticator from './middleware/authenticator';
+import errorHandler from './middleware/errorHandler';
 import WSServer from './sockets';
 
 /**
@@ -52,6 +53,8 @@ export class V1 {
       .use('/staff', staff(this))
       .use('/users', users(this))
       .use('/waitlist', waitlist(this));
+
+    this.router.use(errorHandler(this));
   }
 
   getRouter() {

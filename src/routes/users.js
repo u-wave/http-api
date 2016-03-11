@@ -1,6 +1,7 @@
 import debug from 'debug';
 import createRouter from 'router';
 
+import protect from '../middleware/protect';
 import * as controller from '../controllers/users';
 import { checkFields } from '../utils';
 import handleError from '../errors';
@@ -11,11 +12,7 @@ const log = debug('uwave:api:v1:users');
 export default function userRoutes() {
   const router = createRouter();
 
-  router.get('/', (req, res) => {
-    if (req.user.role < ROLE_MANAGER) {
-      return res.status(403).json('you need to be at least a manager to do this');
-    }
-
+  router.get('/', protect(ROLE_MANAGER), (req, res) => {
     const { page, limit } = req.query;
 
     controller.getUsers(req.uwave, parseInt(page, 10), parseInt(limit, 10))
@@ -29,12 +26,9 @@ export default function userRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.post('/:id/ban', (req, res) => {
+  router.post('/:id/ban', protect(ROLE_MODERATOR), (req, res) => {
     if (!checkFields(res, req.body, { time: 'number', exiled: 'boolean' })) {
       return null;
-    }
-    if (req.user.role < ROLE_MODERATOR) {
-      return res.status(403, 'you need to be at least a moderator to do this');
     }
     if (req.user.id === req.params.id) {
       return res.status(403, 'you can\'t ban yourself');
@@ -48,10 +42,7 @@ export default function userRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.delete('/:id/ban', (req, res) => {
-    if (req.user.role < ROLE_MANAGER) {
-      return res.status(403, 'you need to be at least a manager to do this');
-    }
+  router.delete('/:id/ban', protect(ROLE_MANAGER), (req, res) => {
     if (req.user.id === req.params.id) {
       return res.status(403, 'you can\'t unban yourself');
     }
@@ -61,12 +52,9 @@ export default function userRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.post('/:id/mute', (req, res) => {
+  router.post('/:id/mute', protect(ROLE_MODERATOR), (req, res) => {
     if (typeof req.body.time === 'undefined') {
       return res.status(422).json('time is not set');
-    }
-    if (req.user.role < ROLE_MODERATOR) {
-      return res.status(403, 'you need to be at least a moderator to do this');
     }
     if (req.user.id === req.params.id) {
       return res.status(403, 'you can\'t mute yourself');
@@ -81,10 +69,7 @@ export default function userRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.delete('/:id/mute', (req, res) => {
-    if (req.user.role < ROLE_MODERATOR) {
-      return res.status(403, 'you need to be at least a moderator to do this');
-    }
+  router.delete('/:id/mute', protect(ROLE_MODERATOR), (req, res) => {
     if (req.user.id === req.params.id) {
       return res.status(403, 'you can\'t unmute yourself');
     }
@@ -94,17 +79,9 @@ export default function userRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.put('/:id/role', (req, res) => {
-    if (typeof req.body.role === 'undefined') {
-      return res.status(422).json('role is not set');
-    }
-
+  router.put('/:id/role', protect(ROLE_MANAGER), (req, res) => {
     if (typeof req.body.role !== 'number' || isNaN(req.body.role)) {
       return res.status(422).json('expected role to be a number');
-    }
-
-    if (req.user.role < ROLE_MANAGER) {
-      return res.status(403).json('you need to be at least a manager to do this');
     }
 
     if (req.user.role < req.body.role) {
