@@ -118,6 +118,11 @@ export async function moveWaitlist(uw, moderatorID, userID, position) {
   const clampedPosition = clamp(position, 0, waitlist.length);
   const beforeID = waitlist[clampedPosition] || null;
 
+  if (beforeID === user.id) {
+    // No change.
+    return waitlist;
+  }
+
   await uw.redis.lrem('waitlist', 0, user.id);
   if (beforeID) {
     await uw.redis.linsert('waitlist', 'BEFORE', beforeID, user.id);
