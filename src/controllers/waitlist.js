@@ -127,7 +127,7 @@ export async function moveWaitlist(uw, moderatorID, userID, position) {
 
   waitlist = await getWaitlist(uw);
 
-  uw.redis.publish('v1', createCommand('waitlistAdd', {
+  uw.redis.publish('v1', createCommand('waitlistMove', {
     userID,
     moderatorID,
     position: clampedPosition,
