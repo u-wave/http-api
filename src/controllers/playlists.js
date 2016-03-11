@@ -1,4 +1,5 @@
 import debug from 'debug';
+import escapeRegExp from 'escape-string-regexp';
 import find from 'array-find';
 import findIndex from 'array-findindex';
 import mongoose from 'mongoose';
@@ -101,15 +102,17 @@ export function sharePlaylist(uw, id, playlistID, shared) {
   });
 }
 
-export function getPlaylistItems(uw, page, limit, id, playlistID) {
+export function getPlaylistItems(uw, userID, playlistID, pagination, filter = null) {
   const Playlist = uw.model('Playlist');
   const PlaylistItem = uw.model('PlaylistItem');
-  const _page = isNaN(page) ? 0 : page;
-  const _limit = isNaN(limit) ? 100 : Math.min(limit, 100);
+  const page = isFinite(pagination.page) ? pagination.page : 0;
+  const limit = isFinite(pagination.limit) && pagination.limit < 100
+    ? pagination.limit
+    : 100;
 
   return Playlist.findOne(
-    { _id: playlistID, author: id },
-    { media: { $slice: [_limit * _page, _limit] } }
+    { _id: playlistID, author: userID },
+    { media: { $slice: [limit * page, limit] } }
   )
   .then(playlist => {
     if (!playlist) throw new GenericError(404, 'playlist not found or private');
@@ -117,16 +120,26 @@ export function getPlaylistItems(uw, page, limit, id, playlistID) {
     return playlist.media;
   })
   .then(itemIDs => {
-    return PlaylistItem.find({ _id: { $in: itemIDs } })
+    const query = { _id: { $in: itemIDs } };
+    if (filter) {
+      const rx = escapeRegExp(filter);
+      query.$or = [
+        { artist: RegExp(rx, 'i') },
+        { title: RegExp(rx, 'i') }
+      ];
+    }
+    return PlaylistItem.find(query)
       .populate('media')
       .then(items =>
         // MongoDB returns the playlist items in whichever order it likes, which
         // is usually not the current playlist order. So we need to sort the
         // playlist items according to the itemIDs list here.
-        itemIDs.map(itemID => find(items, item => item._id + '' === itemID + ''))
+        itemIDs
+          .map(itemID => find(items, item => item._id + '' === itemID + ''))
+          .filter(Boolean)
       );
   })
-  .then(media => paginate(_page, _limit, media));
+  .then(media => paginate(page, limit, media));
 }
 
 export function movePlaylistItems(uw, id, playlistID, afterID, movingItems) {
