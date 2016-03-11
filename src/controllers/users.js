@@ -5,6 +5,7 @@ import Promise from 'bluebird';
 import { createCommand } from '../sockets';
 import { paginate } from '../utils';
 import { GenericError, PaginateError } from '../errors';
+import { ROLE_DEFAULT, ROLE_ADMIN } from '../roles';
 
 const ObjectId = mongoose.Types.ObjectId;
 
@@ -83,7 +84,7 @@ export function changeRole(uw, moderatorID, id, role) {
   .then(user => {
     if (!user) throw new GenericError(404, `user with ID ${id} not found`);
 
-    user.role = clamp(role, 0, 6);
+    user.role = clamp(role, ROLE_DEFAULT, ROLE_ADMIN);
 
     uw.redis.publish('v1', createCommand('roleChange', {
       moderatorID,
@@ -99,9 +100,11 @@ export function changeUsername(uw, moderatorID, id, name) {
 
   return User.findOne(new ObjectId(id))
   .then(user => {
-    if (!user) throw new GenericError(404, `user with ID ${id} not found`);
-    if (user.id !== id && user.role < 3) {
-      throw new GenericError(403, 'you need to be at least a bouncer to do this');
+    if (!user) {
+      throw new GenericError(404, `user with ID ${id} not found`);
+    }
+    if (user.id !== id && user.role < ROLE_ADMIN) {
+      throw new GenericError(403, 'you need to be an admin to do this');
     }
 
     user.username = name;

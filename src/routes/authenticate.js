@@ -4,6 +4,7 @@ import createRouter from 'router';
 import * as controller from '../controllers/authenticate';
 import { checkFields, handleDuplicate } from '../utils';
 import handleError from '../errors';
+import { ROLE_MANAGER } from '../roles';
 
 const log = debug('uwave:api:v1:auth');
 const rx = /\s|%20/;
@@ -70,7 +71,7 @@ export default function authenticateRoutes(v1) {
   });
 
   router.delete('/session/:id', (req, res) => {
-    if (req.user.id !== req.params.id && req.user.role < 4) {
+    if (req.user.id !== req.params.id && req.user.role < ROLE_MANAGER) {
       return res.status(403).json('you need to be at least a manager to do this');
     }
 

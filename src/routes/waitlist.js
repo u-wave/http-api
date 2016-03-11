@@ -4,6 +4,7 @@ import createRouter from 'router';
 import * as controller from '../controllers/waitlist';
 import { checkFields } from '../utils';
 import handleError from '../errors';
+import { ROLE_MANAGER, ROLE_MODERATOR } from '../roles';
 
 const log = debug('uwave:api:v1:waitlist');
 
@@ -26,7 +27,7 @@ export default function waitlistRoutes() {
     }
 
     const targetID = req.body.userID;
-    const isModerator = req.user.role >= 2;
+    const isModerator = req.user.role >= ROLE_MODERATOR;
 
     const promise = _position < 0
       ? controller.appendToWaitlist(req.uwave, targetID, isModerator)
@@ -37,7 +38,7 @@ export default function waitlistRoutes() {
   });
 
   router.delete('/', (req, res) => {
-    if (req.user.role < 3) {
+    if (req.user.role < ROLE_MANAGER) {
       return res.status(403).json('you need to be at least a manager to do this');
     }
 
@@ -51,8 +52,8 @@ export default function waitlistRoutes() {
       return null;
     }
 
-    if (req.user.role < 3) {
-      return res.status(403).json('you need to be at least a bouncer to do this');
+    if (req.user.role < ROLE_MODERATOR) {
+      return res.status(403).json('you need to be at least a moderator to do this');
     }
 
     controller.moveWaitlist(req.uwave, req.user.id, req.body.userID, req.body.position)
@@ -61,8 +62,8 @@ export default function waitlistRoutes() {
   });
 
   router.delete('/:id', (req, res) => {
-    if (req.user.id !== req.params.id && req.user.role < 3) {
-      return res.status(403).json('you need to be at least a bouncer to do this');
+    if (req.user.id !== req.params.id && req.user.role < ROLE_MODERATOR) {
+      return res.status(403).json('you need to be at least a moderator to do this');
     }
 
     controller.leaveWaitlist(req.uwave, req.user.id, req.params.id)
@@ -74,8 +75,8 @@ export default function waitlistRoutes() {
     if (!checkFields(res, req.body, { lock: 'boolean', clear: 'boolean' })) {
       return null;
     }
-    if (req.user.role < 3) {
-      return res.status(403).json('you need to be at least a bouncer to do this');
+    if (req.user.role < ROLE_MODERATOR) {
+      return res.status(403).json('you need to be at least a moderator to do this');
     }
 
     controller.lockWaitlist(req.uwave, req.user.id, req.body.lock, req.body.clear)

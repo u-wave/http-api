@@ -4,6 +4,7 @@ import createRouter from 'router';
 import * as controller from '../controllers/staff';
 import { checkFields } from '../utils';
 import handleError from '../errors';
+import { ROLE_MANAGER } from '../roles';
 
 const log = debug('uwave:api:v1:staff');
 
@@ -18,8 +19,8 @@ export default function staffRoutes() {
   });
 
   router.get('/media/:id', (req, res) => {
-    if (req.user.role < 4) {
-      return res.status(403).json('you need to be at least manager to do this');
+    if (req.user.role < ROLE_MANAGER) {
+      return res.status(403).json('you need to be at least a manager to do this');
     }
     if (!checkFields(res, req.body, { sourceType: 'string', sourceID: 'string' })) {
       return null;
@@ -31,8 +32,8 @@ export default function staffRoutes() {
   });
 
   router.post('/media/:id', (req, res) => {
-    if (req.user.role < 4) {
-      return res.status(403).json('you need to be at least manager to do this');
+    if (req.user.role < ROLE_MANAGER) {
+      return res.status(403).json('you need to be at least a manager to do this');
     }
     if (!checkFields(res, req.body, { sourceType: 'string', sourceID: 'string' })) {
       return null;
@@ -44,8 +45,8 @@ export default function staffRoutes() {
   });
 
   router.put('/media/:id', (req, res) => {
-    if (req.user.role < 4) {
-      return res.status(403).json('you need to be at least manager to do this');
+    if (req.user.role < ROLE_MANAGER) {
+      return res.status(403).json('you need to be at least a manager to do this');
     }
     if (!req.body.auto) {
       if (!checkFields(res, req.body, {
@@ -76,8 +77,8 @@ export default function staffRoutes() {
   });
 
   router.delete('/media/:id', (req, res) => {
-    if (req.user.role < 4) {
-      return res.status(403).json('you need to be at least manager to do this');
+    if (req.user.role < ROLE_MANAGER) {
+      return res.status(403).json('you need to be at least a manager to do this');
     }
     if (!checkFields(res, req.body, { sourceType: 'string', sourceID: 'string' })) {
       return res.status(422).json('expected sourceType to be a string and sourceID to be a string');

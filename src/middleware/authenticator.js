@@ -1,6 +1,9 @@
 import bluebird from 'bluebird';
 import jwt from 'jsonwebtoken';
 import debug from 'debug';
+import clamp from 'clamp';
+
+import { ROLE_DEFAULT, ROLE_ADMIN } from '../roles';
 
 const verify = bluebird.promisify(jwt.verify);
 /* eslint-disable max-len */
@@ -14,8 +17,11 @@ export default function authenticatorMiddleware(v1) {
     verify(req.query.token, v1.getCert())
     .then(user => {
       if (!user) res.status(404).json('user not found');
-      if (typeof user.role !== 'number') user.role = parseInt(user.role, 10);
-      if (isNaN(user.role)) user.role = 0;
+
+      if (typeof user.role !== 'number') {
+        user.role = parseInt(user.role, 10);
+      }
+      user.role = clamp(user.role || 0, ROLE_DEFAULT, ROLE_ADMIN);
 
       req.user = user;
       next();
