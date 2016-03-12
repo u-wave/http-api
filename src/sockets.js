@@ -186,69 +186,112 @@ export default class WSServer {
     }
   }
 
-  async _handleMessage(channel, rawCommand) {
-    const uw = this.uw;
-    const { command, data } = JSON.parse(rawCommand);
+  /**
+   * Handlers for commands that come in from the server side.
+   */
+  serverActions = {
+    /**
+     * Advance to the next track.
+     */
+    async 'advance'(options) {
+      clearTimeout(this.advanceTimer);
+      this.advanceTimer = null;
 
-    const getDuration = playlistItem => playlistItem.end - playlistItem.start;
+      const { historyEntry, waitlist } = await advance(this.uw, options);
+      this.broadcast('waitlistUpdate', waitlist);
+      if (historyEntry) {
+        this.broadcast('advance', {
+          historyID: historyEntry.id,
+          userID: historyEntry.user.id,
+          item: historyEntry.item.id,
+          media: historyEntry.media,
+          played: new Date(historyEntry.played).getTime()
+        });
+
+        const duration = historyEntry.media.end - historyEntry.media.start;
+
+        this.advanceTimer = setTimeout(
+          () => this.uw.publish('advance'),
+          duration * 1000
+        );
+      } else {
+        this.broadcast('advance', null);
+      }
+    },
+    /**
+     * Advance to the next track, if nobody is playing right now.
+     */
+    async 'advance:check'(userRole) {
+      const isLocked = await this.uw.redis.get('waitlist:lock');
+      const skipIsAllowed = !isLocked || userRole > 3;
+      if (this.advanceTimer === null && skipIsAllowed) {
+        this.uw.publish('advance');
+      }
+    },
+    /**
+     * Broadcast a chat message.
+     */
+    'chat:message'({ userID, message, timestamp }) {
+      this.broadcast('chatMessage', {
+        _id: userID,
+        message,
+        timestamp
+      });
+    },
+    /**
+     * Broadcast a vote for the current track.
+     */
+    'booth:vote'({ userID, direction }) {
+      this.broadcast('vote', {
+        _id: userID,
+        value: direction
+      });
+    },
+    /**
+     * Cycle a single user's playlist.
+     */
+    'playlist:cycle'({ userID, playlistID }) {
+      this.sendTo(userID, 'playlistCycle', { playlistID });
+    },
+    /**
+     * Broadcast that a user left the waitlist.
+     */
+    'waitlist:leave'({ userID, waitlist }) {
+      this.broadcast('waitlistLeave', { userID, waitlist });
+    },
+    /**
+     * Broadcast that a user was removed from the waitlist.
+     */
+    'waitlist:remove'({ userID, moderatorID, waitlist }) {
+      this.broadcast('waitlistRemove', { userID, moderatorID, waitlist });
+    },
+    /**
+     * Broadcast that a user left the server.
+     */
+    'user:leave'(userID) {
+      this.broadcast('leave', userID);
+    },
+    /**
+     * Force-close a connection.
+     */
+    'api-v1:socket:close'(connectionID) {
+      this._close(connectionID, CLOSE_NORMAL);
+    }
+  };
+
+  /**
+   * Handle command messages coming in from Redis.
+   * Some commands are intended to broadcast immediately to all connected
+   * clients, but others require special action.
+   */
+  async _handleMessage(channel, rawCommand) {
+    const { command, data } = JSON.parse(rawCommand);
 
     if (channel === 'v1') {
       this.broadcast(command, data);
     } else if (channel === 'uwave') {
-      if (command === 'advance') {
-        clearTimeout(this.advanceTimer);
-        this.advanceTimer = null;
-
-        const { historyEntry, waitlist } = await advance(uw, data);
-        uw.redis.publish('v1', createCommand('waitlistUpdate', waitlist));
-        if (historyEntry) {
-          uw.redis.publish('v1', createCommand('advance', {
-            historyID: historyEntry.id,
-            userID: historyEntry.user.id,
-            item: historyEntry.item.id,
-            media: historyEntry.media,
-            played: new Date(historyEntry.played).getTime()
-          }));
-
-          this.advanceTimer = setTimeout(
-            () => uw.publish('advance'),
-            getDuration(historyEntry.media) * 1000
-          );
-        } else {
-          this.broadcast('advance', null);
-        }
-      } else if (command === 'advance:check') {
-        const isLocked = await uw.redis.get('waitlist:lock');
-        const userRole = data;
-        const skipIsAllowed = !isLocked || userRole > 3;
-        if (this.advanceTimer === null && skipIsAllowed) {
-          uw.publish('advance');
-        }
-      } else if (command === 'chat:message') {
-        const { userID, message, timestamp } = data;
-        this.broadcast('chatMessage', {
-          _id: userID,
-          message, timestamp
-        });
-      } else if (command === 'booth:vote') {
-        const { userID, direction } = data;
-        this.broadcast('vote', {
-          _id: userID,
-          value: direction
-        });
-      } else if (command === 'playlist:cycle') {
-        const { userID, playlistID } = data;
-        this.sendTo(userID, 'playlistCycle', { playlistID });
-      } else if (command === 'waitlist:leave') {
-        const { userID, waitlist } = data;
-        this.broadcast('waitlistLeave', { userID, waitlist });
-      } else if (command === 'waitlist:remove') {
-        const { userID, moderatorID, waitlist } = data;
-        this.broadcast('waitlistRemove', { userID, moderatorID, waitlist });
-      } else if (command === 'user:leave') {
-        this.broadcast('leave', data);
-      } else if (command === 'api-v1:socket:close') {
-        this._close(data, CLOSE_NORMAL);
+      if (command in this.actions) {
+        this.actions[command].call(this, data);
       }
     }
   }
