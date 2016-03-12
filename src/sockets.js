@@ -8,7 +8,6 @@ import advance from './advance';
 import { vote } from './controllers/booth';
 import { sendChatMessage } from './controllers/chat';
 import { disconnectUser } from './controllers/users';
-import { getWaitlist } from './controllers/waitlist';
 
 // websocket error codes
 const CLOSE_NORMAL = 1000;
