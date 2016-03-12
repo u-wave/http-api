@@ -49,15 +49,12 @@ export default class WSServer {
   }
 
   static parseMessage(str) {
-    let payload = null;
-
     try {
-      payload = JSON.parse(str);
+      return JSON.parse(str);
     } catch (e) {
       log(e);
     }
-
-    return payload;
+    return {};
   }
 
   async _close(id, code) {
@@ -156,35 +153,17 @@ export default class WSServer {
     this.broadcast('join', userModel);
   }
 
-  async _handleIncomingCommands(conn, msg) {
-    log('incoming', msg);
-    const uw = this.uw;
-    const payload = WSServer.parseMessage(msg);
-    const user = this.clients[conn.id];
-
-    if (!payload || typeof payload !== 'object' || typeof payload.command !== 'string') {
-      conn.send(createCommand('error', 'command invalid'));
-      return;
+  /**
+   * Handlers for commands that come in from clients.
+   */
+  clientActions = {
+    sendChat(client, message) {
+      return sendChatMessage(this.uw, client._id, message);
+    },
+    vote(client, direction) {
+      return vote(this.uw, client._id, direction);
     }
-
-    if (!user) {
-      conn.close(CLOSE_VIOLATED_POLICY, 'user not found');
-      return;
-    }
-
-    switch (payload.command) {
-    case 'sendChat':
-      await sendChatMessage(uw, user._id, payload.data);
-      break;
-
-    case 'vote':
-      await vote(uw, user._id, payload.data);
-      break;
-
-    default:
-      conn.send(createCommand('error', 'unknown command'));
-    }
-  }
+  };
 
   /**
    * Handlers for commands that come in from the server side.
@@ -280,18 +259,43 @@ export default class WSServer {
   };
 
   /**
+   * Handle commands coming in from clients.
+   */
+  async _handleIncomingCommands(conn, rawCommand) {
+    log('incoming', rawCommand);
+    const { command, data } = WSServer.parseMessage(rawCommand);
+    const client = this.clients[conn.id];
+
+    if (!command || typeof command !== 'string') {
+      conn.send(createCommand('error', 'command invalid'));
+      return;
+    }
+
+    if (!client) {
+      conn.close(CLOSE_VIOLATED_POLICY, 'user not found');
+      return;
+    }
+
+    if (command in this.clientActions) {
+      this.clientActions[command].call(this, client, data);
+    } else {
+      conn.send(createCommand('error', 'unknown command'));
+    }
+  }
+
+  /**
    * Handle command messages coming in from Redis.
    * Some commands are intended to broadcast immediately to all connected
    * clients, but others require special action.
    */
   async _handleMessage(channel, rawCommand) {
-    const { command, data } = JSON.parse(rawCommand);
+    const { command, data } = WSServer.parseMessage(rawCommand);
 
     if (channel === 'v1') {
       this.broadcast(command, data);
     } else if (channel === 'uwave') {
-      if (command in this.actions) {
-        this.actions[command].call(this, data);
+      if (command in this.serverActions) {
+        this.serverActions[command].call(this, data);
       }
     }
   }
