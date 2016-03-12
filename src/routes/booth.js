@@ -22,14 +22,18 @@ export default function boothRoutes() {
       return res.status(403).json('you need to be logged in');
     }
 
-    if (Object.keys(req.body).length === 0) {
+    const skippingSelf = !req.body.userID && !req.body.reason ||
+      req.body.userID === req.user.id;
+    const opts = { remove: !!req.body.remove };
+
+    if (skippingSelf) {
       controller.getCurrentDJ(req.uwave)
       .then(currentDJ => {
         if (!currentDJ || currentDJ !== req.user.id) {
           return res.status(412).json('you are not currently playing');
         }
 
-        controller.skipBooth(req.uwave, null, req.user.id, null)
+        controller.skipBooth(req.uwave, null, req.user.id, null, opts)
         .then(skipped => res.status(200).json(skipped))
         .catch(e => handleError(res, e, log));
       })
@@ -43,7 +47,7 @@ export default function boothRoutes() {
         return null;
       }
 
-      controller.skipBooth(req.uwave, req.user.id, req.body.userID, req.body.reason)
+      controller.skipBooth(req.uwave, req.user.id, req.body.userID, req.body.reason, opts)
       .then(skipped => res.status(200).json(skipped))
       .catch(e => handleError(res, e, log));
     }
