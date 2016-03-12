@@ -7,6 +7,7 @@ import debug from 'debug';
 import advance from './advance';
 import { vote } from './controllers/booth';
 import { sendChatMessage } from './controllers/chat';
+import { disconnectUser } from './controllers/users';
 import { getWaitlist } from './controllers/waitlist';
 
 // websocket error codes
@@ -60,43 +61,17 @@ export default class WSServer {
     return payload;
   }
 
-  async _removeUser(id) {
-    const uw = this.uw;
-    const History = uw.model('History');
-    // Currently `this` doesn't work well in async arrow functions:
-    // https://phabricator.babeljs.io/T2765
-    // So we'll use `sThis` as a workaround for now.
-    const sThis = this;
+  async _close(id, code) {
+    if (code !== CLOSE_NORMAL) {
+      log(`connection ${id} closed with error: ${code}.`);
+    }
 
-    const skipIfCurrentDJ = async () => {
-      const historyID = await uw.redis.get('booth:historyID');
-      const entry = await History.findOne({ _id: historyID });
-      if (entry && `${entry.user}` === id) {
-        uw.publish('advance', { remove: true });
-      }
-    };
-
-    const removeFromWaitlist = async () => {
-      const waitlist = await getWaitlist(uw);
-      const i = waitlist.indexOf(id);
-      if (i !== -1) {
-        waitlist.splice(i, 1);
-        uw.redis.lrem('waitlist', 0, id);
-        sThis.broadcast('waitlistLeave', {
-          userID: id,
-          waitlist
-        });
-      }
-    };
-
-    await skipIfCurrentDJ();
-    await removeFromWaitlist();
-    await uw.redis.lrem('users', 0, id);
-  }
-
-  _close(id, code) {
-    if (code !== CLOSE_NORMAL) log(`connection ${id} closed with error.`);
+    const client = this.clients[id];
     delete this.clients[id];
+
+    if (client._id) {
+      await disconnectUser(this.uw, client._id);
+    }
   }
 
   generateID() {
@@ -159,11 +134,7 @@ export default class WSServer {
     conn.on('message', msg => this._handleIncomingCommands(conn, msg));
     conn.on('error', e => log(e));
     conn.on('close', async code => {
-      const client = sThis.clients[conn.id];
-
       sThis._close(conn.id, code);
-      await sThis._removeUser(client._id);
-      sThis.broadcast('leave', client._id);
     });
 
     conn.on('ping', () => {

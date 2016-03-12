@@ -7,6 +7,9 @@ import { paginate } from '../utils';
 import { GenericError, PaginateError } from '../errors';
 import { ROLE_DEFAULT, ROLE_ADMIN } from '../roles';
 
+import { skipIfCurrentDJ } from './booth';
+import { leaveWaitlist } from './waitlist';
+
 const ObjectId = mongoose.Types.ObjectId;
 
 export function getUsers(uw, page, limit) {
@@ -126,6 +129,22 @@ export function setStatus(uw, id, status) {
     userID: id,
     status: clamp(status, 0, 3)
   }));
+}
+
+export async function disconnectUser(uw, user) {
+  const userID = typeof user === 'object' ? user._id : user;
+
+  await skipIfCurrentDJ(uw, userID);
+
+  try {
+    await leaveWaitlist(uw, userID);
+  } catch (e) {
+    // Ignore
+  }
+
+  await uw.redis.del(`users:${userID}`);
+
+  uw.publish('user:leave', { userID });
 }
 
 export function getHistory(uw, id, page, limit) {
