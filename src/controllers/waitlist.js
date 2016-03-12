@@ -135,36 +135,34 @@ export async function moveWaitlist(uw, moderatorID, userID, position) {
   return waitlist;
 }
 
-export async function leaveWaitlist(uw, moderatorID, id) {
-  const User = uw.model('User');
-  let waitlist = await getWaitlist(uw);
-
-  if (waitlist.length === 0) {
-    throw new GenericError(412, 'waitlist is empty');
+async function removeUser(uw, userID) {
+  const waitlist = await getWaitlist(uw);
+  if (!isInWaitlist(waitlist, userID)) {
+    throw new Error('User is not in the waitlist');
   }
 
-  const user = await User.findOne(new ObjectId(id.toLowerCase()));
+  await uw.redis.lrem('waitlist', 0, userID);
+}
 
-  if (!user) throw new GenericError(404, `no user with id ${id}`);
+export async function leaveWaitlist(uw, user) {
+  const userID = typeof user === 'object' ? `${user._id}` : user;
 
-  if (!isInWaitlist(waitlist, user.id)) {
-    throw new GenericError(404, `user ${user.username} is not in waitlist`);
-  }
+  await removeUser(uw, userID);
 
-  await uw.redis.lrem('waitlist', 0, user.id);
-  waitlist = await getWaitlist(uw);
+  const waitlist = await getWaitlist(uw);
+  uw.publish('waitlist:leave', { userID, waitlist });
 
-  if (moderatorID !== id) {
-    uw.redis.publish('v1', createCommand('waitlistRemove', {
-      userID: id,
-      moderatorID, waitlist
-    }));
-  } else {
-    uw.redis.publish('v1', createCommand('waitlistLeave', {
-      userID: id,
-      waitlist
-    }));
-  }
+  return waitlist;
+}
+
+export async function removeFromWaitlist(uw, user, moderator) {
+  const userID = typeof user === 'object' ? `${user._id}` : user;
+  const moderatorID = typeof moderator === 'object' ? `${moderator._id}` : moderator;
+
+  await removeUser(uw, userID);
+
+  const waitlist = await getWaitlist(uw);
+  uw.publish('waitlist:remove', { userID, moderatorID, waitlist });
 
   return waitlist;
 }

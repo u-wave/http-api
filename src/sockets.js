@@ -269,6 +269,14 @@ export default class WSServer {
       } else if (_command.command === 'playlist:cycle') {
         const { userID, playlistID } = _command.data;
         this.sendTo(userID, 'playlistCycle', { playlistID });
+      } else if (_command.command === 'waitlist:leave') {
+        const { userID, waitlist } = _command.data;
+        this.broadcast('waitlistLeave', { userID, waitlist });
+      } else if (_command.command === 'waitlist:remove') {
+        const { userID, moderatorID, waitlist } = _command.data;
+        this.broadcast('waitlistRemove', { userID, moderatorID, waitlist });
+      } else if (_command.command === 'user:leave') {
+        this.broadcast('leave', _command.data);
       } else if (_command.command === 'api-v1:socket:close') {
         this._close(_command.data, CLOSE_NORMAL);
       }
