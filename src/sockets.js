@@ -186,20 +186,20 @@ export default class WSServer {
     }
   }
 
-  async _handleMessage(channel, command) {
+  async _handleMessage(channel, rawCommand) {
     const uw = this.uw;
-    const _command = JSON.parse(command);
+    const { command, data } = JSON.parse(rawCommand);
 
     const getDuration = playlistItem => playlistItem.end - playlistItem.start;
 
     if (channel === 'v1') {
-      this.broadcast(_command.command, _command.data);
+      this.broadcast(command, data);
     } else if (channel === 'uwave') {
-      if (_command.command === 'advance') {
+      if (command === 'advance') {
         clearTimeout(this.advanceTimer);
         this.advanceTimer = null;
 
-        const { historyEntry, waitlist } = await advance(uw, _command.data);
+        const { historyEntry, waitlist } = await advance(uw, data);
         uw.redis.publish('v1', createCommand('waitlistUpdate', waitlist));
         if (historyEntry) {
           uw.redis.publish('v1', createCommand('advance', {
@@ -217,38 +217,38 @@ export default class WSServer {
         } else {
           this.broadcast('advance', null);
         }
-      } else if (_command.command === 'advance:check') {
+      } else if (command === 'advance:check') {
         const isLocked = await uw.redis.get('waitlist:lock');
-        const userRole = _command.data;
+        const userRole = data;
         const skipIsAllowed = !isLocked || userRole > 3;
         if (this.advanceTimer === null && skipIsAllowed) {
           uw.publish('advance');
         }
-      } else if (_command.command === 'chat:message') {
-        const { userID, message, timestamp } = _command.data;
+      } else if (command === 'chat:message') {
+        const { userID, message, timestamp } = data;
         this.broadcast('chatMessage', {
           _id: userID,
           message, timestamp
         });
-      } else if (_command.command === 'booth:vote') {
-        const { userID, direction } = _command.data;
+      } else if (command === 'booth:vote') {
+        const { userID, direction } = data;
         this.broadcast('vote', {
           _id: userID,
           value: direction
         });
-      } else if (_command.command === 'playlist:cycle') {
-        const { userID, playlistID } = _command.data;
+      } else if (command === 'playlist:cycle') {
+        const { userID, playlistID } = data;
         this.sendTo(userID, 'playlistCycle', { playlistID });
-      } else if (_command.command === 'waitlist:leave') {
-        const { userID, waitlist } = _command.data;
+      } else if (command === 'waitlist:leave') {
+        const { userID, waitlist } = data;
         this.broadcast('waitlistLeave', { userID, waitlist });
-      } else if (_command.command === 'waitlist:remove') {
-        const { userID, moderatorID, waitlist } = _command.data;
+      } else if (command === 'waitlist:remove') {
+        const { userID, moderatorID, waitlist } = data;
         this.broadcast('waitlistRemove', { userID, moderatorID, waitlist });
-      } else if (_command.command === 'user:leave') {
-        this.broadcast('leave', _command.data);
-      } else if (_command.command === 'api-v1:socket:close') {
-        this._close(_command.data, CLOSE_NORMAL);
+      } else if (command === 'user:leave') {
+        this.broadcast('leave', data);
+      } else if (command === 'api-v1:socket:close') {
+        this._close(data, CLOSE_NORMAL);
       }
     }
   }
