@@ -5,7 +5,9 @@ import WebSocket from 'ws';
 import debug from 'debug';
 
 import advance from './advance';
-import { getWaitlist } from './controllers/waitlist';
+import { vote } from './controllers/booth';
+import { sendChatMessage } from './controllers/chat';
+import { disconnectUser } from './controllers/users';
 
 // websocket error codes
 const CLOSE_NORMAL = 1000;
@@ -47,54 +49,25 @@ export default class WSServer {
   }
 
   static parseMessage(str) {
-    let payload = null;
-
     try {
-      payload = JSON.parse(str);
+      return JSON.parse(str);
     } catch (e) {
       log(e);
     }
-
-    return payload;
+    return {};
   }
 
-  async _removeUser(id) {
-    const uw = this.uw;
-    const History = uw.model('History');
-    // Currently `this` doesn't work well in async arrow functions:
-    // https://phabricator.babeljs.io/T2765
-    // So we'll use `sThis` as a workaround for now.
-    const sThis = this;
+  async _close(id, code) {
+    if (code !== CLOSE_NORMAL) {
+      log(`connection ${id} closed with error: ${code}.`);
+    }
 
-    const skipIfCurrentDJ = async () => {
-      const historyID = await uw.redis.get('booth:historyID');
-      const entry = await History.findOne({ _id: historyID });
-      if (entry && `${entry.user}` === id) {
-        uw.publish('advance', { remove: true });
-      }
-    };
-
-    const removeFromWaitlist = async () => {
-      const waitlist = await getWaitlist(uw);
-      const i = waitlist.indexOf(id);
-      if (i !== -1) {
-        waitlist.splice(i, 1);
-        uw.redis.lrem('waitlist', 0, id);
-        sThis.broadcast('waitlistLeave', {
-          userID: id,
-          waitlist
-        });
-      }
-    };
-
-    await skipIfCurrentDJ();
-    await removeFromWaitlist();
-    await uw.redis.lrem('users', 0, id);
-  }
-
-  _close(id, code) {
-    if (code !== CLOSE_NORMAL) log(`connection ${id} closed with error.`);
+    const client = this.clients[id];
     delete this.clients[id];
+
+    if (client._id) {
+      await disconnectUser(this.uw, client._id);
+    }
   }
 
   generateID() {
@@ -157,11 +130,7 @@ export default class WSServer {
     conn.on('message', msg => this._handleIncomingCommands(conn, msg));
     conn.on('error', e => log(e));
     conn.on('close', async code => {
-      const client = sThis.clients[conn.id];
-
       sThis._close(conn.id, code);
-      await sThis._removeUser(client._id);
-      sThis.broadcast('leave', client._id);
     });
 
     conn.on('ping', () => {
@@ -184,117 +153,149 @@ export default class WSServer {
     this.broadcast('join', userModel);
   }
 
-  async _handleIncomingCommands(conn, msg) {
-    log('incoming', msg);
-    const uw = this.uw;
-    const payload = WSServer.parseMessage(msg);
-    const user = this.clients[conn.id];
-    // Currently `this` doesn't work well in async arrow functions:
-    // https://phabricator.babeljs.io/T2765
-    // So we'll use `sThis` as a workaround for now.
-    const sThis = this;
+  /**
+   * Handlers for commands that come in from clients.
+   */
+  clientActions = {
+    sendChat(client, message) {
+      return sendChatMessage(this.uw, client._id, message);
+    },
+    vote(client, direction) {
+      return vote(this.uw, client._id, direction);
+    }
+  };
 
-    if (!payload || typeof payload !== 'object' || typeof payload.command !== 'string') {
+  /**
+   * Handlers for commands that come in from the server side.
+   */
+  serverActions = {
+    /**
+     * Advance to the next track.
+     */
+    async 'advance'(options) {
+      clearTimeout(this.advanceTimer);
+      this.advanceTimer = null;
+
+      const { historyEntry, waitlist } = await advance(this.uw, options);
+      this.broadcast('waitlistUpdate', waitlist);
+      if (historyEntry) {
+        this.broadcast('advance', {
+          historyID: historyEntry.id,
+          userID: historyEntry.user.id,
+          item: historyEntry.item.id,
+          media: historyEntry.media,
+          played: new Date(historyEntry.played).getTime()
+        });
+
+        const duration = historyEntry.media.end - historyEntry.media.start;
+
+        this.advanceTimer = setTimeout(
+          () => this.uw.publish('advance'),
+          duration * 1000
+        );
+      } else {
+        this.broadcast('advance', null);
+      }
+    },
+    /**
+     * Advance to the next track, if nobody is playing right now.
+     */
+    async 'advance:check'(userRole) {
+      const isLocked = await this.uw.redis.get('waitlist:lock');
+      const skipIsAllowed = !isLocked || userRole > 3;
+      if (this.advanceTimer === null && skipIsAllowed) {
+        this.uw.publish('advance');
+      }
+    },
+    /**
+     * Broadcast a chat message.
+     */
+    'chat:message'({ userID, message, timestamp }) {
+      this.broadcast('chatMessage', {
+        _id: userID,
+        message,
+        timestamp
+      });
+    },
+    /**
+     * Broadcast a vote for the current track.
+     */
+    'booth:vote'({ userID, direction }) {
+      this.broadcast('vote', {
+        _id: userID,
+        value: direction
+      });
+    },
+    /**
+     * Cycle a single user's playlist.
+     */
+    'playlist:cycle'({ userID, playlistID }) {
+      this.sendTo(userID, 'playlistCycle', { playlistID });
+    },
+    /**
+     * Broadcast that a user left the waitlist.
+     */
+    'waitlist:leave'({ userID, waitlist }) {
+      this.broadcast('waitlistLeave', { userID, waitlist });
+    },
+    /**
+     * Broadcast that a user was removed from the waitlist.
+     */
+    'waitlist:remove'({ userID, moderatorID, waitlist }) {
+      this.broadcast('waitlistRemove', { userID, moderatorID, waitlist });
+    },
+    /**
+     * Broadcast that a user left the server.
+     */
+    'user:leave'(userID) {
+      this.broadcast('leave', userID);
+    },
+    /**
+     * Force-close a connection.
+     */
+    'api-v1:socket:close'(connectionID) {
+      this._close(connectionID, CLOSE_NORMAL);
+    }
+  };
+
+  /**
+   * Handle commands coming in from clients.
+   */
+  async _handleIncomingCommands(conn, rawCommand) {
+    log('incoming', rawCommand);
+    const { command, data } = WSServer.parseMessage(rawCommand);
+    const client = this.clients[conn.id];
+
+    if (!command || typeof command !== 'string') {
       conn.send(createCommand('error', 'command invalid'));
       return;
     }
 
-    if (!user) {
+    if (!client) {
       conn.close(CLOSE_VIOLATED_POLICY, 'user not found');
       return;
     }
 
-    const sendVote = async direction => {
-      await Promise.all([
-        uw.redis.lrem('booth:upvotes', 0, user._id),
-        uw.redis.lrem('booth:downvotes', 0, user._id)
-      ]);
-      await uw.redis.lpush(
-        direction > 0 ? 'booth:upvotes' : 'booth:downvotes',
-        user._id
-      );
-      sThis.broadcast('vote', {
-        _id: user._id,
-        value: direction
-      });
-    };
-
-    switch (payload.command) {
-    case 'sendChat':
-      this.broadcast('chatMessage', {
-        _id: user._id,
-        message: payload.data,
-        timestamp: Date.now()
-      });
-      break;
-
-    case 'vote':
-      const currentDJ = await uw.redis.get('booth:currentDJ');
-      if (currentDJ !== null && currentDJ !== user._id) {
-        const historyID = await uw.redis.get('booth:historyID');
-        if (historyID === null) return;
-        if (payload.data > 0) {
-          const upvoted = await uw.redis.lrange('booth:upvotes', 0, -1);
-          if (upvoted.indexOf(user._id) === -1) {
-            await sendVote(1);
-          }
-        } else {
-          const downvoted = await uw.redis.lrange('booth:downvotes', 0, -1);
-          if (downvoted.indexOf(user._id) === -1) {
-            await sendVote(-1);
-          }
-        }
-      }
-      break;
-
-    default:
+    if (command in this.clientActions) {
+      this.clientActions[command].call(this, client, data);
+    } else {
       conn.send(createCommand('error', 'unknown command'));
     }
   }
 
-  async _handleMessage(channel, command) {
-    const uw = this.uw;
-    const _command = JSON.parse(command);
-
-    const getDuration = playlistItem => playlistItem.end - playlistItem.start;
+  /**
+   * Handle command messages coming in from Redis.
+   * Some commands are intended to broadcast immediately to all connected
+   * clients, but others require special action.
+   */
+  async _handleMessage(channel, rawCommand) {
+    const { command, data } = WSServer.parseMessage(rawCommand);
 
     if (channel === 'v1') {
-      this.broadcast(_command.command, _command.data);
+      this.broadcast(command, data);
     } else if (channel === 'uwave') {
-      if (_command.command === 'advance') {
-        clearTimeout(this.advanceTimer);
-        this.advanceTimer = null;
-
-        const { historyEntry, waitlist } = await advance(uw, _command.data);
-        uw.redis.publish('v1', createCommand('waitlistUpdate', waitlist));
-        if (historyEntry) {
-          uw.redis.publish('v1', createCommand('advance', {
-            historyID: historyEntry.id,
-            userID: historyEntry.user.id,
-            item: historyEntry.item.id,
-            media: historyEntry.media,
-            played: new Date(historyEntry.played).getTime()
-          }));
-
-          this.advanceTimer = setTimeout(
-            () => uw.publish('advance'),
-            getDuration(historyEntry.media) * 1000
-          );
-        } else {
-          this.broadcast('advance', null);
-        }
-      } else if (_command.command === 'advance:check') {
-        const isLocked = await uw.redis.get('waitlist:lock');
-        const userRole = _command.data;
-        const skipIsAllowed = !isLocked || userRole > 3;
-        if (this.advanceTimer === null && skipIsAllowed) {
-          uw.publish('advance');
-        }
-      } else if (_command.command === 'playlist:cycle') {
-        const { userID, playlistID } = _command.data;
-        this.sendTo(userID, 'playlistCycle', { playlistID });
-      } else if (_command.command === 'api-v1:socket:close') {
-        this._close(_command.data, CLOSE_NORMAL);
+      if (command in this.serverActions) {
+        this.serverActions[command].call(this, data);
       }
     }
   }

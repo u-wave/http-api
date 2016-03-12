@@ -1,5 +1,13 @@
 import { createCommand } from '../sockets';
 
+export function sendChatMessage(uw, user, message) {
+  const userID = typeof user === 'object' ? user._id : user;
+  uw.publish('chat:message', {
+    userID, message,
+    timestamp: Date.now()
+  });
+}
+
 export function chatDelete(uw, id) {
   uw.redis.publish('v1', createCommand('chatDelete', { moderatorID: id }));
 }

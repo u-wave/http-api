@@ -62,13 +62,19 @@ export default function waitlistRoutes() {
   });
 
   router.delete('/:id', (req, res) => {
-    if (req.user.id !== req.params.id && req.user.role < ROLE_MODERATOR) {
-      return res.status(403).json('you need to be at least a moderator to do this');
+    let promise;
+    if (req.user.id !== req.params.id) {
+      if (req.user.role < ROLE_MODERATOR) {
+        return res.status(403).json('you need to be at least a moderator to do this');
+      }
+      promise = controller.removeFromWaitlist(req.uwave, req.params.id, req.user.id);
+    } else {
+      promise = controller.leaveWaitlist(req.uwave, req.user.id);
     }
 
-    controller.leaveWaitlist(req.uwave, req.user.id, req.params.id)
-    .then(waitlist => res.status(200).json(waitlist))
-    .catch(e => handleError(res, e, log));
+    promise
+      .then(waitlist => res.status(200).json(waitlist))
+      .catch(e => handleError(res, e, log));
   });
 
   router.put('/lock', (req, res) => {
