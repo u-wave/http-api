@@ -142,7 +142,7 @@ export async function disconnectUser(uw, user) {
     // Ignore
   }
 
-  await uw.redis.del(`users:${userID}`);
+  await uw.redis.lrem('users', 0, userID);
 
   uw.publish('user:leave', { userID });
 }
