@@ -1,7 +1,10 @@
 import clamp from 'clamp';
 import mongoose from 'mongoose';
 
-import { getCurrentDJ } from '../controllers/booth';
+import {
+  getCurrentDJ,
+  isEmpty as boothIsEmpty
+} from '../controllers/booth';
 import { createCommand } from '../sockets';
 import { GenericError } from '../errors';
 
@@ -53,7 +56,10 @@ export async function appendToWaitlist(uw, userID, forceJoin) {
     userID: user.id,
     waitlist
   }));
-  uw.publish('advance:check', user.role);
+
+  if (await boothIsEmpty(uw)) {
+    uw.advance();
+  }
 
   return waitlist;
 }
@@ -92,7 +98,9 @@ export async function insertWaitlist(uw, moderatorID, id, position, forceJoin) {
     waitlist
   }));
 
-  uw.publish('advance:check', user.role);
+  if (await boothIsEmpty(uw)) {
+    uw.advance();
+  }
 
   return waitlist;
 }

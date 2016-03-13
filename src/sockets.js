@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken';
 import WebSocket from 'ws';
 import debug from 'debug';
 
-import advance from './advance';
 import { vote } from './controllers/booth';
 import { sendChatMessage } from './controllers/chat';
 import { disconnectUser } from './controllers/users';
@@ -37,7 +36,6 @@ export default class WSServer {
     this.ID = 0;
 
     this.heartbeatInt = setInterval(this._heartbeat.bind(this), 30 * 1000);
-    this.advanceTimer = null;
 
     this.sub.on('ready', () => this.sub.subscribe('v1'));
     this.sub.on('message', (channel, command) => {
@@ -170,41 +168,19 @@ export default class WSServer {
    */
   serverActions = {
     /**
-     * Advance to the next track.
+     * Broadcast the next track.
      */
-    async 'advance'(options) {
-      clearTimeout(this.advanceTimer);
-      this.advanceTimer = null;
-
-      const { historyEntry, waitlist } = await advance(this.uw, options);
-      this.broadcast('waitlistUpdate', waitlist);
-      if (historyEntry) {
+    'advance:complete'(next) {
+      if (next) {
         this.broadcast('advance', {
-          historyID: historyEntry.id,
-          userID: historyEntry.user.id,
-          item: historyEntry.item.id,
-          media: historyEntry.media,
-          played: new Date(historyEntry.played).getTime()
+          historyID: next._id,
+          userID: next.user._id,
+          item: next.item._id,
+          media: next.media,
+          played: new Date(next.played).getTime()
         });
-
-        const duration = historyEntry.media.end - historyEntry.media.start;
-
-        this.advanceTimer = setTimeout(
-          () => this.uw.publish('advance'),
-          duration * 1000
-        );
       } else {
         this.broadcast('advance', null);
-      }
-    },
-    /**
-     * Advance to the next track, if nobody is playing right now.
-     */
-    async 'advance:check'(userRole) {
-      const isLocked = await this.uw.redis.get('waitlist:lock');
-      const skipIsAllowed = !isLocked || userRole > 3;
-      if (this.advanceTimer === null && skipIsAllowed) {
-        this.uw.publish('advance');
       }
     },
     /**
@@ -243,6 +219,12 @@ export default class WSServer {
      */
     'waitlist:remove'({ userID, moderatorID, waitlist }) {
       this.broadcast('waitlistRemove', { userID, moderatorID, waitlist });
+    },
+    /**
+     * Broadcast a waitlist update.
+     */
+    'waitlist:update'(waitlist) {
+      this.broadcast('waitlistUpdate', waitlist);
     },
     /**
      * Broadcast that a user left the server.
