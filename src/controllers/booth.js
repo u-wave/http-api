@@ -7,6 +7,10 @@ import { GenericError } from '../errors';
 
 const ObjectId = mongoose.Types.ObjectId;
 
+export async function isEmpty(uw) {
+  return !(await uw.redis.get('booth:historyID'));
+}
+
 export async function getBooth(uw) {
   const History = uw.model('History');
 
@@ -40,16 +44,14 @@ export async function getCurrentDJ(uw) {
 
 export function skipBooth(uw, moderatorID, userID, reason, opts = {}) {
   uw.redis.publish('v1', createCommand('skip', { moderatorID, userID, reason }));
-  uw.publish('advance', {
-    remove: opts.remove === true
-  });
+  uw.advance({ remove: opts.remove === true });
   return Promise.resolve(true);
 }
 
 export async function skipIfCurrentDJ(uw, userID) {
   const currentDJ = await getCurrentDJ(uw);
   if (userID === currentDJ) {
-    uw.publish('advance', { remove: true });
+    uw.advance({ remove: true });
   }
 }
 
@@ -68,7 +70,7 @@ export async function replaceBooth(uw, moderatorID, id) {
     moderatorID,
     userID: id
   }));
-  uw.publish('advance');
+  uw.advance();
   return waitlist;
 }
 
