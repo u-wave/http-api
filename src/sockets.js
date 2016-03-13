@@ -229,7 +229,7 @@ export default class WSServer {
     /**
      * Broadcast that a user left the server.
      */
-    'user:leave'(userID) {
+    'user:leave'({ userID }) {
       this.broadcast('leave', userID);
     },
     /**
