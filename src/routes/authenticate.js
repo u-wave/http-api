@@ -9,7 +9,7 @@ import { ROLE_MANAGER } from '../roles';
 const log = debug('uwave:api:v1:auth');
 const rx = /\s|%20/;
 
-export default function authenticateRoutes(v1) {
+export default function authenticateRoutes(v1, options) {
   const router = createRouter();
 
   router.get('/', (req, res) => {
@@ -45,7 +45,7 @@ export default function authenticateRoutes(v1) {
       return null;
     }
 
-    controller.login(req.uwave, req.body.email, req.body.password, v1.getCert())
+    controller.login(req.uwave, req.body.email, req.body.password, options)
     .then(token => res.status(200).json(token))
     .catch(e => handleError(res, e, log));
   });

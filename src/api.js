@@ -1,6 +1,4 @@
 import createRouter from 'router';
-import debug from 'debug';
-import fs from 'fs';
 
 // routes
 import authenticate from './routes/authenticate';
@@ -17,33 +15,35 @@ import now from './routes/now';
 import authenticator from './middleware/authenticator';
 import WSServer from './sockets';
 
-const log = debug('uwave:api:v1');
-
 /**
  * creates a router for version 1 of the api
  *
  * @param {Object} options - router config, for more information see {@link http://expressjs.com/4x/api.html#router}
  **/
 export class V1 {
-  constructor(uw, config = {}) {
+  constructor(uw, options = {}) {
     if (!uw || !('mongo' in uw)) {
-      throw new Error(`
+      throw new TypeError(`
         Expected a u-wave-core instance in the first parameter. If you are
         developing, you may have to upgrade your u-wave-* modules.
       `.replace(/\s+/g, ' ').trim());
     }
 
+    if (!options.secret) {
+      throw new TypeError(`
+        "options.secret" is empty. This option is used to sign authentication
+        keys, and is required for security reasons.
+      `);
+    }
+
     this.uw = uw;
-    this.router = createRouter(config.router);
-    this.cert = '';
-    this.sockets = new WSServer(this, uw, config);
+    this.router = createRouter(options.router);
+    this.sockets = new WSServer(uw, { secret: options.secret });
 
-    this.setCert(config.cert);
-
-    this.router.use(authenticator(this));
+    this.router.use(authenticator(this, { secret: options.secret }));
 
     this.router
-      .use('/auth', authenticate(this))
+      .use('/auth', authenticate(this, { secret: options.secret }))
       .use('/booth', booth(this))
       .use('/chat', chat(this))
       .use('/now', now(this))
@@ -56,17 +56,6 @@ export class V1 {
 
   getRouter() {
     return this.router;
-  }
-
-  setCert(filepath) {
-    fs.readFile(filepath, 'UTF8', (err, content) => {
-      if (err) return log(`couldn't load cert. Error: ${err}`);
-      this.cert = content;
-    });
-  }
-
-  getCert() {
-    return this.cert;
   }
 
   destroy() {

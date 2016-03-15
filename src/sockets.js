@@ -22,10 +22,10 @@ export function createCommand(command, data) {
 }
 
 export default class WSServer {
-  constructor(v1, uw) {
-    this.v1 = v1;
+  constructor(uw, options = {}) {
     this.uw = uw;
     this.sub = uw.subscription();
+    this.options = options;
 
     this.wss = new WebSocket.Server({
       server: uw.server,
@@ -115,20 +115,16 @@ export default class WSServer {
   async _authenticate(conn, token) {
     const uw = this.uw;
     const User = uw.model('User');
-    // Currently `this` doesn't work well in async arrow functions:
-    // https://phabricator.babeljs.io/T2765
-    // So we'll use `sThis` as a workaround for now.
-    const sThis = this;
 
     log('authenticate', token);
 
-    const user = await verify(token, this.v1.getCert());
+    const user = await verify(token, this.options.secret);
 
     conn.removeAllListeners();
     conn.on('message', msg => this._handleIncomingCommands(conn, msg));
     conn.on('error', e => log(e));
     conn.on('close', async code => {
-      sThis._close(conn.id, code);
+      this._close(conn.id, code);
     });
 
     conn.on('ping', () => {
