@@ -1,6 +1,7 @@
 import debug from 'debug';
 import createRouter from 'router';
 
+import protect from '../middleware/protect';
 import * as controller from '../controllers/staff';
 import { checkFields } from '../utils';
 import handleError from '../errors';
@@ -11,17 +12,14 @@ const log = debug('uwave:api:v1:staff');
 export default function staffRoutes() {
   const router = createRouter();
 
-  router.get('/media', (req, res) => {
+  router.get('/media', protect(ROLE_MANAGER), (req, res) => {
     const { page, limit } = req.query;
     controller.getAllMedia(req.uwave, parseInt(page, 10), parseInt(limit, 10))
     .then(media => res.status(200).json(media))
     .catch(e => handleError(res, e, log));
   });
 
-  router.get('/media/:id', (req, res) => {
-    if (req.user.role < ROLE_MANAGER) {
-      return res.status(403).json('you need to be at least a manager to do this');
-    }
+  router.get('/media/:id', protect(ROLE_MANAGER), (req, res) => {
     if (!checkFields(res, req.body, { sourceType: 'string', sourceID: 'string' })) {
       return null;
     }
@@ -31,10 +29,7 @@ export default function staffRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.post('/media/:id', (req, res) => {
-    if (req.user.role < ROLE_MANAGER) {
-      return res.status(403).json('you need to be at least a manager to do this');
-    }
+  router.post('/media/:id', protect(ROLE_MANAGER), (req, res) => {
     if (!checkFields(res, req.body, { sourceType: 'string', sourceID: 'string' })) {
       return null;
     }
@@ -44,10 +39,7 @@ export default function staffRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.put('/media/:id', (req, res) => {
-    if (req.user.role < ROLE_MANAGER) {
-      return res.status(403).json('you need to be at least a manager to do this');
-    }
+  router.put('/media/:id', protect(ROLE_MANAGER), (req, res) => {
     if (!req.body.auto) {
       if (!checkFields(res, req.body, {
         sourceType: 'string',
@@ -76,10 +68,7 @@ export default function staffRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.delete('/media/:id', (req, res) => {
-    if (req.user.role < ROLE_MANAGER) {
-      return res.status(403).json('you need to be at least a manager to do this');
-    }
+  router.delete('/media/:id', protect(ROLE_MANAGER), (req, res) => {
     if (!checkFields(res, req.body, { sourceType: 'string', sourceID: 'string' })) {
       return res.status(422).json('expected sourceType to be a string and sourceID to be a string');
     }

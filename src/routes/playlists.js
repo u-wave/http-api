@@ -1,6 +1,7 @@
 import debug from 'debug';
 import createRouter from 'router';
 
+import protect from '../middleware/protect';
 import * as controller from '../controllers/playlists';
 import { checkFields } from '../utils';
 import handleError from '../errors';
@@ -9,6 +10,8 @@ const log = debug('uwave:api:v1:playlists');
 
 export default function playlistRoutes() {
   const router = createRouter();
+
+  router.use(protect());
 
   router.get('/', (req, res) => {
     const { page, limit } = req.query;

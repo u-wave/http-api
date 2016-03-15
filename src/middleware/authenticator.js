@@ -3,20 +3,26 @@ import jwt from 'jsonwebtoken';
 import debug from 'debug';
 import clamp from 'clamp';
 
+import { GenericError as HTTPError } from '../errors';
 import { ROLE_DEFAULT, ROLE_ADMIN } from '../roles';
 
 const verify = bluebird.promisify(jwt.verify);
-/* eslint-disable max-len */
-const rx = /\/auth\/(login|register|password\/reset|password\/reset\/[a-f0-9]{128})|\/booth|\/now|\/(playlists|users)\/[a-f0-9]{24}$/i;
-/* eslint-enable max-len */
 
 const log = debug('uwave:v1:authenticator');
 
 export default function authenticatorMiddleware(v1, options) {
   return function authenticator(req, res, next) {
-    verify(req.query.token, options.secret)
+    const token = req.query && req.query.token;
+    if (!token) {
+      next();
+      return;
+    }
+
+    verify(token, options.secret)
     .then(user => {
-      if (!user) res.status(404).json('user not found');
+      if (!user) {
+        throw new HTTPError(404, 'user not found');
+      }
 
       if (typeof user.role !== 'number') {
         user.role = parseInt(user.role, 10);
@@ -27,16 +33,16 @@ export default function authenticatorMiddleware(v1, options) {
       next();
     })
     .catch(jwt.JsonWebTokenError, () => {
-      // check for routes that need no authentication
-      if (rx.test(req.path)) return next();
-      if (!req.query.token) return res.status(422).json('no token set');
-
       log(`Token '${req.query.token.slice(0, 64)}...' was not valid.`);
-      res.status(410).json('access token invalid');
+      throw new HTTPError(400, 'access token invalid');
     })
     .catch(e => {
+      if (e instanceof HTTPError) {
+        throw e;
+      }
       log(`Unknown error: ${e}`);
-      res.status(500).json('internal server error, please try again later');
-    });
+      throw new HTTPError(500, 'internal server error, please try again later');
+    })
+    .catch(next);
   };
 }

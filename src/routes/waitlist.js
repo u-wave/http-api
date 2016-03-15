@@ -1,6 +1,7 @@
 import debug from 'debug';
 import createRouter from 'router';
 
+import protect from '../middleware/protect';
 import * as controller from '../controllers/waitlist';
 import { checkFields } from '../utils';
 import handleError from '../errors';
@@ -37,23 +38,15 @@ export default function waitlistRoutes() {
       .catch(e => handleError(res, e, log));
   });
 
-  router.delete('/', (req, res) => {
-    if (req.user.role < ROLE_MANAGER) {
-      return res.status(403).json('you need to be at least a manager to do this');
-    }
-
+  router.delete('/', protect(ROLE_MANAGER), (req, res) => {
     controller.clearWaitlist(req.uwave, req.user.id)
     .then(waitlist => res.status(200).json(waitlist))
     .catch(e => handleError(res, e, log));
   });
 
-  router.put('/move', (req, res) => {
+  router.put('/move', protect(ROLE_MODERATOR), (req, res) => {
     if (!checkFields(res, req.body, { userID: 'string', position: 'number' })) {
       return null;
-    }
-
-    if (req.user.role < ROLE_MODERATOR) {
-      return res.status(403).json('you need to be at least a moderator to do this');
     }
 
     controller.moveWaitlist(req.uwave, req.user.id, req.body.userID, req.body.position)
@@ -77,12 +70,9 @@ export default function waitlistRoutes() {
       .catch(e => handleError(res, e, log));
   });
 
-  router.put('/lock', (req, res) => {
+  router.put('/lock', protect(ROLE_MODERATOR), (req, res) => {
     if (!checkFields(res, req.body, { lock: 'boolean', clear: 'boolean' })) {
       return null;
-    }
-    if (req.user.role < ROLE_MODERATOR) {
-      return res.status(403).json('you need to be at least a moderator to do this');
     }
 
     controller.lockWaitlist(req.uwave, req.user.id, req.body.lock, req.body.clear)
