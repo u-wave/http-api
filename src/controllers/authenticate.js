@@ -71,7 +71,7 @@ export function createUser(uw, email, username, password) {
   });
 }
 
-export function login(uw, email, password, secret) {
+export function login(uw, email, password, options) {
   const Authentication = uw.model('Authentication');
   let _auth = null;
 
@@ -89,7 +89,7 @@ export function login(uw, email, password, secret) {
     const token = jwt.sign({
       id: _auth.user.id,
       role: _auth.user.role
-    }, secret, {
+    }, options.secret, {
       expiresIn: '31d'
     });
 

@@ -12,9 +12,9 @@ const rx = /\/auth\/(login|register|password\/reset|password\/reset\/[a-f0-9]{12
 
 const log = debug('uwave:v1:authenticator');
 
-export default function authenticatorMiddleware(v1) {
+export default function authenticatorMiddleware(v1, options) {
   return function authenticator(req, res, next) {
-    verify(req.query.token, v1.getCert())
+    verify(req.query.token, options.secret)
     .then(user => {
       if (!user) res.status(404).json('user not found');
 
