@@ -23,17 +23,17 @@ import WSServer from './sockets';
 export class V1 {
   constructor(uw, options = {}) {
     if (!uw || !('mongo' in uw)) {
-      throw new TypeError(`
-        Expected a u-wave-core instance in the first parameter. If you are
-        developing, you may have to upgrade your u-wave-* modules.
-      `.replace(/\s+/g, ' ').trim());
+      throw new TypeError(
+        'Expected a u-wave-core instance in the first parameter. If you are ' +
+        'developing, you may have to upgrade your u-wave-* modules.'
+      );
     }
 
     if (!options.secret) {
-      throw new TypeError(`
-        "options.secret" is empty. This option is used to sign authentication
-        keys, and is required for security reasons.
-      `);
+      throw new TypeError(
+        '"options.secret" is empty. This option is used to sign authentication ' +
+        'keys, and is required for security reasons.'
+      );
     }
 
     this.uw = uw;
