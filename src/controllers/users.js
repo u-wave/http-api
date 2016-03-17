@@ -132,7 +132,7 @@ export function setStatus(uw, id, status) {
 }
 
 export async function disconnectUser(uw, user) {
-  const userID = typeof user === 'object' ? user._id : user;
+  const userID = typeof user === 'object' ? `${user._id}` : user;
 
   await skipIfCurrentDJ(uw, userID);
 
