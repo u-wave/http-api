@@ -60,7 +60,7 @@ export default class SocketServer {
     const userIDs = await this.uw.redis.lrange('users', 0, -1);
     const disconnectedIDs = userIDs.filter(userID => !this.connection(userID));
 
-    const disconnectedUsers = await User.where('id').in(disconnectedIDs);
+    const disconnectedUsers = await User.where('_id').in(disconnectedIDs);
     disconnectedUsers.forEach(user => {
       this.add(this.createLostConnection(user));
     });
