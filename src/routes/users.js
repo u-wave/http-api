@@ -2,6 +2,7 @@ import debug from 'debug';
 import createRouter from 'router';
 
 import protect from '../middleware/protect';
+import rateLimit from '../middleware/rateLimit';
 import * as controller from '../controllers/users';
 import { checkFields } from '../utils';
 import handleError from '../errors';
@@ -93,19 +94,27 @@ export default function userRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.put('/:id/username', (req, res, next) => {
-    if (!req.body.username) {
-      return res.status(422).json('username is not set');
-    }
+  router.put('/:id/username',
+    rateLimit('change-username', {
+      max: 5,
+      duration: 60 * 60 * 1000,
+      error: (_, retryAfter) =>
+        `You can only change your username five times per hour. Try again in ${retryAfter}.`
+    }),
+    (req, res, next) => {
+      if (!req.body.username) {
+        return res.status(422).json('username is not set');
+      }
 
-    if (typeof req.body.username !== 'string') {
-      return res.status(422).json('username has to be of type string');
-    }
+      if (typeof req.body.username !== 'string') {
+        return res.status(422).json('username has to be of type string');
+      }
 
-    controller.changeUsername(req.uwave, req.user.id, req.params.id, req.body.username)
-      .then(user => res.status(200).json(user))
-      .catch(err => next(err));
-  });
+      controller.changeUsername(req.uwave, req.user.id, req.params.id, req.body.username)
+        .then(user => res.status(200).json(user))
+        .catch(err => next(err));
+    }
+  );
 
   router.put('/:id/avatar', (req, res) => {
     if (!req.body.avatar) {
