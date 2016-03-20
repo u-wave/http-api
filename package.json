@@ -39,6 +39,8 @@
     "mongoose": "^4.1.6",
     "parse-iso-duration": "^1.0.0",
     "router": "^1.1.4",
+    "try-json-parse": "^0.1.1",
+    "ultron": "^1.0.2",
     "ws": "^1.0.1"
   }
 }

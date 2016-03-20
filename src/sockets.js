@@ -1,161 +1,186 @@
-import Mongoose from 'mongoose';
-import bluebird from 'bluebird';
-import jwt from 'jsonwebtoken';
+import find from 'array-find';
 import WebSocket from 'ws';
-import debug from 'debug';
+import tryJsonParse from 'try-json-parse';
 
 import { vote } from './controllers/booth';
 import { sendChatMessage } from './controllers/chat';
 import { disconnectUser } from './controllers/users';
 
-// websocket error codes
-const CLOSE_NORMAL = 1000;
-const CLOSE_VIOLATED_POLICY = 1008;
+import GuestConnection from './sockets/GuestConnection';
+import AuthedConnection from './sockets/AuthedConnection';
+import LostConnection from './sockets/LostConnection';
 
-const ObjectId = Mongoose.Types.ObjectId;
-
-const log = debug('uwave:api:sockets');
-const verify = bluebird.promisify(jwt.verify);
+const debug = require('debug')('uwave:api:sockets');
 
 export function createCommand(command, data) {
   return JSON.stringify({ command, data });
 }
 
-export default class WSServer {
+export default class SocketServer {
+  connections = [];
+  options = {
+    timeout: 30
+  };
+
+  /**
+   * Create a socket server.
+   *
+   * @param {UWaveServer} uw üWave Core instance.
+   * @param {object} options Socket server options.
+   * @param {number} options.timeout Time in seconds to wait for disconnected
+   *     users to reconnect before removing them.
+   */
   constructor(uw, options = {}) {
     this.uw = uw;
     this.sub = uw.subscription();
-    this.options = options;
+    Object.assign(this.options, options);
 
     this.wss = new WebSocket.Server({
       server: uw.server,
       clientTracking: false
     });
 
-    this.clients = {};
-    this.ID = 0;
-
-    this.heartbeatInt = setInterval(this._heartbeat.bind(this), 30 * 1000);
-
     this.sub.on('ready', () => this.sub.subscribe('v1'));
     this.sub.on('message', (channel, command) => {
-      this._handleMessage(channel, command)
+      this.onServerMessage(channel, command)
         .catch(e => { throw e; });
     });
 
-    this.wss.on('connection', this._onConnection.bind(this));
+    this.wss.on('connection', this.onSocketConnected.bind(this));
+
+    this.initLostConnections();
   }
 
-  static parseMessage(str) {
-    try {
-      return JSON.parse(str);
-    } catch (e) {
-      log(e);
-    }
-    return {};
-  }
+  /**
+   * Create `LostConnection`s for every user that's known to be online, but that
+   * is not currently connected to the socket server.
+   */
+  async initLostConnections() {
+    const User = this.uw.model('User');
+    const userIDs = await this.uw.redis.lrange('users', 0, -1);
+    const disconnectedIDs = userIDs.filter(userID => !this.connection(userID));
 
-  async _close(id, code) {
-    if (code !== CLOSE_NORMAL) {
-      log(`connection ${id} closed with error: ${code}.`);
-    }
-
-    const client = this.clients[id];
-    delete this.clients[id];
-
-    if (client._id) {
-      await disconnectUser(this.uw, client._id);
-    }
-  }
-
-  generateID() {
-    while (this.clients[++this.ID]) {
-      if (this.ID >= Number.MAX_SAFE_INTEGER) {
-        this.ID = 0;
-      }
-    }
-    return this.ID;
-  }
-
-  _onConnection(conn) {
-    log('new connection');
-    conn.on('message', msg => {
-      log('message', msg);
-      this._authenticate(conn, msg)
-        .catch(jwt.JsonWebTokenError, e => {
-          log(e);
-          conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'token was not valid.'));
-        })
-        .catch(e => {
-          log(e);
-          conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'internal server error'));
-        });
-    });
-    conn.on('close', code => {
-      this._close(conn.id, code);
-    });
-
-    conn.id = this.generateID();
-
-    this.clients[conn.id] = {
-      _id: '',
-      conn,
-      heartbeat: Date.now()
-    };
-  }
-
-  _heartbeat() {
-    this.eachClient(client => {
-      if (client.heartbeat - Date.now() >= 60 * 1000) {
-        client.conn.close(CLOSE_VIOLATED_POLICY, 'idled too long');
-      }
+    const disconnectedUsers = await User.where('_id').in(disconnectedIDs);
+    disconnectedUsers.forEach(user => {
+      this.add(this.createLostConnection(user));
     });
   }
 
-  async _authenticate(conn, token) {
-    const uw = this.uw;
-    const User = uw.model('User');
+  onSocketConnected(socket) {
+    debug('new connection');
 
-    log('authenticate', token);
+    this.add(this.createGuestConnection(socket));
+  }
 
-    const user = await verify(token, this.options.secret);
+  /**
+   * Get a LostConnection for a user, if one exists.
+   */
+  getLostConnection(user) {
+    return find(this.connections, connection =>
+      connection instanceof LostConnection && connection.user.id === user.id
+    );
+  }
 
-    conn.removeAllListeners();
-    conn.on('message', msg => this._handleIncomingCommands(conn, msg));
-    conn.on('error', e => log(e));
-    conn.on('close', async code => {
-      this._close(conn.id, code);
+  /**
+   * Create a connection instance for an unauthenticated user.
+   */
+  createGuestConnection(socket) {
+    const connection = new GuestConnection(this.uw, socket, {
+      secret: this.options.secret
     });
-
-    conn.on('ping', () => {
-      conn.pong();
-      if (this.clients[conn.id]) {
-        this.clients[conn.id].heartbeat = Date.now();
+    connection.on('close', () => {
+      this.remove(connection);
+    });
+    connection.on('authenticate', async user => {
+      debug('connecting', user.id, user.username);
+      if (await connection.isReconnect(user)) {
+        debug('is reconnection');
+        const previousConnection = this.getLostConnection(user);
+        if (previousConnection) this.remove(previousConnection);
       } else {
-        conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'unknown user'));
+        this.uw.publish('user:join', { userID: user.id });
+      }
+
+      this.replace(connection, this.createAuthedConnection(socket, user));
+    });
+    return connection;
+  }
+
+  /**
+   * Create a connection instance for an authenticated user.
+   */
+  createAuthedConnection(socket, user) {
+    const connection = new AuthedConnection(this.uw, socket, user);
+    connection.on('close', () => {
+      debug('lost connection', user.id, user.username);
+      this.replace(connection, this.createLostConnection(user));
+    });
+    connection.on('command', (command, data) => {
+      debug('command', user.id, user.username, command, data);
+      if (this.clientActions[command]) {
+        this.clientActions[command].call(this, user, data);
       }
     });
+    return connection;
+  }
 
-    this.clients[conn.id]._id = user.id;
-    const userModel = await User.findOne(new ObjectId(user.id), { __v: 0 });
-    if (!userModel) {
-      return conn.close(CLOSE_VIOLATED_POLICY, createCommand('error', 'unknown user'));
-    }
+  /**
+   * Create a connection instance for a user who disconnected.
+   */
+  createLostConnection(user) {
+    const connection = new LostConnection(this.uw, user, this.options.timeout);
+    connection.on('close', () => {
+      debug('left', user.id, user.username);
+      this.remove(connection);
+      // Only register that the user left if they didn't have another connection
+      // still open.
+      if (!this.connection(user)) {
+        disconnectUser(this.uw, user);
+      }
+    });
+    return connection;
+  }
 
-    await uw.redis.lpush('users', userModel.id);
+  /**
+   * Add a connection.
+   */
+  add(connection) {
+    debug('adding', String(connection));
 
-    this.broadcast('join', userModel);
+    this.connections.push(connection);
+  }
+
+  /**
+   * Remove a connection.
+   */
+  remove(connection) {
+    debug('removing', String(connection));
+
+    const i = this.connections.indexOf(connection);
+    this.connections.splice(i, 1);
+
+    connection.removed();
+  }
+
+  /**
+   * Replace a connection instance with another connection instance. Useful when
+   * a connection changes "type", like GuestConnection → AuthedConnection.
+   */
+  replace(oldConnection, newConnection) {
+    this.remove(oldConnection);
+    this.add(newConnection);
   }
 
   /**
    * Handlers for commands that come in from clients.
    */
   clientActions = {
-    sendChat(client, message) {
-      return sendChatMessage(this.uw, client._id, message);
+    sendChat(user, message) {
+      debug('sendChat', user, message);
+      return sendChatMessage(this.uw, user.id, message);
     },
-    vote(client, direction) {
-      return vote(this.uw, client._id, direction);
+    vote(user, direction) {
+      return vote(this.uw, user.id, direction);
     }
   };
 
@@ -222,6 +247,12 @@ export default class WSServer {
     'waitlist:update'(waitlist) {
       this.broadcast('waitlistUpdate', waitlist);
     },
+    async 'user:join'({ userID }) {
+      const User = this.uw.model('User');
+
+      await this.uw.redis.rpush('users', userID);
+      this.broadcast('join', await User.findById(userID).lean());
+    },
     /**
      * Broadcast that a user left the server.
      */
@@ -231,43 +262,21 @@ export default class WSServer {
     /**
      * Force-close a connection.
      */
-    'api-v1:socket:close'(connectionID) {
-      this._close(connectionID, CLOSE_NORMAL);
+    'api-v1:socket:close'(userID) {
+      const connection = this.connection(userID);
+      if (connection) {
+        connection.close();
+      }
     }
   };
-
-  /**
-   * Handle commands coming in from clients.
-   */
-  async _handleIncomingCommands(conn, rawCommand) {
-    log('incoming', rawCommand);
-    const { command, data } = WSServer.parseMessage(rawCommand);
-    const client = this.clients[conn.id];
-
-    if (!command || typeof command !== 'string') {
-      conn.send(createCommand('error', 'command invalid'));
-      return;
-    }
-
-    if (!client) {
-      conn.close(CLOSE_VIOLATED_POLICY, 'user not found');
-      return;
-    }
-
-    if (command in this.clientActions) {
-      this.clientActions[command].call(this, client, data);
-    } else {
-      conn.send(createCommand('error', 'unknown command'));
-    }
-  }
 
   /**
    * Handle command messages coming in from Redis.
    * Some commands are intended to broadcast immediately to all connected
    * clients, but others require special action.
    */
-  async _handleMessage(channel, rawCommand) {
-    const { command, data } = WSServer.parseMessage(rawCommand);
+  async onServerMessage(channel, rawCommand) {
+    const { command, data } = tryJsonParse(rawCommand) || {};
 
     if (channel === 'v1') {
       this.broadcast(command, data);
@@ -278,8 +287,10 @@ export default class WSServer {
     }
   }
 
+  /**
+   * Stop the socket server.
+   */
   destroy() {
-    clearInterval(this.heartbeatInt);
     this.sub.removeAllListeners();
     this.sub.unsubscribe('v1', 'uwave');
     this.sub.close();
@@ -287,16 +298,16 @@ export default class WSServer {
   }
 
   /**
-   * Run a callback for every connected client.
+   * Get the connection instance for a specific user.
    *
-   * @param {Function} fn Callback. Client object in the first parameter, ID
-   *     in the second.
-   * @param {Object} [bind] `this` for the callback.
+   * @param {object|string} user The user.
+   * @return {Connection}
    */
-  eachClient(fn, bind = null) {
-    Object.keys(this.clients).forEach(id => {
-      fn.call(bind, this.clients[id], id);
-    });
+  connection(user) {
+    const userID = typeof user === 'object' ? user.id : user;
+    return find(this.connections, connection =>
+      connection.user && connection.user.id === userID
+    );
   }
 
   /**
@@ -305,11 +316,11 @@ export default class WSServer {
    * @param {string} command Command name.
    * @param {*} data Command data.
    */
-  broadcast(command, data) {
-    this.eachClient(({ conn }) => {
-      conn.send(JSON.stringify({
-        command, data
-      }));
+  broadcast(command: string, data: any) {
+    debug('broadcast', command, data);
+
+    this.connections.forEach(connection => {
+      connection.send(command, data);
     });
   }
 
@@ -320,14 +331,10 @@ export default class WSServer {
    * @param {string} command Command name.
    * @param {*} data Command data.
    */
-  sendTo(user, command, data) {
-    const userID = typeof user === 'object' ? user._id : user;
-    this.eachClient(client => {
-      if (client._id === userID) {
-        client.conn.send(JSON.stringify({
-          command, data
-        }));
-      }
-    });
+  sendTo(user, command: string, data: any) {
+    const conn = this.connection(user);
+    if (conn) {
+      conn.send(command, data);
+    }
   }
 }
