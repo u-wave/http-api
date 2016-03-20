@@ -132,7 +132,11 @@ export default class SocketServer {
     connection.on('close', () => {
       debug('left', user.id, user.username);
       this.remove(connection);
-      disconnectUser(this.uw, user);
+      // Only register that the user left if they didn't have another connection
+      // still open.
+      if (!this.connection(user)) {
+        disconnectUser(this.uw, user);
+      }
     });
     return connection;
   }
