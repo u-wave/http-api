@@ -1,3 +1,4 @@
+import debug from 'debug';
 import find from 'array-find';
 import findIndex from 'array-findindex';
 import mongoose from 'mongoose';
@@ -6,6 +7,7 @@ import Promise from 'bluebird';
 import { GenericError } from '../errors';
 import { paginate } from '../utils';
 
+const log = debug('uwave:api:v1:playlists');
 const ObjectId = mongoose.Types.ObjectId;
 
 async function addMedia(uw, sourceType, sourceID) {
@@ -45,7 +47,21 @@ export function createPlaylist(uw, data, mediaArray) {
 
   return playlist.validate()
   .then(() => {
-    if (!mediaArray.length) return playlist.save().then(toPlaylistResponse);
+    if (!mediaArray.length) {
+      return Playlist.count({ author: data.author })
+      .then(count => {
+        return playlist.save()
+        .then(_playlist => {
+          if(!count) {
+            log(`activating first playlist for ${_playlist.author}`);
+            activatePlaylist(uw, _playlist.author, _playlist.id);
+          }
+
+          return _playlist;
+        })
+        .then(toPlaylistResponse);
+      });
+    }
 
     // TODO save Playlist, too.
     return PlaylistItem.create(mediaArray);
