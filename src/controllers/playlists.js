@@ -186,7 +186,7 @@ export async function activatePlaylist(uw, id, playlistID) {
   const playlist = await Playlist.findOne(new ObjectId(playlistID)).populate('author');
 
   if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
-  if (id !== playlist.author.id && playlist.shared) {
+  if (id !== playlist.author.id && !playlist.shared) {
     throw new GenericError(403, `${playlist.author.username} has made ${playlist.name} private`);
   }
 
