@@ -39,35 +39,6 @@ export function getPlaylists(uw, page, limit, id) {
   .then(playlists => playlists.map(toPlaylistResponse));
 }
 
-export function createPlaylist(uw, data, mediaArray) {
-  const PlaylistItem = uw.model('PlaylistItem');
-  const Playlist = uw.model('Playlist');
-
-  const playlist = new Playlist(data);
-
-  return playlist.validate()
-  .then(() => {
-    if (!mediaArray.length) {
-      return Playlist.count({ author: data.author })
-      .then(count => {
-        return playlist.save()
-        .then(_playlist => {
-          if(!count) {
-            log(`activating first playlist for ${_playlist.author}`);
-            activatePlaylist(uw, _playlist.author, _playlist.id);
-          }
-
-          return _playlist;
-        })
-        .then(toPlaylistResponse);
-      });
-    }
-
-    // TODO save Playlist, too.
-    return PlaylistItem.create(mediaArray);
-  });
-}
-
 export function getPlaylist(uw, id, playlistID) {
   const Playlist = uw.model('Playlist');
 
@@ -192,6 +163,35 @@ export async function activatePlaylist(uw, id, playlistID) {
 
   await uw.redis.set(`playlist:${id}`, playlist.id);
   return await uw.redis.get(`playlist:${id}`);
+}
+
+export function createPlaylist(uw, data, mediaArray) {
+  const PlaylistItem = uw.model('PlaylistItem');
+  const Playlist = uw.model('Playlist');
+
+  const playlist = new Playlist(data);
+
+  return playlist.validate()
+  .then(() => {
+    if (!mediaArray.length) {
+      return Playlist.count({ author: data.author })
+      .then(count => {
+        return playlist.save()
+        .then(_playlist => {
+          if (!count) {
+            log(`activating first playlist for ${_playlist.author}`);
+            activatePlaylist(uw, _playlist.author, _playlist.id);
+          }
+
+          return _playlist;
+        })
+        .then(toPlaylistResponse);
+      });
+    }
+
+    // TODO save Playlist, too.
+    return PlaylistItem.create(mediaArray);
+  });
 }
 
 function isValidPlaylistItem(item) {
