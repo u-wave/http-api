@@ -180,7 +180,7 @@ export function createPlaylist(uw, data, mediaArray) {
         .then(_playlist => {
           if (!count) {
             log(`activating first playlist for ${_playlist.author}`);
-            activatePlaylist(uw, _playlist.author, _playlist.id);
+            activatePlaylist(uw, `${_playlist.author}`, _playlist.id);
           }
 
           return _playlist;
