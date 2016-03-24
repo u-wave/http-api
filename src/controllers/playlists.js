@@ -5,15 +5,13 @@ import Promise from 'bluebird';
 
 import { GenericError } from '../errors';
 import { paginate } from '../utils';
-import { fetchMedia } from './search';
 
 const ObjectId = mongoose.Types.ObjectId;
 
-function addMedia(uw, sourceType, sourceID, keys) {
+async function addMedia(uw, sourceType, sourceID) {
   const Media = uw.model('Media');
-
-  return fetchMedia(sourceType, sourceID, keys)
-    .then(media => new Media(media).save());
+  const media = await uw.source(sourceType).getOne(sourceID);
+  return await new Media(media).save();
 }
 
 const toPlaylistResponse = model => ({
@@ -197,7 +195,7 @@ export async function createPlaylistItems(uw, id, playlistID, after, items) {
 
     let media = await Media.findOne({ sourceType, sourceID });
     if (!media) {
-      media = await addMedia(uw, sourceType, sourceID, uw.config.keys);
+      media = await addMedia(uw, sourceType, sourceID);
     }
 
     // Fix up custom start/end times
