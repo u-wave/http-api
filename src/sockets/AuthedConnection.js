@@ -24,10 +24,16 @@ export default class AuthedConnection extends EventEmitter {
   get key() {
     return `api-v1:disconnected:${this.user.id}`;
   }
+  get messagesKey() {
+    return `api-v1:disconnected:${this.user.id}:messages`;
+  }
 
   async sendWaiting() {
-    // Queued command list starts at index 1, see LostConnection#initQueued.
-    const messages = await this.uw.redis.lrange(this.key, 1, -1);
+    const wasDisconnected = await this.uw.redis.exists(this.key);
+    if (!wasDisconnected) {
+      return;
+    }
+    const messages = await this.uw.redis.lrange(this.messagesKey, 0, -1);
     if (messages.length) {
       debug('queued', this.user.id, this.user.username, ...messages);
     } else {
