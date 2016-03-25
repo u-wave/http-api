@@ -57,7 +57,7 @@ export default function userRoutes() {
       return res.status(422).json('time is not set');
     }
     if (req.user.id === req.params.id) {
-      return res.status(403, 'you can\'t mute yourself');
+      return res.status(403).json('you can\'t mute yourself');
     }
 
     if (typeof req.body.time !== 'number' || isNaN(req.body.time)) {
@@ -74,7 +74,7 @@ export default function userRoutes() {
       return res.status(403, 'you can\'t unmute yourself');
     }
 
-    controller.muteUser(req.uwave, req.user.id, req.params.id, 0)
+    controller.unmuteUser(req.uwave, req.user.id, req.params.id)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });

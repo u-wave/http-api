@@ -215,6 +215,22 @@ export default class SocketServer {
       });
     },
     /**
+     * Broadcast that a user was muted in chat.
+     */
+    'chat:mute'({ moderatorID, userID, duration }) {
+      this.broadcast('chatMute', {
+        userID,
+        moderatorID,
+        expires: Date.now() + duration
+      });
+    },
+    /**
+     * Broadcast that a user was unmuted in chat.
+     */
+    'chat:unmute'({ moderatorID, userID }) {
+      this.broadcast('chatUnmute', { userID, moderatorID });
+    },
+    /**
      * Broadcast a vote for the current track.
      */
     'booth:vote'({ userID, direction }) {
