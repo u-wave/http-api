@@ -25,11 +25,8 @@ async function hasValidPlaylist(uw, userID) {
   if (!active) return false;
 
   const Playlist = uw.model('Playlist');
-  return Playlist.findOne(new ObjectId(active))
-  .then(playlist => {
-    if (!playlist || !playlist.media) return false;
-    return playlist.media.length > 0;
-  });
+  const playlist = await Playlist.findById(active);
+  return playlist && playlist.size > 0;
 }
 
 export async function getWaitlist(uw) {
