@@ -19,6 +19,16 @@ async function isCurrentDJ(uw, userID) {
   return dj !== null && dj === userID;
 }
 
+async function hasValidPlaylist(uw, userID) {
+  const active = await uw.redis.get(`playlist:${userID}`);
+
+  if (!active) return false;
+
+  const Playlist = uw.model('Playlist');
+  const playlist = await Playlist.findById(active);
+  return playlist && playlist.size > 0;
+}
+
 export async function getWaitlist(uw) {
   return await uw.redis.lrange('waitlist', 0, -1);
 }
@@ -46,6 +56,10 @@ export async function appendToWaitlist(uw, userID, forceJoin) {
 
   if (await isCurrentDJ(uw, user.id)) {
     throw new GenericError(403, 'already playing');
+  }
+
+  if (!(await hasValidPlaylist(uw, user.id))) {
+    throw new GenericError(412, 'user has no songs to play');
   }
 
   await uw.redis.rpush('waitlist', user.id);
@@ -83,6 +97,10 @@ export async function insertWaitlist(uw, moderatorID, id, position, forceJoin) {
     throw new GenericError(403, 'already playing');
   }
 
+  if (!(await hasValidPlaylist(uw, id))) {
+    throw new GenericError(412, 'user has no songs to play');
+  }
+
   if (waitlist.length > clampedPosition) {
     await uw.redis.linsert('waitlist', 'BEFORE', waitlist[clampedPosition], id);
   } else {
@@ -116,6 +134,10 @@ export async function moveWaitlist(uw, moderatorID, userID, position) {
 
   if (await isCurrentDJ(uw, userID)) {
     throw new GenericError(403, `user ${userID} is currently playing`);
+  }
+
+  if (!(await hasValidPlaylist(uw, userID))) {
+    throw new GenericError(412, `user ${userID} has no songs to play`);
   }
 
   const user = await User.findOne(new ObjectId(userID.toLowerCase()));
