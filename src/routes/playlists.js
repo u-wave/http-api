@@ -97,11 +97,12 @@ export default function playlistRoutes() {
   });
 
   router.get('/:id/media', (req, res) => {
-    const { page, limit } = req.query;
+    const { page, limit, filter } = req.query;
     controller.getPlaylistItems(
       req.uwave,
-      parseInt(page, 10), parseInt(limit, 10),
-      req.user.id, req.params.id
+      req.user.id, req.params.id,
+      { page: parseInt(page, 10), limit: parseInt(limit, 10) },
+      filter
     )
     .then(playlist => res.status(200).json(playlist))
     .catch(e => handleError(res, e, log));
