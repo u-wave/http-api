@@ -43,7 +43,7 @@ export default class AuthedConnection extends EventEmitter {
       const { command, data } = JSON.parse(message);
       this.send(command, data);
     });
-    await this.uw.redis.del(this.key);
+    await this.uw.redis.del(this.key, this.messagesKey);
   }
 
   onMessage(raw: string) {
