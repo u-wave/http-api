@@ -7,6 +7,7 @@ export default class LostConnection extends EventEmitter {
     super();
     this.uw = uw;
     this.user = user;
+    this.timeout = timeout;
 
     this.initQueued();
     this.setTimeout(timeout);
@@ -15,18 +16,27 @@ export default class LostConnection extends EventEmitter {
   get key() {
     return `api-v1:disconnected:${this.user.id}`;
   }
+  get messagesKey() {
+    return `api-v1:disconnected:${this.user.id}:messages`;
+  }
 
   initQueued() {
-    // Hack to ensure that the key exists. This way other parts of the code can
-    // use `redis.exists` to check for disconnected users.
-    // FIXME Think of/use some other, less hacky way!
-    this.uw.redis.rpush(this.key, 'z');
+    // We expire the keys after timeout*10, because a server restart near the
+    // end of the timeout might mean that someone fails to reconnect. This way
+    // we can ensure that everyone still gets the full `timeout` duration to
+    // reconnect after a server restart, while also not filling up Redis with
+    // messages to users who left and will never return.
+    this.uw.redis.multi()
+      .set(this.key, 'true', 'EX', this.timeout * 10)
+      .ltrim(this.messagesKey, 0, 0)
+      .expire(this.messagesKey, this.timeout * 10)
+      .exec();
   }
 
   setTimeout(timeout) {
-    this.timeout = setTimeout(() => {
+    this._timer = setTimeout(() => {
       this.close();
-      this.uw.redis.del(this.key);
+      this.uw.redis.del(this.key, this.messagesKey);
     }, timeout * 1000);
   }
 
@@ -34,7 +44,7 @@ export default class LostConnection extends EventEmitter {
     debug('queueing', command, data);
 
     this.uw.redis.rpush(
-      this.key,
+      this.messagesKey,
       JSON.stringify({ command, data })
     );
   }
@@ -44,7 +54,7 @@ export default class LostConnection extends EventEmitter {
   }
 
   removed() {
-    clearTimeout(this.timeout);
+    clearTimeout(this._timer);
   }
 
   toString() {
