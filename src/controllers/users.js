@@ -60,24 +60,35 @@ export function banUser(uw, moderatorID, id, time, exiled) {
   });
 }
 
-export function muteUser(uw, moderatorID, id, time) {
+export async function muteUser(uw, moderatorID, userID, duration) {
   const User = uw.model('User');
 
-  return User.findOne(new ObjectId(id))
-  .then(user => {
-    if (!user) throw new GenericError(404, `user with ID ${id} not found`);
+  const user = await User.findById(userID);
+  if (!user) throw new GenericError(404, `user with ID ${userID} not found`);
 
-    uw.redis.set(`mute:${id}`, 'expire', Date.now() + time);
-
-    return new Promise(resolve => {
-      uw.redis.publish('v1', createCommand(time > 0 ? 'mute' : 'unmute', {
-        moderatorID,
-        userID: id,
-        expires: time
-      }));
-      resolve(time > 0 ? true : false);
-    });
+  await uw.redis.set(`mute:${userID}`, moderatorID, 'PX', duration);
+  uw.publish('chat:mute', {
+    moderatorID,
+    userID: user.id,
+    duration
   });
+
+  return user;
+}
+
+export async function unmuteUser(uw, moderatorID, userID) {
+  const User = uw.model('User');
+
+  const user = await User.findById(userID);
+  if (!user) throw new GenericError(404, `user with ID ${userID} not found`);
+
+  await uw.redis.del(`mute:${user.id}`);
+  uw.publish('chat:unmute', {
+    moderatorID,
+    userID: user.id
+  });
+
+  return user;
 }
 
 export function changeRole(uw, moderatorID, id, role) {
