@@ -21,7 +21,9 @@ export default class GuestConnection extends EventEmitter {
     });
 
     this.events.on('message', jwt => {
-      this.attemptAuth(jwt);
+      this.attemptAuth(jwt).catch(error => {
+        this.send('error', error.message);
+      });
     });
   }
 
@@ -40,7 +42,7 @@ export default class GuestConnection extends EventEmitter {
     // ignore their socket login attempts, and just keep their connections
     // around as guest connections.
     if (await isUserBanned(this.uw, userModel)) {
-      return;
+      throw new Error('You have been banned');
     }
 
     this.emit('authenticate', userModel);
