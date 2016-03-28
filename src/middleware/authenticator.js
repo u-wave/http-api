@@ -2,6 +2,9 @@ import bluebird from 'bluebird';
 import jwt from 'jsonwebtoken';
 import debug from 'debug';
 
+import { PermissionError } from '../errors';
+import { isBanned as isUserBanned } from '../controllers/bans';
+
 const verify = bluebird.promisify(jwt.verify);
 
 const log = debug('uwave:v1:authenticator');
@@ -22,6 +25,10 @@ export default function authenticatorMiddleware({ uw }, options) {
     const userModel = await User.findById(user.id);
     if (!userModel) {
       throw new Error('Invalid session');
+    }
+
+    if (await isUserBanned(uw, userModel)) {
+      throw new PermissionError('You have been banned');
     }
 
     req.user = userModel;
