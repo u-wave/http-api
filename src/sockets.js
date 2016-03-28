@@ -276,6 +276,18 @@ export default class SocketServer {
       this.broadcast('leave', userID);
     },
     /**
+     * Broadcast a ban event.
+     */
+    'user:ban'({ moderatorID, userID, permanent, duration, expires }) {
+      this.broadcast('ban', { moderatorID, userID, permanent, duration, expires });
+    },
+    /**
+     * Broadcast an unban event.
+     */
+    'user:unban'({ moderatorID, userID }) {
+      this.broadcast('unban', { moderatorID, userID });
+    },
+    /**
      * Force-close a connection.
      */
     'api-v1:socket:close'(userID) {

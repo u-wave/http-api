@@ -4,7 +4,6 @@ import createRouter from 'router';
 import protect from '../middleware/protect';
 import rateLimit from '../middleware/rateLimit';
 import * as controller from '../controllers/users';
-import { checkFields } from '../utils';
 import handleError from '../errors';
 import { ROLE_MANAGER, ROLE_MODERATOR } from '../roles';
 
@@ -23,32 +22,6 @@ export default function userRoutes() {
 
   router.get('/:id', (req, res) => {
     controller.getUser(req.uwave, req.params.id)
-    .then(user => res.status(200).json(user))
-    .catch(e => handleError(res, e, log));
-  });
-
-  router.post('/:id/ban', protect(ROLE_MODERATOR), (req, res) => {
-    if (!checkFields(res, req.body, { time: 'number', exiled: 'boolean' })) {
-      return null;
-    }
-    if (req.user.id === req.params.id) {
-      return res.status(403, 'you can\'t ban yourself');
-    }
-    if (isNaN(req.body.time)) {
-      return res.status(422).json('time can only be a number');
-    }
-
-    controller.banUser(req.uwave, req.user.id, req.params.id, req.body.time, req.body.exiled)
-    .then(user => res.status(200).json(user))
-    .catch(e => handleError(res, e, log));
-  });
-
-  router.delete('/:id/ban', protect(ROLE_MANAGER), (req, res) => {
-    if (req.user.id === req.params.id) {
-      return res.status(403, 'you can\'t unban yourself');
-    }
-
-    controller.banUser(req.uwave, req.user.id, req.params.id, 0, false)
     .then(user => res.status(200).json(user))
     .catch(e => handleError(res, e, log));
   });

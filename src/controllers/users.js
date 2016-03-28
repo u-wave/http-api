@@ -1,6 +1,5 @@
 import clamp from 'clamp';
 import mongoose from 'mongoose';
-import Promise from 'bluebird';
 
 import { createCommand } from '../sockets';
 import { paginate } from '../utils';
@@ -24,40 +23,6 @@ export function getUser(uw, id) {
   const User = uw.model('User');
 
   return User.findOne(new ObjectId(id));
-}
-
-export function banUser(uw, moderatorID, id, time, exiled) {
-  const User = uw.model('User');
-
-  return User.findOne(new ObjectId(id))
-  .then(user => {
-    if (!user) throw new NotFoundError('User not found.');
-
-    user.banned = time;
-    user.exiled = exiled;
-
-    return user.save();
-  })
-  .then(user => {
-    return new Promise((resolve, reject) => {
-      if (user.banned !== time) {
-        return reject(new Error(`couldn't ${time > 0 ? 'ban' : 'unban'} user`));
-      }
-      if (user.exiled !== exiled) {
-        return reject(new Error(`couldn't ${exiled ? 'exile' : 'unban'} user`));
-      }
-
-      if (time !== 0) {
-        uw.redis.publish('v1', createCommand(time > 0 ? 'ban' : 'unban', {
-          moderatorID,
-          userID: user.id,
-          banned: user.banned,
-          exiled: user.exiled
-        }));
-      }
-      resolve(user);
-    });
-  });
 }
 
 export async function muteUser(uw, moderatorID, userID, duration) {
