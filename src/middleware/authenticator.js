@@ -1,16 +1,12 @@
 import bluebird from 'bluebird';
 import jwt from 'jsonwebtoken';
 import debug from 'debug';
-import clamp from 'clamp';
-
-import { GenericError as HTTPError } from '../errors';
-import { ROLE_DEFAULT, ROLE_ADMIN } from '../roles';
 
 const verify = bluebird.promisify(jwt.verify);
 
 const log = debug('uwave:v1:authenticator');
 
-export default function authenticatorMiddleware(v1, options) {
+export default function authenticatorMiddleware({ uw }, options) {
   async function authenticator(req) {
     const token = req.query && req.query.token;
     if (!token) {
@@ -19,15 +15,16 @@ export default function authenticatorMiddleware(v1, options) {
 
     const user = await verify(token, options.secret);
     if (!user) {
-      throw new HTTPError(404, 'user not found');
+      throw new Error('Invalid session');
     }
 
-    if (typeof user.role !== 'number') {
-      user.role = parseInt(user.role, 10);
+    const User = uw.model('User');
+    const userModel = await User.findById(user.id);
+    if (!userModel) {
+      throw new Error('Invalid session');
     }
-    user.role = clamp(user.role || 0, ROLE_DEFAULT, ROLE_ADMIN);
 
-    req.user = user;
+    req.user = userModel;
   }
 
   return (req, res, next) => {
