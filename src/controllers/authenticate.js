@@ -4,7 +4,14 @@ import { sign as jwtSignCallback } from 'jsonwebtoken';
 import crypto from 'crypto';
 import debug from 'debug';
 
-import { APIError, NotFoundError, PasswordError, TokenError } from '../errors';
+import {
+  APIError,
+  NotFoundError,
+  PasswordError,
+  PermissionError,
+  TokenError
+} from '../errors';
+import { isBanned as isUserBanned } from './bans';
 
 const PASS_LENGTH = 256;
 const PASS_ITERATIONS = 2048;
@@ -86,6 +93,10 @@ export async function login(uw, email, password, options) {
   const hash = await pbkdf2(password, auth.salt, PASS_ITERATIONS, PASS_LENGTH, PASS_HASH);
   if (hash.toString('hex') !== auth.hash) {
     throw new PasswordError('password is incorrect');
+  }
+
+  if (await isUserBanned(uw, auth.user)) {
+    throw new PermissionError('You have been banned');
   }
 
   const token = await jwtSign(
