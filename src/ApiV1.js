@@ -71,6 +71,15 @@ export default class ApiV1 extends Router {
       );
     }
 
+    if (options.recaptcha && !options.recaptcha.secret) {
+      throw new TypeError(
+        'ReCaptcha validation is enabled, but "options.recaptcha.secret" is ' +
+        'not set. Please set "options.recaptcha.secret" to your ReCaptcha ' +
+        'secret, or disable ReCaptcha validation by setting "options.recaptcha" ' +
+        'to "false".'
+      );
+    }
+
     const router = super(options);
 
     this.uw = uw;
@@ -83,7 +92,10 @@ export default class ApiV1 extends Router {
     this
       .use(bodyParser.json())
       .use(this.attachUwaveToRequest())
-      .use(authenticator(this, { secret: options.secret }))
+      .use(authenticator(this, {
+        secret: options.secret,
+        recaptcha: options.recaptcha
+      }))
       .use(rateLimit('api-v1-http', { max: 500, duration: 60 * 1000 }));
 
     this
