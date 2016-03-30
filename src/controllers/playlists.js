@@ -21,7 +21,7 @@ const toPlaylistResponse = model => ({
   _id: model.id,
   name: model.name,
   author: model.author,
-  created: model.created,
+  createdAt: model.createdAt,
   description: model.description,
   shared: model.shared,
   nsfw: model.nsfw,

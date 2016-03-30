@@ -167,7 +167,7 @@ export function getHistory(uw, id, page, limit) {
   return History.find({ user: id })
     .skip(_page * _limit)
     .limit(_limit)
-    .sort({ played: -1 })
+    .sort({ playedAt: -1 })
     .populate('media.media user')
     .then(history => paginate(_page, _limit, history));
 }

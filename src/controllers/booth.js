@@ -31,7 +31,7 @@ export async function getBooth(uw) {
   return {
     historyID,
     playlistID: `${historyEntry.playlist}`,
-    played: Date.parse(historyEntry.played),
+    playedAt: Date.parse(historyEntry.playedAt),
     userID: `${historyEntry.user}`,
     media: historyEntry.media,
     stats
@@ -161,7 +161,7 @@ export async function getHistory(uw, page, limit) {
   const history = await History.find({})
     .skip(_page * _limit)
     .limit(_limit)
-    .sort({ played: -1 })
+    .sort({ playedAt: -1 })
     .populate('media.media user');
 
   return paginate(_page, _limit, history);

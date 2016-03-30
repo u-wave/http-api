@@ -198,7 +198,7 @@ export default class SocketServer {
           userID: next.user._id,
           item: next.item._id,
           media: next.media,
-          played: new Date(next.played).getTime()
+          playedAt: new Date(next.playedAt).getTime()
         });
       } else {
         this.broadcast('advance', null);
@@ -221,7 +221,7 @@ export default class SocketServer {
       this.broadcast('chatMute', {
         userID,
         moderatorID,
-        expires: Date.now() + duration
+        expiresAt: Date.now() + duration
       });
     },
     /**
