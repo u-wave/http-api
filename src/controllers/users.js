@@ -4,7 +4,7 @@ import Promise from 'bluebird';
 
 import { createCommand } from '../sockets';
 import { paginate } from '../utils';
-import { GenericError, PaginateError } from '../errors';
+import { HTTPError } from '../errors';
 import { ROLE_DEFAULT, ROLE_ADMIN } from '../roles';
 
 import { skipIfCurrentDJ } from './booth';
@@ -31,7 +31,7 @@ export function banUser(uw, moderatorID, id, time, exiled) {
 
   return User.findOne(new ObjectId(id))
   .then(user => {
-    if (!user) throw new GenericError(404, `user with ID ${id} not found`);
+    if (!user) throw new HTTPError(404, `user with ID ${id} not found`);
 
     user.banned = time;
     user.exiled = exiled;
@@ -64,7 +64,7 @@ export async function muteUser(uw, moderatorID, userID, duration) {
   const User = uw.model('User');
 
   const user = await User.findById(userID);
-  if (!user) throw new GenericError(404, `user with ID ${userID} not found`);
+  if (!user) throw new HTTPError(404, `user with ID ${userID} not found`);
 
   await uw.redis.set(`mute:${userID}`, moderatorID, 'PX', duration);
   uw.publish('chat:mute', {
@@ -80,7 +80,7 @@ export async function unmuteUser(uw, moderatorID, userID) {
   const User = uw.model('User');
 
   const user = await User.findById(userID);
-  if (!user) throw new GenericError(404, `user with ID ${userID} not found`);
+  if (!user) throw new HTTPError(404, `user with ID ${userID} not found`);
 
   await uw.redis.del(`mute:${user.id}`);
   uw.publish('chat:unmute', {
@@ -96,7 +96,7 @@ export function changeRole(uw, moderatorID, id, role) {
 
   return User.findOne(new ObjectId(id))
   .then(user => {
-    if (!user) throw new GenericError(404, `user with ID ${id} not found`);
+    if (!user) throw new HTTPError(404, `user with ID ${id} not found`);
 
     user.role = clamp(role, ROLE_DEFAULT, ROLE_ADMIN);
 
@@ -115,10 +115,10 @@ export function changeUsername(uw, moderatorID, id, name) {
   return User.findOne(new ObjectId(id))
   .then(user => {
     if (!user) {
-      throw new GenericError(404, `user with ID ${id} not found`);
+      throw new HTTPError(404, `user with ID ${id} not found`);
     }
     if (user.id !== id && user.role < ROLE_ADMIN) {
-      throw new GenericError(403, 'you need to be an admin to do this');
+      throw new HTTPError(403, 'you need to be an admin to do this');
     }
 
     user.username = name;
@@ -169,8 +169,5 @@ export function getHistory(uw, id, page, limit) {
     .limit(_limit)
     .sort({ played: -1 })
     .populate('media.media user')
-    .then(history => paginate(_page, _limit, history))
-    .catch(e => {
-      throw new PaginateError(e);
-    });
+    .then(history => paginate(_page, _limit, history));
 }

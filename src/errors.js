@@ -1,39 +1,35 @@
 import redis from 'ioredis';
 
-export class PasswordError extends Error {
-  constructor(str) {
+export class APIError extends Error {
+  constructor(message) {
     super();
     Error.captureStackTrace(this);
-    this.name = 'PasswordError';
-    this.message = str;
+    this.message = message;
   }
 }
 
-export class TokenError extends Error {
-  constructor(str) {
-    super();
-    Error.captureStackTrace(this);
-    this.name = 'TokenError';
-    this.message = str;
+export class PasswordError extends APIError {
+  name = 'PasswordError';
+
+  constructor(message) {
+    super(message);
   }
 }
 
-export class GenericError extends Error {
-  constructor(status, str) {
-    super();
-    Error.captureStackTrace(this);
-    this.name = 'GenericError';
+export class TokenError extends APIError {
+  name = 'TokenError';
+
+  constructor(message) {
+    super(message);
+  }
+}
+
+export class HTTPError extends APIError {
+  name = 'HTTPError';
+
+  constructor(status, message) {
+    super(message);
     this.status = status;
-    this.message = str;
-  }
-}
-
-export class PaginateError extends Error {
-  constructor(e) {
-    super();
-    this.name = 'PaginateError';
-    this.stack = e.stack;
-    this.message = e.message;
   }
 }
 
@@ -41,22 +37,12 @@ export function handleError(res, e, log) {
   if (log) {
     log(e);
   }
-  if (e instanceof redis.ReplyError) {
+  if (e instanceof APIError) {
+    res.status(e.status || 500).json(e.message);
+  } else if (e instanceof redis.ReplyError) {
     res.status(410).json('couldn\'t save to database, please try again later');
-  } else if (e instanceof PaginateError) {
-    res.status(500).json(e.message);
-  } else if (e instanceof PasswordError) {
-    res.status(410).json(e.message);
-  } else if (e instanceof TokenError) {
-    res.status(410).json(e.message);
-  } else if (e instanceof GenericError) {
-    res.status(e.status).json(e.message);
   } else {
-    if (e.message && e.message.includes('string of 24 hex characters')) {
-      res.status(422).json('ID was invalid');
-    } else {
-      res.status(500).json('internal server error, please try again later');
-    }
+    res.status(500).json('Internal Server Error');
   }
 }
 

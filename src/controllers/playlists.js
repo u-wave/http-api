@@ -5,7 +5,7 @@ import findIndex from 'array-findindex';
 import mongoose from 'mongoose';
 import Promise from 'bluebird';
 
-import { GenericError } from '../errors';
+import { HTTPError } from '../errors';
 import { paginate } from '../utils';
 
 const log = debug('uwave:api:v1:playlists');
@@ -45,7 +45,7 @@ export function getPlaylist(uw, id, playlistID) {
 
   return Playlist.findOne({ _id: playlistID, author: id })
   .then(playlist => {
-    if (!playlist) throw new GenericError(404, 'playlist not found or private');
+    if (!playlist) throw new HTTPError(404, 'playlist not found or private');
 
     return toPlaylistResponse(playlist);
   });
@@ -61,12 +61,12 @@ export function deletePlaylist(uw, id, playlistID) {
     return Playlist.findOne(new ObjectId(playlistID));
   })
   .then(playlist => {
-    if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+    if (!playlist) throw new HTTPError(404, `playlist with ID ${playlistID} not found`);
     if (id !== playlist.author.toString()) {
-      throw new GenericError(403, 'you can\'t delete the playlist of another user');
+      throw new HTTPError(403, 'you can\'t delete the playlist of another user');
     }
     if (_active && _active === playlist.id) {
-      throw new GenericError(403, 'you can\'t delete an active playlist');
+      throw new HTTPError(403, 'you can\'t delete an active playlist');
     }
 
     return playlist.remove().then(toPlaylistResponse);
@@ -78,9 +78,9 @@ export function renamePlaylist(uw, id, playlistID, name) {
 
   return Playlist.findOne(new ObjectId(playlistID))
   .then(playlist => {
-    if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+    if (!playlist) throw new HTTPError(404, `playlist with ID ${playlistID} not found`);
     if (id !== playlist.author.toString()) {
-      throw new GenericError(403, 'you can\'t rename the playlist of another user');
+      throw new HTTPError(403, 'you can\'t rename the playlist of another user');
     }
 
     playlist.name = name;
@@ -92,9 +92,9 @@ export function sharePlaylist(uw, id, playlistID, shared) {
   const Playlist = uw.model('Playlist');
 
   return Playlist.findOne(new ObjectId(playlistID)).then(playlist => {
-    if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+    if (!playlist) throw new HTTPError(404, `playlist with ID ${playlistID} not found`);
     if (id !== playlist.author.toString()) {
-      throw new GenericError(403, 'you can\'t share the playlist of another user');
+      throw new HTTPError(403, 'you can\'t share the playlist of another user');
     }
 
     playlist.shared = shared;
@@ -115,7 +115,7 @@ export function getPlaylistItems(uw, userID, playlistID, pagination, filter = nu
     { media: { $slice: [limit * page, limit] } }
   )
   .then(playlist => {
-    if (!playlist) throw new GenericError(404, 'playlist not found or private');
+    if (!playlist) throw new HTTPError(404, 'playlist not found or private');
 
     return playlist.media;
   })
@@ -148,10 +148,10 @@ export function movePlaylistItems(uw, id, playlistID, afterID, movingItems) {
   return Playlist.findOne(new ObjectId(playlistID))
   .then(playlist => {
     if (!playlist) {
-      throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+      throw new HTTPError(404, `playlist with ID ${playlistID} not found`);
     }
     if (id !== playlist.author.toString()) {
-      throw new GenericError(403, 'you can\'t edit the playlist of another user');
+      throw new HTTPError(403, 'you can\'t edit the playlist of another user');
     }
 
     const newMedia = playlist.media.filter(item =>
@@ -169,9 +169,9 @@ export async function activatePlaylist(uw, id, playlistID) {
   const Playlist = uw.model('Playlist');
   const playlist = await Playlist.findOne(new ObjectId(playlistID)).populate('author');
 
-  if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+  if (!playlist) throw new HTTPError(404, `playlist with ID ${playlistID} not found`);
   if (id !== playlist.author.id && !playlist.shared) {
-    throw new GenericError(403, `${playlist.author.username} has made ${playlist.name} private`);
+    throw new HTTPError(403, `${playlist.author.username} has made ${playlist.name} private`);
   }
 
   await uw.redis.set(`playlist:${id}`, playlist.id);
@@ -257,10 +257,10 @@ export async function createPlaylistItems(uw, id, playlistID, after, items) {
 
   const playlist = await Playlist.findOne(new ObjectId(playlistID));
   if (!playlist) {
-    throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+    throw new HTTPError(404, `playlist with ID ${playlistID} not found`);
   }
   if (playlist.author.toString() !== id) {
-    throw new GenericError(403, 'you can\'t edit the playlist of another user');
+    throw new HTTPError(403, 'you can\'t edit the playlist of another user');
   }
 
   const addingItems = items.filter(isValidPlaylistItem).map(createItem);
@@ -282,15 +282,15 @@ export async function getPlaylistItem(uw, id, playlistID, mediaID) {
 
   const playlist = await Playlist.findOne(new ObjectId(playlistID)).populate('media');
 
-  if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+  if (!playlist) throw new HTTPError(404, `playlist with ID ${playlistID} not found`);
   if (id !== playlist.author.toString() && playlist.shared) {
-    throw new GenericError(403, 'this playlist is private');
+    throw new HTTPError(403, 'this playlist is private');
   }
 
   const playlistItem = find(playlist.media, item => item.id === mediaID);
 
   if (!playlistItem) {
-    throw new GenericError(404, 'media not found');
+    throw new HTTPError(404, 'media not found');
   }
 
   return playlistItem;
@@ -302,12 +302,12 @@ export async function updatePlaylistItem(uw, id, playlistID, mediaID, metadata) 
 
   const playlist = await Playlist.findOne(new ObjectId(playlistID));
 
-  if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+  if (!playlist) throw new HTTPError(404, `playlist with ID ${playlistID} not found`);
   if (id !== playlist.author.toString() && playlist.shared) {
-    throw new GenericError(403, 'playlist is private');
+    throw new HTTPError(403, 'playlist is private');
   }
   if (playlist.media.indexOf(mediaID) === -1) {
-    throw new GenericError(404, 'media not found');
+    throw new HTTPError(404, 'media not found');
   }
 
   return await PlaylistItem.findOneAndUpdate({ _id: mediaID }, metadata, { new: true });
@@ -323,7 +323,7 @@ export async function deletePlaylistItems(uw, id, playlistID, items) {
     { new: true }
   );
 
-  if (!playlist) throw new GenericError(404, `playlist with ID ${playlistID} not found`);
+  if (!playlist) throw new HTTPError(404, `playlist with ID ${playlistID} not found`);
   // return full PlaylistItem object to keep consitency with addMedia route
   const mediaItems = await PlaylistItem.find({ _id: { $in: items } }).populate('media');
 
@@ -342,14 +342,14 @@ export async function copyPlaylistItem(uw, id, fromPlaylistID, mediaID, toPlayli
   const playlist = await Playlist.findOne(new ObjectId(fromPlaylistID)).populate('media');
 
   if (!playlist) {
-    throw new GenericError(404, 'originating playlist not found');
+    throw new HTTPError(404, 'originating playlist not found');
   }
   if (playlist.author.toString() !== id && !playlist.shared) {
-    throw new GenericError(403, 'originating playlist is private');
+    throw new HTTPError(403, 'originating playlist is private');
   }
 
   if (!playlist.media.some(item => item.id === mediaID)) {
-    throw new GenericError(404, 'Playlist item not found');
+    throw new HTTPError(404, 'Playlist item not found');
   }
 
   const playlistItem = new PlaylistItem(
@@ -360,10 +360,10 @@ export async function copyPlaylistItem(uw, id, fromPlaylistID, mediaID, toPlayli
 
   const targetPlaylist = await Playlist.findOne(new ObjectId(toPlaylistID));
   if (!targetPlaylist) {
-    throw new GenericError(404, 'playlist not found');
+    throw new HTTPError(404, 'playlist not found');
   }
   if (!targetPlaylist.author.toString() !== id) {
-    throw new GenericError(403, 'you can\'t copy media to another user\'s playlist');
+    throw new HTTPError(403, 'you can\'t copy media to another user\'s playlist');
   }
 
   targetPlaylist.media.push(playlistItem.id);

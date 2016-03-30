@@ -6,7 +6,7 @@ import {
   isEmpty as boothIsEmpty
 } from '../controllers/booth';
 import { createCommand } from '../sockets';
-import { GenericError } from '../errors';
+import { HTTPError } from '../errors';
 
 const ObjectId = mongoose.Types.ObjectId;
 
@@ -36,7 +36,7 @@ export async function getWaitlist(uw) {
 async function _getWaitlist(uw, forceJoin) {
   const isLocked = await uw.redis.get('waitlist:lock');
   if (isLocked && !forceJoin) {
-    throw new GenericError(403, 'waitlist is locked');
+    throw new HTTPError(403, 'waitlist is locked');
   }
   return await getWaitlist(uw);
 }
@@ -46,20 +46,20 @@ export async function appendToWaitlist(uw, userID, forceJoin) {
 
   const user = await User.findOne(new ObjectId(userID));
 
-  if (!user) throw new GenericError(404, 'user not found');
+  if (!user) throw new HTTPError(404, 'user not found');
 
   let waitlist = await _getWaitlist(uw, forceJoin);
 
   if (isInWaitlist(waitlist, user.id)) {
-    throw new GenericError(403, 'already in waitlist');
+    throw new HTTPError(403, 'already in waitlist');
   }
 
   if (await isCurrentDJ(uw, user.id)) {
-    throw new GenericError(403, 'already playing');
+    throw new HTTPError(403, 'already playing');
   }
 
   if (!(await hasValidPlaylist(uw, user.id))) {
-    throw new GenericError(412, 'user has no songs to play');
+    throw new HTTPError(412, 'user has no songs to play');
   }
 
   await uw.redis.rpush('waitlist', user.id);
@@ -83,22 +83,22 @@ export async function insertWaitlist(uw, moderatorID, id, position, forceJoin) {
 
   const user = await User.find(new ObjectId(id));
 
-  if (!user) throw new GenericError(404, 'user not found');
+  if (!user) throw new HTTPError(404, 'user not found');
 
   let waitlist = await _getWaitlist(uw, forceJoin);
 
   const clampedPosition = clamp(position, 0, waitlist.length - 1);
 
   if (isInWaitlist(waitlist, id)) {
-    throw new GenericError(403, 'already in waitlist');
+    throw new HTTPError(403, 'already in waitlist');
   }
 
   if (await isCurrentDJ(uw, id)) {
-    throw new GenericError(403, 'already playing');
+    throw new HTTPError(403, 'already playing');
   }
 
   if (!(await hasValidPlaylist(uw, id))) {
-    throw new GenericError(412, 'user has no songs to play');
+    throw new HTTPError(412, 'user has no songs to play');
   }
 
   if (waitlist.length > clampedPosition) {
@@ -129,20 +129,20 @@ export async function moveWaitlist(uw, moderatorID, userID, position) {
   let waitlist = await getWaitlist(uw);
 
   if (!isInWaitlist(waitlist, userID)) {
-    throw new GenericError(404, `user ${userID} is not in waitlist`);
+    throw new HTTPError(404, `user ${userID} is not in waitlist`);
   }
 
   if (await isCurrentDJ(uw, userID)) {
-    throw new GenericError(403, `user ${userID} is currently playing`);
+    throw new HTTPError(403, `user ${userID} is currently playing`);
   }
 
   if (!(await hasValidPlaylist(uw, userID))) {
-    throw new GenericError(412, `user ${userID} has no songs to play`);
+    throw new HTTPError(412, `user ${userID} has no songs to play`);
   }
 
   const user = await User.findOne(new ObjectId(userID.toLowerCase()));
   if (!user) {
-    throw new GenericError(404, 'user not found');
+    throw new HTTPError(404, 'user not found');
   }
 
   const clampedPosition = clamp(position, 0, waitlist.length);
@@ -209,7 +209,7 @@ export async function clearWaitlist(uw, moderatorID) {
   const waitlist = await getWaitlist(uw);
 
   if (waitlist.length !== 0) {
-    throw new GenericError(500, 'couldn\'t clear waitlist');
+    throw new HTTPError(500, 'couldn\'t clear waitlist');
   }
 
   uw.redis.publish('v1', createCommand('waitlistClear', { moderatorID }));
@@ -231,7 +231,7 @@ export async function lockWaitlist(uw, moderatorID, lock, clear) {
   const isLocked = Boolean(await uw.redis.get('waitlist:lock'));
 
   if (isLocked !== lock) {
-    throw new GenericError(500, `couldn't ${lock ? 'lock' : 'unlock'} waitlist`);
+    throw new HTTPError(500, `couldn't ${lock ? 'lock' : 'unlock'} waitlist`);
   }
 
   uw.redis.publish('v1', createCommand('waitlistLock', {

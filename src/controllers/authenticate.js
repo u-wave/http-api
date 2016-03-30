@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import debug from 'debug';
 
-import { PasswordError, TokenError, GenericError } from '../errors';
+import { PasswordError, TokenError, HTTPError } from '../errors';
 
 const PASS_LENGTH = 256;
 const PASS_ITERATIONS = 2048;
@@ -32,7 +32,7 @@ export function generateHashPair(password, length) {
   })
   .catch(e => {
     log(e);
-    throw new GenericError(402, 'couldn\'t create password');
+    throw new HTTPError(402, 'couldn\'t create password');
   });
 }
 
@@ -77,7 +77,7 @@ export function login(uw, email, password, options) {
 
   return Authentication.findOne({ email }).populate('user').exec()
   .then(auth => {
-    if (!auth) throw new GenericError(404, 'no user found');
+    if (!auth) throw new HTTPError(404, 'no user found');
 
     _auth = auth;
     return pbkdf2(password, _auth.salt, PASS_ITERATIONS, PASS_LENGTH, PASS_HASH);
@@ -104,7 +104,7 @@ export function reset(uw, email) {
 
   return Authentication.findOne({ email })
   .then(auth => {
-    if (!auth) throw new GenericError(404, 'no user found');
+    if (!auth) throw new HTTPError(404, 'no user found');
     return randomBytes(64);
   })
   .then(buf => {
@@ -131,7 +131,7 @@ export function changePassword(uw, email, password, resetToken) {
     ).exec()
   )
   .then(auth => {
-    if (!auth) throw new GenericError(404, `no user with email ${email} found`);
+    if (!auth) throw new HTTPError(404, `no user with email ${email} found`);
     uw.redis.del(`reset:${email}`);
     return `updated password for ${email}`;
   });
@@ -140,7 +140,7 @@ export function changePassword(uw, email, password, resetToken) {
 export function removeSession(uw, id) {
   const Authentication = uw.model('Authentication');
   return Authentication.findOne(new ObjectId(id)).then(auth => {
-    if (!auth) throw new GenericError(404, 'user not found');
+    if (!auth) throw new HTTPError(404, 'user not found');
 
     uw.publish('api-v1:socket:close', auth.id);
   });
