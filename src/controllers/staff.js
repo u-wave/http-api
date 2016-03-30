@@ -1,4 +1,4 @@
-import { GenericError } from '../errors';
+import { NotFoundError } from '../errors';
 import { fetchMedia } from './search';
 
 export function getAllMedia(uw, page, limit) {
@@ -13,7 +13,7 @@ export function getMedia(uw, sourceType, sourceID) {
 
   return Media.find({ sourceType, sourceID })
   .then(media => {
-    if (!media) throw new GenericError(404, 'no media found');
+    if (!media) throw new NotFoundError('Media not found.');
 
     return media;
   });
@@ -42,7 +42,7 @@ export function editMedia(uw, props) {
       );
     })
     .then(media => {
-      if (!media) throw new GenericError(404, 'no media found');
+      if (!media) throw new NotFoundError('Media not found.');
       return media;
     });
   }
@@ -51,7 +51,7 @@ export function editMedia(uw, props) {
     { artist: props.artist, title: props.title, nsfw: props.nsfw, restricted: props.restricted }
   )
   .then(media => {
-    if (!media) throw new GenericError(404, 'no media found');
+    if (!media) throw new NotFoundError('Media not found.');
     return media;
   });
 }
@@ -60,7 +60,7 @@ export function removeMedia(uw, sourceType, sourceID) {
   const Media = uw.model('Media');
   return Media.findOneAndRemove({ sourceType, sourceID })
   .then(media => {
-    if (!media) throw new GenericError(404, 'no media found');
+    if (!media) throw new NotFoundError('Media not found.');
     return media;
   });
 }

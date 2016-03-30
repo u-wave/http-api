@@ -1,4 +1,4 @@
-import { GenericError as HTTPError } from '../errors';
+import { HTTPError } from '../errors';
 import * as r from '../roles';
 
 const roleErrors = {
