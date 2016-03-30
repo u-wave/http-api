@@ -14,6 +14,8 @@ import now from './routes/now';
 // middleware
 import authenticator from './middleware/authenticator';
 import errorHandler from './middleware/errorHandler';
+import rateLimit from './middleware/rateLimit';
+
 import WSServer from './sockets';
 
 /**
@@ -41,7 +43,9 @@ export class V1 {
     this.router = createRouter(options.router);
     this.sockets = new WSServer(uw, { secret: options.secret });
 
-    this.router.use(authenticator(this, { secret: options.secret }));
+    this.router
+      .use(authenticator(this, { secret: options.secret }))
+      .use(rateLimit('api-v1-http', { max: 60, duration: 60 * 1000 }));
 
     this.router
       .use('/auth', authenticate(this, { secret: options.secret }))
