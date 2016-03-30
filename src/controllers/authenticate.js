@@ -86,12 +86,11 @@ export function login(uw, email, password, options) {
     if (_auth.hash !== hash.toString('hex')) {
       throw new PasswordError('password is incorrect');
     }
-    const token = jwt.sign({
-      id: _auth.user.id,
-      role: _auth.user.role
-    }, options.secret, {
-      expiresIn: '31d'
-    });
+    const token = jwt.sign(
+      { id: _auth.user.id },
+      options.secret,
+      { expiresIn: '31d' }
+    );
 
     return {
       jwt: token,
