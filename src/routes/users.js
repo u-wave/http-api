@@ -93,7 +93,7 @@ export default function userRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.put('/:id/username', (req, res) => {
+  router.put('/:id/username', (req, res, next) => {
     if (!req.body.username) {
       return res.status(422).json('username is not set');
     }
@@ -103,8 +103,8 @@ export default function userRoutes() {
     }
 
     controller.changeUsername(req.uwave, req.user.id, req.params.id, req.body.username)
-    .then(user => res.status(200).json(user))
-    .catch(e => handleError(res, e, log));
+      .then(user => res.status(200).json(user))
+      .catch(err => next(err));
   });
 
   router.put('/:id/avatar', (req, res) => {

@@ -1,4 +1,4 @@
-import redis from 'ioredis';
+import { ReplyError as RedisReplyError } from 'ioredis';
 
 export class APIError extends Error {
   constructor(message) {
@@ -53,10 +53,16 @@ export function handleError(res, e, log) {
   if (log) {
     log(e);
   }
+
   if (e instanceof APIError) {
     res.status(e.status || 500).json(e.message);
-  } else if (e instanceof redis.ReplyError) {
-    res.status(410).json('couldn\'t save to database, please try again later');
+  } else if (e.name === 'ValidationError') {
+    const errorMessages = Object.keys(e.errors).map(key => e.errors[key].message);
+    res.status(400).json(errorMessages.join(' '));
+  } else if (e.name === 'ValidatorError') {
+    res.status(400).json(e.message);
+  } else if (e instanceof RedisReplyError) {
+    res.status(410).json('Database error, please try again later.');
   } else {
     res.status(500).json('Internal Server Error');
   }
