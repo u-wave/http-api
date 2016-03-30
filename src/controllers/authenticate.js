@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import debug from 'debug';
 
-import { PasswordError, TokenError, HTTPError } from '../errors';
+import { APIError, NotFoundError, PasswordError, TokenError } from '../errors';
 
 const PASS_LENGTH = 256;
 const PASS_ITERATIONS = 2048;
@@ -32,7 +32,7 @@ export function generateHashPair(password, length) {
   })
   .catch(e => {
     log(e);
-    throw new HTTPError(402, 'couldn\'t create password');
+    throw new APIError('Could not create password.');
   });
 }
 
@@ -77,7 +77,7 @@ export function login(uw, email, password, options) {
 
   return Authentication.findOne({ email }).populate('user').exec()
   .then(auth => {
-    if (!auth) throw new HTTPError(404, 'no user found');
+    if (!auth) throw new NotFoundError('No user was found with that email address.');
 
     _auth = auth;
     return pbkdf2(password, _auth.salt, PASS_ITERATIONS, PASS_LENGTH, PASS_HASH);
@@ -104,7 +104,7 @@ export function reset(uw, email) {
 
   return Authentication.findOne({ email })
   .then(auth => {
-    if (!auth) throw new HTTPError(404, 'no user found');
+    if (!auth) throw new NotFoundError('User not found.');
     return randomBytes(64);
   })
   .then(buf => {
@@ -120,7 +120,12 @@ export function changePassword(uw, email, password, resetToken) {
 
   return uw.redis.get(`reset:${email}`)
   .then(token => {
-    if (!token || token !== resetToken) throw new TokenError('reset token invalid');
+    if (!token || token !== resetToken) {
+      throw new TokenError(
+        'That reset token is invalid. Please double-check your token or request ' +
+        'a new password reset.'
+      );
+    }
 
     return generateHashPair(password, PASS_LENGTH);
   })
@@ -131,7 +136,7 @@ export function changePassword(uw, email, password, resetToken) {
     ).exec()
   )
   .then(auth => {
-    if (!auth) throw new HTTPError(404, `no user with email ${email} found`);
+    if (!auth) throw new NotFoundError('No user was found with that email address.');
     uw.redis.del(`reset:${email}`);
     return `updated password for ${email}`;
   });
@@ -140,7 +145,7 @@ export function changePassword(uw, email, password, resetToken) {
 export function removeSession(uw, id) {
   const Authentication = uw.model('Authentication');
   return Authentication.findOne(new ObjectId(id)).then(auth => {
-    if (!auth) throw new HTTPError(404, 'user not found');
+    if (!auth) throw new NotFoundError('Session not found.');
 
     uw.publish('api-v1:socket:close', auth.id);
   });

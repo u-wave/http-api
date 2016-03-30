@@ -33,6 +33,22 @@ export class HTTPError extends APIError {
   }
 }
 
+export class NotFoundError extends HTTPError {
+  name = 'NotFoundError';
+
+  constructor(message) {
+    super(404, message);
+  }
+}
+
+export class PermissionError extends HTTPError {
+  name = 'PermissionError';
+
+  constructor(message) {
+    super(403, message);
+  }
+}
+
 export function handleError(res, e, log) {
   if (log) {
     log(e);
