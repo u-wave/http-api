@@ -1,10 +1,17 @@
 import mongoose from 'mongoose';
 import Promise from 'bluebird';
-import jwt from 'jsonwebtoken';
+import { sign as jwtSignCallback } from 'jsonwebtoken';
 import crypto from 'crypto';
 import debug from 'debug';
 
-import { APIError, NotFoundError, PasswordError, TokenError } from '../errors';
+import {
+  APIError,
+  NotFoundError,
+  PasswordError,
+  PermissionError,
+  TokenError
+} from '../errors';
+import { isBanned as isUserBanned } from './bans';
 
 const PASS_LENGTH = 256;
 const PASS_ITERATIONS = 2048;
@@ -14,6 +21,10 @@ const ObjectId = mongoose.Types.ObjectId;
 const log = debug('uwave:api:v1:auth');
 const pbkdf2 = Promise.promisify(crypto.pbkdf2);
 const randomBytes = Promise.promisify(crypto.randomBytes);
+// `jwt.sign` only passes a single parameter to its callback: the signed token.
+const jwtSign = (...args) => new Promise(resolve => {
+  jwtSignCallback(...args, resolve);
+});
 
 export function generateHashPair(password, length) {
   const hashPair = {
@@ -71,32 +82,33 @@ export function createUser(uw, email, username, password) {
   });
 }
 
-export function login(uw, email, password, options) {
+export async function login(uw, email, password, options) {
   const Authentication = uw.model('Authentication');
-  let _auth = null;
 
-  return Authentication.findOne({ email }).populate('user').exec()
-  .then(auth => {
-    if (!auth) throw new NotFoundError('No user was found with that email address.');
+  const auth = await Authentication.findOne({ email }).populate('user').exec();
+  if (!auth) {
+    throw new NotFoundError('No user was found with that email address.');
+  }
 
-    _auth = auth;
-    return pbkdf2(password, _auth.salt, PASS_ITERATIONS, PASS_LENGTH, PASS_HASH);
-  })
-  .then(hash => {
-    if (_auth.hash !== hash.toString('hex')) {
-      throw new PasswordError('password is incorrect');
-    }
-    const token = jwt.sign(
-      { id: _auth.user.id },
-      options.secret,
-      { expiresIn: '31d' }
-    );
+  const hash = await pbkdf2(password, auth.salt, PASS_ITERATIONS, PASS_LENGTH, PASS_HASH);
+  if (hash.toString('hex') !== auth.hash) {
+    throw new PasswordError('password is incorrect');
+  }
 
-    return {
-      jwt: token,
-      user: _auth.user
-    };
-  });
+  if (await isUserBanned(uw, auth.user)) {
+    throw new PermissionError('You have been banned');
+  }
+
+  const token = await jwtSign(
+    { id: auth.user.id, role: auth.user.role },
+    options.secret,
+    { expiresIn: '31d' }
+  );
+
+  return {
+    jwt: token,
+    user: auth.user
+  };
 }
 
 export function reset(uw, email) {

@@ -2,6 +2,7 @@ import createRouter from 'router';
 
 // routes
 import authenticate from './routes/authenticate';
+import bans from './routes/bans';
 import playlist from './routes/playlists';
 import waitlist from './routes/waitlist';
 import search from './routes/search';
@@ -49,6 +50,7 @@ export class V1 {
 
     this.router
       .use('/auth', authenticate(this, { secret: options.secret }))
+      .use('/bans', bans(this))
       .use('/booth', booth(this))
       .use('/chat', chat(this))
       .use('/now', now(this))
