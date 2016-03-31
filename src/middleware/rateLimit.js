@@ -1,7 +1,7 @@
 import ms from 'ms';
 import RateLimiter from 'ratelimiter';
 
-import { GenericError as HTTPError } from '../errors';
+import { RateLimitError } from '../errors';
 
 const defaultErrorMessage = (retryAfter, rendered) =>
   `Rate limit exceeded, retry in ${rendered}`;
@@ -29,7 +29,7 @@ export default function rateLimit(prefix, opts) {
 
       const retryAfter = Math.floor(limit.reset - Date.now() / 1000);
       res.set('Retry-After', retryAfter);
-      return next(new HTTPError(429,
+      return next(new RateLimitError(
         createErrorMessage(retryAfter, ms(retryAfter * 1000, { long: true }))
       ));
     });

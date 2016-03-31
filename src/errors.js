@@ -49,6 +49,14 @@ export class PermissionError extends HTTPError {
   }
 }
 
+export class RateLimitError extends HTTPError {
+  name = 'RateLimitError';
+
+  constructor(message) {
+    super(429, message);
+  }
+}
+
 export function handleError(res, e, log) {
   if (log) {
     log(e);
