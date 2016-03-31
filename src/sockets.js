@@ -278,8 +278,8 @@ export default class SocketServer {
     /**
      * Broadcast a ban event.
      */
-    'user:ban'({ moderatorID, userID, permanent, duration, expires }) {
-      this.broadcast('ban', { moderatorID, userID, permanent, duration, expires });
+    'user:ban'({ moderatorID, userID, permanent, duration, expiresAt }) {
+      this.broadcast('ban', { moderatorID, userID, permanent, duration, expiresAt });
     },
     /**
      * Broadcast an unban event.
