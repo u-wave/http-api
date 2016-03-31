@@ -51,7 +51,7 @@ export function skipBooth(uw, moderatorID, userID, reason, opts = {}) {
 export async function skipIfCurrentDJ(uw, userID) {
   const currentDJ = await getCurrentDJ(uw);
   if (userID === currentDJ) {
-    uw.advance({ remove: true });
+    await uw.advance({ remove: true });
   }
 }
 
