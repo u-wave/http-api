@@ -3,7 +3,7 @@ import escapeStringRegExp from 'escape-string-regexp';
 import { HTTPError, NotFoundError } from '../errors';
 
 function isValidBan(user) {
-  return !!(user.banned && user.banned.expires > Date.now());
+  return !!(user.banned && user.banned.expiresAt > Date.now());
 }
 
 export async function isBanned(uw, user) {
@@ -27,7 +27,7 @@ export async function getBans(uw, filter = null, pagination = {}) {
 
   const query = User.find()
     .where('banned').ne(null)
-    .where('expires').gt(Date.now())
+    .where('expiresAt').gt(Date.now())
     .skip(page * limit)
     .limit(limit)
     .populate('banned.moderator')
@@ -61,7 +61,7 @@ export async function addBan(uw, user, { duration, moderatorID, permanent = fals
 
   userModel.banned = {
     duration: permanent ? -1 : duration,
-    expires: permanent ? 0 : Date.now() + duration,
+    expiresAt: permanent ? 0 : Date.now() + duration,
     moderator: moderatorID,
     reason: ''
   };
@@ -73,7 +73,7 @@ export async function addBan(uw, user, { duration, moderatorID, permanent = fals
     userID: userModel.id,
     moderatorID: userModel.banned.moderator.id,
     duration: userModel.banned.duration,
-    expires: userModel.banned.expires,
+    expiresAt: userModel.banned.expiresAt,
     permanent
   });
 
