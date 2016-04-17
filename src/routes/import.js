@@ -1,7 +1,7 @@
 import router from 'router';
 
 import protect from '../middleware/protect';
-import { NotFoundError } from '../errors';
+import { NotFoundError, APIError } from '../errors';
 
 const getImportableSource = req => {
   const source = req.uwave.source(req.params.source);
@@ -30,7 +30,7 @@ export default function importRoutes() {
 
       source.import(req.user, opts)
         .then(response => res.json(response))
-        .catch(error => next(error));
+        .catch(error => next(APIError.wrap(error)));
     })
     .all('/:source', (req, res, next) => {
       const source = getImportableSource(req);
@@ -39,6 +39,6 @@ export default function importRoutes() {
 
       source.import(req.user, opts)
         .then(response => res.json(response))
-        .catch(error => next(error));
+        .catch(error => next(APIError.wrap(error)));
     });
 }

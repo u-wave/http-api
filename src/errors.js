@@ -6,6 +6,14 @@ export class APIError extends Error {
     Error.captureStackTrace(this);
     this.message = message;
   }
+
+  /**
+   * Hack to force other Error instances to be public.
+   */
+  static wrap(error) {
+    Object.setPrototypeOf(error, APIError.prototype);
+    return error;
+  }
 }
 
 export class PasswordError extends APIError {
