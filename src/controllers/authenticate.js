@@ -10,6 +10,7 @@ import {
   TokenError,
 } from '../errors';
 import { isBanned as isUserBanned } from './bans';
+import sendEmail from '../email';
 
 const jwtSign = Promise.promisify(jwtSignCallback);
 
@@ -65,7 +66,7 @@ export async function reset(uw, email) {
   await uw.redis.set(`reset:${email.toLowerCase()}`, token);
   await uw.redis.expire(`reset:${email.toLowerCase()}`, 24 * 60 * 60);
 
-  return token;
+  return await sendEmail(email, "reset password", token);
 }
 
 export async function changePassword(uw, email, password, resetToken) {
