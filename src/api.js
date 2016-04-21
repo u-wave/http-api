@@ -11,6 +11,7 @@ import users from './routes/users';
 import staff from './routes/staff';
 import chat from './routes/chat';
 import now from './routes/now';
+import imports from './routes/import';
 
 // middleware
 import authenticator from './middleware/authenticator';
@@ -53,6 +54,7 @@ export class V1 {
       .use('/bans', bans(this))
       .use('/booth', booth(this))
       .use('/chat', chat(this))
+      .use('/import', imports(this))
       .use('/now', now(this))
       .use('/playlists', playlist(this))
       .use('/search', search(this))
