@@ -1,28 +1,20 @@
 {
   "name": "u-wave-api-v1",
-  "version": "0.0.0",
-  "description": "V1 API for üwave.",
+  "version": "0.1.0",
+  "description": "HTTP API interface for üWave.",
   "license": "MIT",
-  "repository": "u-wave/u-wave-api-v1",
+  "repository": "u-wave/api-v1",
+  "author": "Sooyou <souyoou@googlemail.com>",
+  "contributors": [
+    "Felix Wong <felix@fawong.com>",
+    "Goz3rr <goz3rr@gmail.com>",
+    "Renée Kooi <renee@kooi.me>",
+    "xBytez <me@xbytez.eu>"
+  ],
   "main": "lib/index.js",
-  "devDependencies": {
-    "babel-eslint": "^7.1.1",
-    "babel-plugin-transform-class-properties": "^6.5.0",
-    "babel-plugin-transform-decorators-legacy": "^1.3.4",
-    "babel-plugin-transform-export-extensions": "^6.5.0",
-    "babel-plugin-transform-flow-comments": "^6.5.0",
-    "babel-preset-es2015-node4": "^2.0.3",
-    "babel-preset-stage-2": "^6.5.0",
-    "eslint": "^3.10.2",
-    "eslint-config-airbnb-base": "^11.0.0",
-    "eslint-plugin-import": "^2.2.0",
-    "gulp": "^3.9.1",
-    "gulp-babel": "^6.1.2",
-    "gulp-newer": "^1.1.0",
-    "gulp-plumber": "^1.1.0",
-    "gulp-util": "^3.0.7",
-    "gulp-watch": "^4.3.5",
-    "through2": "^2.0.1"
+  "engines": {
+    "node": ">= 4",
+    "npm": ">= 3"
   },
   "scripts": {
     "test": "eslint .",
@@ -52,5 +44,30 @@
     "try-json-parse": "^0.1.1",
     "ultron": "^1.0.2",
     "ws": "^1.0.1"
+  },
+  "devDependencies": {
+    "babel-eslint": "^7.1.1",
+    "babel-plugin-transform-class-properties": "^6.5.0",
+    "babel-plugin-transform-decorators-legacy": "^1.3.4",
+    "babel-plugin-transform-export-extensions": "^6.5.0",
+    "babel-plugin-transform-flow-comments": "^6.5.0",
+    "babel-preset-es2015-node4": "^2.0.3",
+    "babel-preset-stage-2": "^6.5.0",
+    "eslint": "^3.10.2",
+    "eslint-config-airbnb-base": "^11.0.0",
+    "eslint-plugin-import": "^2.2.0",
+    "gulp": "^3.9.1",
+    "gulp-babel": "^6.1.2",
+    "gulp-newer": "^1.1.0",
+    "gulp-plumber": "^1.1.0",
+    "gulp-util": "^3.0.7",
+    "gulp-watch": "^4.3.5",
+    "through2": "^2.0.1"
+  },
+  "scripts": {
+    "test": "eslint src gulpfile.js",
+    "build": "gulp build",
+    "watch": "gulp watch",
+    "prepublish": "npm run build"
   }
 }
