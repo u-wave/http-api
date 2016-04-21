@@ -10,7 +10,7 @@ import {
   TokenError,
 } from '../errors';
 import { isBanned as isUserBanned } from './bans';
-import sendEmail from '../email';
+import { sendEmail } from '../email';
 
 const jwtSign = Promise.promisify(jwtSignCallback);
 
@@ -75,8 +75,8 @@ export async function changePassword(uw, email, password, resetToken) {
   const token = await uw.redis.get(`reset:${email.toLowerCase()}`);
   if (!token || token !== resetToken) {
     throw new TokenError(
-      'That reset token is invalid. Please double-check your token or request ' +
-      'a new password reset.',
+      'That reset token and/or email address is invalid. Please double-check your reset ' +
+      'token and/or request a new password reset.'
     );
   }
 
