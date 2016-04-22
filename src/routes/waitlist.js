@@ -70,14 +70,14 @@ export default function waitlistRoutes() {
       .catch(e => handleError(res, e, log));
   });
 
-  router.put('/lock', protect(ROLE_MODERATOR), (req, res) => {
-    if (!checkFields(res, req.body, { lock: 'boolean', clear: 'boolean' })) {
+  router.put('/lock', protect(ROLE_MODERATOR), (req, res, next) => {
+    if (!checkFields(res, req.body, { lock: 'boolean' })) {
       return null;
     }
 
-    controller.lockWaitlist(req.uwave, req.user.id, req.body.lock, req.body.clear)
-    .then(state => res.status(200).json(state))
-    .catch(e => handleError(res, e, log));
+    controller.lockWaitlist(req.uwave, req.user.id, req.body.lock)
+      .then(state => res.status(200).json(state))
+      .catch(err => next(err));
   });
 
   return router;
