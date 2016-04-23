@@ -36,7 +36,8 @@ export default class SocketServer {
     Object.assign(this.options, options);
 
     this.wss = new WebSocket.Server({
-      server: uw.server,
+      server: options.server,
+      port: options.port,
       clientTracking: false
     });
 
