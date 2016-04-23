@@ -1,13 +1,41 @@
 import debug from 'debug';
 import createRouter from 'router';
+import Promise from 'bluebird';
+import request from 'request';
 
 import * as controller from '../controllers/authenticate';
-import { checkFields, handleDuplicate } from '../utils';
+import { checkFields } from '../utils';
 import handleError from '../errors';
 import { ROLE_MANAGER } from '../roles';
 
 const log = debug('uwave:api:v1:auth');
 const rx = /\s|%20/;
+
+function verifyCaptcha(responseString, options) {
+  if (!options.recaptcha) {
+    log('ReCaptcha validation is disabled');
+    return Promise.resolve();
+  } else if (!responseString) {
+    throw new Error('ReCaptcha validation failed. Please try again.');
+  }
+
+  return new Promise((resolve, reject) => {
+    request.post('https://www.google.com/recaptcha/api/siteverify', {
+      json: true,
+      form: {
+        response: responseString,
+        secret: options.recaptcha.secret
+      }
+    }, (err, resp) => {
+      if (!err && resp.body.success) {
+        resolve(resp.body);
+      } else {
+        log('recaptcha validation failure', resp.body);
+        reject(new Error('ReCaptcha validation failed. Please try again.'));
+      }
+    });
+  });
+}
 
 export default function authenticateRoutes(v1, options) {
   const router = createRouter();
@@ -18,7 +46,7 @@ export default function authenticateRoutes(v1, options) {
     .catch(e => handleError(res, e, log));
   });
 
-  router.post('/register', (req, res) => {
+  router.post('/register', (req, res, next) => {
     if (!checkFields(res, req.body, {
       email: 'string',
       username: 'string',
@@ -27,17 +55,18 @@ export default function authenticateRoutes(v1, options) {
       return null;
     }
 
-    if (rx.test(req.body.username)) {
+    const { grecaptcha, email, username, password } = req.body;
+
+    if (rx.test(username)) {
       return res.status(422).json('username contains invalid characters e.g. space');
     }
 
-    controller.createUser(req.uwave, req.body.email, req.body.username, req.body.password)
-    .then(user => res.status(200).json(user))
-    .catch(e => {
-      if (!e.errmsg || !handleDuplicate(res, e.errmsg, ['email', 'username'])) {
-        handleError(res, e, log);
-      }
-    });
+    verifyCaptcha(grecaptcha, options)
+      .then(() => {
+        return controller.createUser(req.uwave, email, username, password);
+      })
+      .then(user => res.status(200).json(user))
+      .catch(err => next(err));
   });
 
   router.post('/login', (req, res) => {

@@ -18,16 +18,6 @@ export function checkFields(res, obj, types) {
   return true;
 }
 
-export function handleDuplicate(res, str, fields) {
-  for (let i = 0, l = fields.length; i < l; i++) {
-    if (str.includes(fields[i])) {
-      res.status(422).json(`${fields[i]} is already in use`);
-      return true;
-    }
-  }
-  return false;
-}
-
 export function paginate(page, size, result, error = null) {
   return { page, size, result, error };
 }
