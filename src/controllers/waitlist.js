@@ -223,11 +223,7 @@ export async function clearWaitlist(uw, moderatorID) {
   return waitlist;
 }
 
-export async function lockWaitlist(uw, moderatorID, lock, clear) {
-  if (clear) {
-    await uw.redis.del('waitlist');
-  }
-
+export async function lockWaitlist(uw, moderatorID, lock) {
   if (lock) {
     await uw.redis.set('waitlist:lock', lock);
   } else {
@@ -247,12 +243,5 @@ export async function lockWaitlist(uw, moderatorID, lock, clear) {
     locked: isLocked
   }));
 
-  if (clear) {
-    uw.redis.publish('v1', createCommand('waitlistClear', { moderatorID }));
-  }
-
-  return {
-    locked: lock,
-    cleared: clear
-  };
+  return { locked: lock };
 }
