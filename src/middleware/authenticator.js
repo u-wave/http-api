@@ -1,13 +1,10 @@
 import bluebird from 'bluebird';
 import jwt from 'jsonwebtoken';
-import debug from 'debug';
 
 import { PermissionError } from '../errors';
 import { isBanned as isUserBanned } from '../controllers/bans';
 
 const verify = bluebird.promisify(jwt.verify);
-
-const log = debug('uwave:v1:authenticator');
 
 export default function authenticatorMiddleware({ uw }, options) {
   async function authenticator(req) {
@@ -16,15 +13,21 @@ export default function authenticatorMiddleware({ uw }, options) {
       return;
     }
 
-    const user = await verify(token, options.secret);
+    let user;
+    try {
+      user = await verify(token, options.secret);
+    } catch (e) {
+      return;
+    }
+
     if (!user) {
-      throw new Error('Invalid session');
+      return;
     }
 
     const User = uw.model('User');
     const userModel = await User.findById(user.id);
     if (!userModel) {
-      throw new Error('Invalid session');
+      return;
     }
 
     if (await isUserBanned(uw, userModel)) {
@@ -36,10 +39,8 @@ export default function authenticatorMiddleware({ uw }, options) {
 
   return (req, res, next) => {
     authenticator(req)
-      .then(() => next())
-      .catch(jwt.JsonWebTokenError, error => {
-        log('invalid token', error.message);
-        throw new Error('Invalid session');
+      .then(() => {
+        next();
       })
       .catch(error => {
         next(error);
