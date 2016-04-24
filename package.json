@@ -38,6 +38,7 @@
     "escape-string-regexp": "^1.0.5",
     "get-artist-title": "^0.0.2",
     "ioredis": "^1.9.0",
+    "is-empty-object": "^1.1.1",
     "jsonwebtoken": "^5.0.5",
     "mongoose": "^4.1.6",
     "ms": "^0.7.1",
