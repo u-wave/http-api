@@ -6,6 +6,7 @@ import request from 'request';
 import * as controller from '../controllers/authenticate';
 import { checkFields } from '../utils';
 import handleError, { HTTPError } from '../errors';
+import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import { ROLE_MANAGER } from '../roles';
 
 const log = debug('uwave:api:v1:auth');
@@ -55,6 +56,7 @@ export default function authenticateRoutes(v1, options) {
       return;
     }
 
+    const uw = req.uwave;
     const { grecaptcha, email, username, password } = req.body;
 
     if (rx.test(username)) {
@@ -63,11 +65,9 @@ export default function authenticateRoutes(v1, options) {
     }
 
     verifyCaptcha(grecaptcha, options)
-      .then(() => {
-        return controller.createUser(req.uwave, email, username, password);
-      })
+      .then(() => uw.createUser({ email, username, password }))
       .then(user => res.json(user))
-      .catch(next);
+      .catch(err => next(err));
   });
 
   router.post('/login', (req, res) => {

@@ -284,6 +284,22 @@ export default class SocketServer {
     'waitlist:update'(waitlist) {
       this.broadcast('waitlistUpdate', waitlist);
     },
+    'user:update'({ userID, moderatorID, new: update }) {
+      if ('role' in update) {
+        this.broadcast('roleChange', {
+          moderatorID,
+          userID,
+          role: update.role
+        });
+      }
+      if ('username' in update) {
+        this.broadcast('nameChange', {
+          moderatorID,
+          userID,
+          username: update.username
+        });
+      }
+    },
     async 'user:join'({ userID }) {
       const User = this.uw.model('User');
 

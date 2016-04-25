@@ -1,87 +1,10 @@
 import clamp from 'clamp';
-import mongoose from 'mongoose';
 
 import { createCommand } from '../sockets';
-import { paginate } from '../utils';
-import { NotFoundError, PermissionError } from '../errors';
-import { ROLE_DEFAULT, ROLE_ADMIN } from '../roles';
 
+import { paginate } from '../utils';
 import { skipIfCurrentDJ } from './booth';
 import { leaveWaitlist } from './waitlist';
-
-const ObjectId = mongoose.Types.ObjectId;
-
-export function getUsers(uw, page, limit) {
-  const User = uw.model('User');
-  const _page = isNaN(page) ? 0 : page;
-  const _limit = isNaN(limit) ? 50 : Math.min(limit, 50);
-
-  return User.find().setOptions({ limit: _limit, page: _limit * _page });
-}
-
-export function getUser(uw, id) {
-  const User = uw.model('User');
-
-  return User.findOne(new ObjectId(id));
-}
-
-export async function muteUser(uw, moderator, userID, duration) {
-  const user = await uw.model('User').findById(userID);
-  if (!user) throw new NotFoundError('User not found.');
-
-  return await user.mute(duration, { moderator });
-}
-
-export async function unmuteUser(uw, moderator, userID) {
-  const user = await uw.model('User').findById(userID);
-  if (!user) throw new NotFoundError('User not found.');
-
-  return await user.unmute({ moderator });
-}
-
-export function changeRole(uw, moderatorID, id, role) {
-  const User = uw.model('User');
-
-  return User.findOne(new ObjectId(id))
-  .then(user => {
-    if (!user) throw new NotFoundError('User not found.');
-
-    user.role = clamp(role, ROLE_DEFAULT, ROLE_ADMIN);
-
-    uw.redis.publish('v1', createCommand('roleChange', {
-      moderatorID,
-      userID: user.id,
-      role: user.role
-    }));
-    return user.save();
-  });
-}
-
-export function changeUsername(uw, moderatorID, id, name) {
-  const User = uw.model('User');
-
-  return User.findOne(new ObjectId(id))
-  .then(user => {
-    if (!user) {
-      throw new NotFoundError('User not found.');
-    }
-    if (user.id !== id && user.role < ROLE_ADMIN) {
-      throw new PermissionError('You can\'t change another user\'s username.');
-    }
-
-    user.username = name;
-    user.slug = name.toLowerCase();
-
-    return user.save();
-  })
-  .tap(user => {
-    uw.redis.publish('v1', createCommand('nameChange', {
-      moderatorID,
-      userID: id,
-      username: user.username
-    }));
-  });
-}
 
 export function setStatus(uw, id, status) {
   uw.redis.publish('v1', createCommand('statusChange', {

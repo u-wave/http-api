@@ -1,29 +1,27 @@
-import debug from 'debug';
 import createRouter from 'router';
 
 import protect from '../middleware/protect';
 import rateLimit from '../middleware/rateLimit';
 import * as controller from '../controllers/users';
-import handleError, { HTTPError, PermissionError } from '../errors';
+import { HTTPError, NotFoundError, PermissionError } from '../errors';
 import { ROLE_MANAGER, ROLE_MODERATOR } from '../roles';
-
-const log = debug('uwave:api:v1:users');
 
 export default function userRoutes() {
   const router = createRouter();
 
-  router.get('/', protect(ROLE_MANAGER), (req, res) => {
-    const { page, limit } = req.query;
+  router.get('/', protect(ROLE_MANAGER), (req, res, next) => {
+    const limit = isFinite(req.query.limit) ? Math.min(req.query.limit, 50) : 50;
+    const offset = isFinite(req.query.page) ? limit * req.query.page : 0;
 
-    controller.getUsers(req.uwave, parseInt(page, 10), parseInt(limit, 10))
-    .then(users => res.status(200).json(users))
-    .catch(e => handleError(res, e, log));
+    req.uwave.getUsers({ offset, limit })
+      .then(users => res.json(users))
+      .catch(next);
   });
 
-  router.get('/:id', (req, res) => {
-    controller.getUser(req.uwave, req.params.id)
-    .then(user => res.status(200).json(user))
-    .catch(e => handleError(res, e, log));
+  router.get('/:id', (req, res, next) => {
+    req.uwave.getUser(req.params.id)
+      .then(user => res.json(user))
+      .catch(next);
   });
 
   router.post('/:id/mute', protect(ROLE_MODERATOR), (req, res, next) => {
@@ -36,9 +34,14 @@ export default function userRoutes() {
       return;
     }
 
-    controller.muteUser(req.uwave, req.user, req.params.id, req.body.time)
+    const duration = req.body.time;
+    req.uwave.getUser(req.params.id)
+      .then(user => {
+        if (!user) throw new NotFoundError('User not found.');
+        return user.mute(duration, { moderator: req.user });
+      })
       .then(() => res.json({}))
-      .catch(err => next(err));
+      .catch(next);
   });
 
   router.delete('/:id/mute', protect(ROLE_MODERATOR), (req, res, next) => {
@@ -47,23 +50,32 @@ export default function userRoutes() {
       return;
     }
 
-    controller.unmuteUser(req.uwave, req.user, req.params.id)
+    req.uwave.getUser(req.params.id)
+      .then(user => {
+        if (!user) throw new NotFoundError('User not found.');
+        return user.unmute({ moderator: req.user });
+      })
       .then(() => res.json({}))
-      .catch(err => next(err));
+      .catch(next);
   });
 
-  router.put('/:id/role', protect(ROLE_MANAGER), (req, res) => {
-    if (typeof req.body.role !== 'number' || isNaN(req.body.role)) {
-      return res.status(422).json('expected role to be a number');
+  router.put('/:id/role', protect(ROLE_MANAGER), (req, res, next) => {
+    if (typeof req.body.role !== 'number' || !isFinite(req.body.role)) {
+      next(new HTTPError(400, 'Expected "role" to be a number.'));
+      return;
     }
-
     if (req.user.role < req.body.role) {
-      return res.status(403).json('you can\'t promote users above or equal to your own level');
+      next(new PermissionError('You can\'t promote users above your rank.'));
+      return;
     }
 
-    controller.changeRole(req.uwave, req.user.id, req.params.id, req.body.role)
-    .then(user => res.status(200).json(user))
-    .catch(e => handleError(res, e, log));
+    req.uwave.updateUser(
+      req.params.id,
+      { role: req.body.role },
+      { moderator: req.user }
+    )
+      .then(user => res.json(user))
+      .catch(next);
   });
 
   router.put('/:id/username',
@@ -74,21 +86,21 @@ export default function userRoutes() {
         `You can only change your username five times per hour. Try again in ${retryAfter}.`
     }),
     (req, res, next) => {
-      if (!req.body.username) {
-        return res.status(422).json('username is not set');
-      }
-
       if (typeof req.body.username !== 'string') {
-        return res.status(422).json('username has to be of type string');
+        return res.status(400).json('Expected "username" to be a string');
       }
 
-      controller.changeUsername(req.uwave, req.user.id, req.params.id, req.body.username)
-        .then(user => res.status(200).json(user))
-        .catch(err => next(err));
+      req.uwave.updateUser(
+        req.params.id,
+        { username: req.body.username },
+        { moderator: req.user }
+      )
+        .then(user => res.json(user))
+        .catch(next);
     }
   );
 
-  router.put('/:id/avatar', (req, res) => {
+  router.put('/:id/avatar', (req, res, next) => {
     if (!req.body.avatar) {
       return res.status(422).json('avatar is not set');
     }
@@ -102,11 +114,11 @@ export default function userRoutes() {
     }
 
     controller.setAvatar(req.uwave, req.user.id, req.params.id, req.body.avatar)
-    .then(user => res.status(200).json(user))
-    .catch(e => handleError(res, e, log));
+      .then(user => res.json(user))
+      .catch(next);
   });
 
-  router.put('/:id/status', (req, res) => {
+  router.put('/:id/status', (req, res, next) => {
     if (typeof req.body.status === 'undefined') {
       return res.status(422).json('status is not set');
     }
@@ -120,15 +132,15 @@ export default function userRoutes() {
     }
 
     controller.setStatus(req.uwave, req.user.id, req.body.status)
-    .then(user => res.status(200).json(user))
-    .catch(e => handleError(res, e, log));
+      .then(user => res.json(user))
+      .catch(next);
   });
 
-  router.get('/:id/history', (req, res) => {
+  router.get('/:id/history', (req, res, next) => {
     const { page, limit } = req.query;
     controller.getHistory(req.uwave, req.params.id, parseInt(page, 10), parseInt(limit, 10))
-    .then(history => res.status(200).json(history))
-    .catch(e => handleError(res, e, log));
+      .then(history => res.json(history))
+      .catch(next);
   });
 
   return router;
