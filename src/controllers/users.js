@@ -25,35 +25,18 @@ export function getUser(uw, id) {
   return User.findOne(new ObjectId(id));
 }
 
-export async function muteUser(uw, moderatorID, userID, duration) {
-  const User = uw.model('User');
-
-  const user = await User.findById(userID);
+export async function muteUser(uw, moderator, userID, duration) {
+  const user = await uw.model('User').findById(userID);
   if (!user) throw new NotFoundError('User not found.');
 
-  await uw.redis.set(`mute:${userID}`, moderatorID, 'PX', duration);
-  uw.publish('chat:mute', {
-    moderatorID,
-    userID: user.id,
-    duration
-  });
-
-  return user;
+  return await user.mute(duration, { moderator });
 }
 
-export async function unmuteUser(uw, moderatorID, userID) {
-  const User = uw.model('User');
-
-  const user = await User.findById(userID);
+export async function unmuteUser(uw, moderator, userID) {
+  const user = await uw.model('User').findById(userID);
   if (!user) throw new NotFoundError('User not found.');
 
-  await uw.redis.del(`mute:${user.id}`);
-  uw.publish('chat:unmute', {
-    moderatorID,
-    userID: user.id
-  });
-
-  return user;
+  return await user.unmute({ moderator });
 }
 
 export function changeRole(uw, moderatorID, id, role) {

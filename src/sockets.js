@@ -1,9 +1,9 @@
 import find from 'array-find';
-import WebSocket from 'ws';
+import isEmpty from 'is-empty-object';
 import tryJsonParse from 'try-json-parse';
+import WebSocket from 'ws';
 
 import { vote } from './controllers/booth';
-import { sendChatMessage } from './controllers/chat';
 import { disconnectUser } from './controllers/users';
 
 import GuestConnection from './sockets/GuestConnection';
@@ -178,7 +178,7 @@ export default class SocketServer {
   clientActions = {
     sendChat(user, message) {
       debug('sendChat', user, message);
-      return sendChatMessage(this.uw, user.id, message);
+      return this.uw.sendChat(user, message);
     },
     vote(user, direction) {
       return vote(this.uw, user.id, direction);
@@ -214,6 +214,26 @@ export default class SocketServer {
         message,
         timestamp
       });
+    },
+    /**
+     * Delete chat messages. The delete filter can have an _id property to
+     * delete a specific message, a userID property to delete messages by a
+     * user, or be empty to delete all messages.
+     */
+    'chat:delete'({ moderatorID, filter }) {
+      if (filter.id) {
+        this.broadcast('chatDeleteByID', {
+          moderatorID,
+          _id: filter.id
+        });
+      } else if (filter.userID) {
+        this.broadcast('chatDeleteByUser', {
+          moderatorID,
+          userID: filter.userID
+        });
+      } else if (isEmpty(filter)) {
+        this.broadcast('chatDelete', { moderatorID });
+      }
     },
     /**
      * Broadcast that a user was muted in chat.

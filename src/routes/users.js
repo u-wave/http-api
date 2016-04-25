@@ -4,7 +4,7 @@ import createRouter from 'router';
 import protect from '../middleware/protect';
 import rateLimit from '../middleware/rateLimit';
 import * as controller from '../controllers/users';
-import handleError from '../errors';
+import handleError, { HTTPError, PermissionError } from '../errors';
 import { ROLE_MANAGER, ROLE_MODERATOR } from '../roles';
 
 const log = debug('uwave:api:v1:users');
@@ -26,31 +26,30 @@ export default function userRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.post('/:id/mute', protect(ROLE_MODERATOR), (req, res) => {
-    if (typeof req.body.time === 'undefined') {
-      return res.status(422).json('time is not set');
+  router.post('/:id/mute', protect(ROLE_MODERATOR), (req, res, next) => {
+    if (typeof req.body.time !== 'number' || !isFinite(req.body.time)) {
+      next(new HTTPError(400, 'Expected "time" to be a number.'));
+      return;
     }
     if (req.user.id === req.params.id) {
-      return res.status(403).json('you can\'t mute yourself');
+      next(new PermissionError('You can\'t mute yourself.'));
+      return;
     }
 
-    if (typeof req.body.time !== 'number' || isNaN(req.body.time)) {
-      return res.status(422).json('time is not set');
-    }
-
-    controller.muteUser(req.uwave, req.user.id, req.params.id, req.body.time)
-    .then(user => res.status(200).json(user))
-    .catch(e => handleError(res, e, log));
+    controller.muteUser(req.uwave, req.user, req.params.id, req.body.time)
+      .then(() => res.json({}))
+      .catch(err => next(err));
   });
 
-  router.delete('/:id/mute', protect(ROLE_MODERATOR), (req, res) => {
+  router.delete('/:id/mute', protect(ROLE_MODERATOR), (req, res, next) => {
     if (req.user.id === req.params.id) {
-      return res.status(403, 'you can\'t unmute yourself');
+      next(new PermissionError('You can\'t unmute yourself.'));
+      return;
     }
 
-    controller.unmuteUser(req.uwave, req.user.id, req.params.id)
-    .then(user => res.status(200).json(user))
-    .catch(e => handleError(res, e, log));
+    controller.unmuteUser(req.uwave, req.user, req.params.id)
+      .then(() => res.json({}))
+      .catch(err => next(err));
   });
 
   router.put('/:id/role', protect(ROLE_MANAGER), (req, res) => {
