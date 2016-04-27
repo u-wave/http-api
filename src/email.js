@@ -1,5 +1,8 @@
+import debug from 'debug';
 import nodemailer from 'nodemailer';
 import EmailError from './errors';
+
+const log = debug('uwave:api:v1:email');
 
 export function sendEmail(emailAddress, subject, token) {
   const smtpOptions = {
@@ -23,12 +26,5 @@ export function sendEmail(emailAddress, subject, token) {
   };
 
   // send mail with defined transport object
-  transporter.sendMail(mailOptions, function(error, info){
-    if (error) {
-      throw new EmailError('Error sending message: ' + error);
-    } else {
-      console.log('Message sent: ' + info.response);
-      return true;
-    }
-  });
+  return transporter.sendMail(mailOptions);
 }

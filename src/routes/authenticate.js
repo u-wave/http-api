@@ -8,6 +8,7 @@ import * as controller from '../controllers/authenticate';
 import {
   HTTPError,
   PermissionError,
+  EmailError,
 } from '../errors';
 import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import toItemResponse from '../utils/toItemResponse';
