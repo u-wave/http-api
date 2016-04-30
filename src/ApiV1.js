@@ -10,6 +10,7 @@ import booth from './routes/booth';
 import users from './routes/users';
 import staff from './routes/staff';
 import chat from './routes/chat';
+import motd from './routes/motd';
 import now from './routes/now';
 import imports from './routes/import';
 
@@ -104,6 +105,7 @@ export default class ApiV1 extends Router {
       .use('/booth', booth(this))
       .use('/chat', chat(this))
       .use('/import', imports(this))
+      .use('/motd', motd(this))
       .use('/now', now(this))
       .use('/playlists', playlist(this))
       .use('/search', search(this))

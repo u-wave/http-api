@@ -9,6 +9,7 @@ const ObjectId = mongoose.Types.ObjectId;
 export async function getState(uw, id) {
   const User = uw.model('User');
 
+  const motd = uw.getMotd();
   const playlists = getPlaylists(uw, 0, 50, id);
   const booth = getBooth(uw);
   const user = User.findOne(new ObjectId(id));
@@ -21,6 +22,7 @@ export async function getState(uw, id) {
   const time = getServerTime();
 
   return await Promise.props({
+    motd,
     playlists,
     booth,
     user,
