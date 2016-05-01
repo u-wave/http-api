@@ -5,7 +5,7 @@ import request from 'request';
 
 import * as controller from '../controllers/authenticate';
 import { checkFields } from '../utils';
-import handleError from '../errors';
+import handleError, { HTTPError } from '../errors';
 import { ROLE_MANAGER } from '../roles';
 
 const log = debug('uwave:api:v1:auth');
@@ -52,21 +52,22 @@ export default function authenticateRoutes(v1, options) {
       username: 'string',
       password: 'string'
     })) {
-      return null;
+      return;
     }
 
     const { grecaptcha, email, username, password } = req.body;
 
     if (rx.test(username)) {
-      return res.status(422).json('username contains invalid characters e.g. space');
+      next(new HTTPError(400, 'Usernames can\'t contain spaces.'));
+      return;
     }
 
     verifyCaptcha(grecaptcha, options)
       .then(() => {
         return controller.createUser(req.uwave, email, username, password);
       })
-      .then(user => res.status(200).json(user))
-      .catch(err => next(err));
+      .then(user => res.json(user))
+      .catch(next);
   });
 
   router.post('/login', (req, res) => {

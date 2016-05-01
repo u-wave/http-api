@@ -6,12 +6,16 @@ import randomString from 'random-string';
 import debug from 'debug';
 
 import {
+  HTTPError,
   NotFoundError,
   PasswordError,
   PermissionError,
   TokenError
 } from '../errors';
 import { isBanned as isUserBanned } from './bans';
+
+const MONGO_DUPLICATE_KEY_ERROR = 11000;
+const MONGO_DUPLICATE_KEY_ERROR2 = 11001;
 
 const ObjectId = mongoose.Types.ObjectId;
 const log = debug('uwave:api:v1:auth');
@@ -54,6 +58,15 @@ export async function createUser(uw, email, username, password) {
     log(`did not create user ${username}. Error: ${e}`);
     if (auth) auth.remove();
     user.remove();
+
+    if (e.code === MONGO_DUPLICATE_KEY_ERROR || e.code === MONGO_DUPLICATE_KEY_ERROR2) {
+      if (e.message.indexOf('$username') !== -1) {
+        throw new HTTPError(400, 'That username is in use.');
+      } else if (e.message.indexOf('$email') !== -1) {
+        throw new HTTPError(400, 'That email address is in use.');
+      }
+    }
+
     throw e;
   }
 }
