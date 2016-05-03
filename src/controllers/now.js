@@ -6,9 +6,10 @@ import { getServerTime } from './server';
 
 const ObjectId = mongoose.Types.ObjectId;
 
-export async function getState(uw, id) {
+export async function getState(v1, uw, id) {
   const User = uw.model('User');
 
+  const guests = v1.getGuestCount();
   const motd = uw.getMotd();
   const playlists = getPlaylists(uw, 0, 50, id);
   const booth = getBooth(uw);
@@ -27,6 +28,7 @@ export async function getState(uw, id) {
     booth,
     user,
     users,
+    guests,
     waitlist,
     waitlistLocked,
     activePlaylist,

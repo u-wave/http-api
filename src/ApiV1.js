@@ -130,6 +130,13 @@ export default class ApiV1 extends Router {
     return attachUwaveMeta(this, this.uw);
   }
 
+  /**
+   * @return Number of open guest connections.
+   */
+  getGuestCount() {
+    return this.sockets.getGuestCount();
+  }
+
   destroy() {
     this.sockets.destroy();
     this.sockets = null;

@@ -1,3 +1,4 @@
+import debounce from 'debounce';
 import find from 'array-find';
 import isEmpty from 'is-empty-object';
 import tryJsonParse from 'try-json-parse';
@@ -21,6 +22,8 @@ export default class SocketServer {
   options = {
     timeout: 30
   };
+
+  lastGuestCount = 0;
 
   /**
    * Create a socket server.
@@ -149,6 +152,7 @@ export default class SocketServer {
     debug('adding', String(connection));
 
     this.connections.push(connection);
+    this.recountGuests();
   }
 
   /**
@@ -161,6 +165,7 @@ export default class SocketServer {
     this.connections.splice(i, 1);
 
     connection.removed();
+    this.recountGuests();
   }
 
   /**
@@ -353,6 +358,13 @@ export default class SocketServer {
   }
 
   /**
+   * @return Number of active guest connections.
+   */
+  getGuestCount() {
+    return this.lastGuestCount;
+  }
+
+  /**
    * Stop the socket server.
    */
   destroy() {
@@ -402,4 +414,18 @@ export default class SocketServer {
       conn.send(command, data);
     }
   }
+
+  /**
+   * Update online guests count and broadcast an update if necessary.
+   */
+  recountGuests = debounce(() => {
+    const guests = this.connections
+      .filter((connection) => connection instanceof GuestConnection)
+      .length;
+
+    if (guests !== this.lastGuestCount) {
+      this.broadcast('guests', guests);
+      this.lastGuestCount = guests;
+    }
+  }, 2000);
 }
