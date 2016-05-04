@@ -42,9 +42,7 @@ export default function authenticateRoutes(v1, options) {
   const router = createRouter();
 
   router.get('/', (req, res) => {
-    controller.getCurrentUser(req.uwave, req.user.id)
-    .then(user => res.status(200).json(user))
-    .catch(e => handleError(res, e, log));
+    res.json(req.user || {});
   });
 
   router.post('/register', (req, res, next) => {
@@ -67,7 +65,7 @@ export default function authenticateRoutes(v1, options) {
     verifyCaptcha(grecaptcha, options)
       .then(() => uw.createUser({ email, username, password }))
       .then(user => res.json(user))
-      .catch(err => next(err));
+      .catch(error => next(beautifyDuplicateKeyError(error)));
   });
 
   router.post('/login', (req, res) => {

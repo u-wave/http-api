@@ -3,6 +3,7 @@ import createRouter from 'router';
 import protect from '../middleware/protect';
 import rateLimit from '../middleware/rateLimit';
 import * as controller from '../controllers/users';
+import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import { HTTPError, NotFoundError, PermissionError } from '../errors';
 import { ROLE_MANAGER, ROLE_MODERATOR } from '../roles';
 
@@ -87,7 +88,8 @@ export default function userRoutes() {
     }),
     (req, res, next) => {
       if (typeof req.body.username !== 'string') {
-        return res.status(400).json('Expected "username" to be a string');
+        next(new HTTPError(400, 'Expected "username" to be a string'));
+        return;
       }
 
       req.uwave.updateUser(
@@ -96,7 +98,7 @@ export default function userRoutes() {
         { moderator: req.user }
       )
         .then(user => res.json(user))
-        .catch(next);
+        .catch(error => next(beautifyDuplicateKeyError(error)));
     }
   );
 
