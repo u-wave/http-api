@@ -6,9 +6,18 @@ import { isBanned as isUserBanned } from '../controllers/bans';
 
 const verify = bluebird.promisify(jwt.verify);
 
+function getHeaderToken(headers) {
+  if (headers.authorization) {
+    const parts = headers.authorization.split(' ');
+    if (parts[0].toLowerCase() === 'jwt') {
+      return parts[1];
+    }
+  }
+}
+
 export default function authenticatorMiddleware({ uw }, options) {
   async function authenticator(req) {
-    const token = req.query && req.query.token;
+    const token = req.query && req.query.token || getHeaderToken(req.headers);
     if (!token) {
       return;
     }
