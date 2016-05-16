@@ -1,142 +1,216 @@
-import debug from 'debug';
 import createRouter from 'router';
+import * as url from 'url';
 
 import protect from '../middleware/protect';
-import * as controller from '../controllers/playlists';
 import { checkFields } from '../utils';
-import handleError from '../errors';
+import { serializePlaylist } from '../utils/serialize';
+import { HTTPError } from '../errors';
 
-const log = debug('uwave:api:v1:playlists');
+const parseNumber = (str, defaultN) => {
+  const n = parseInt(str, 10);
+  return isFinite(n) ? n : defaultN;
+};
+
+const getFullUrl = req => `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+
+const appendQuery = (base, query) => {
+  const parsed = url.parse(base, true);
+  Object.assign(parsed.query, query);
+  return url.format(parsed);
+};
+
+const toPaginatedResponse = (page, { baseUrl = '' } = {}) => ({
+  meta: {
+    offset: page.currentPage.offset,
+    pageSize: page.pageSize,
+    results: page.filteredSize,
+    total: page.totalSize
+  },
+  links: {
+    self: appendQuery(baseUrl, { page: page.currentPage }),
+    next: appendQuery(baseUrl, { page: page.nextPage }),
+    prev: appendQuery(baseUrl, { page: page.prevPage })
+  },
+  data: page.data
+});
+
+const getOffsetPagination = (query, defaultSize = 100) => {
+  if (typeof query.page === 'object') {
+    return {
+      offset: parseNumber(query.page.offset, 0),
+      limit: parseNumber(query.page.limit, defaultSize)
+    };
+  }
+  // Old way: using a `page=` and a `limit=` query parameter.
+  const page = parseNumber(query.page, 0);
+  const limit = parseNumber(query.limit, defaultSize);
+  return {
+    offset: page * limit,
+    limit
+  };
+};
 
 export default function playlistRoutes() {
-  const router = createRouter();
+  const router = createRouter().use(protect());
 
-  router.use(protect());
-
-  router.get('/', (req, res) => {
-    const { page, limit } = req.query;
-    controller.getPlaylists(req.uwave, parseInt(page, 10), parseInt(limit, 10), req.user.id)
-    .then(playlists => res.status(200).json(playlists))
-    .catch(e => handleError(res, e, log));
+  router.get('/', (req, res, next) => {
+    req.user.getPlaylists()
+      .then(playlists => playlists.map(serializePlaylist))
+      .then(playlists => res.json(playlists))
+      .catch(next);
   });
 
-  router.post('/', (req, res) => {
-    if (!checkFields(res, req.body, { name: 'string', description: 'string', shared: 'boolean' })) {
-      return null;
+  router.post('/', (req, res, next) => {
+    if (!checkFields(res, req.body, { name: 'string' })) {
+      return;
     }
 
-    const data = {
+    req.user.createPlaylist({
       name: req.body.name,
       description: req.body.description,
-      shared: req.body.shared,
-      author: req.user.id
-    };
-
-    controller.createPlaylist(req.uwave, data, [])
-    .then(playlist => res.status(200).json(playlist))
-    .catch(e => handleError(res, e, log));
+      shared: req.body.shared
+    })
+      .then(serializePlaylist)
+      .then(playlist => res.json(playlist))
+      .catch(next);
   });
 
-  router.get('/:id', (req, res) => {
-    controller.getPlaylist(req.uwave, req.user.id, req.params.id)
-    .then(playlist => res.status(200).json(playlist))
-    .catch(e => handleError(res, e, log));
+  router.get('/:id', (req, res, next) => {
+    req.user.getPlaylist(req.params.id)
+      .then(serializePlaylist)
+      .then(playlist => res.json(playlist))
+      .catch(next);
   });
 
-  router.delete('/:id', (req, res) => {
-    controller.deletePlaylist(req.uwave, req.user.id, req.params.id)
-    .then(playlist => res.status(200).json(playlist))
-    .catch(e => handleError(res, e, log));
+  router.delete('/:id', (req, res, next) => {
+    const uw = req.uwave;
+
+    req.user.getPlaylist(req.params.id)
+      .then(playlist => uw.playlists.deletePlaylist(playlist))
+      .then(result => res.json(result))
+      .catch(next);
   });
 
-  router.put('/:id/rename', (req, res) => {
-    if (!req.body.name) {
-      return res.status(422).json('name is not set');
-    }
-    if (typeof req.body.name !== 'string') {
-      return res.status(422).json('name has to be of type string');
-    }
-
-    controller.renamePlaylist(req.uwave, req.user.id, req.params.id, req.body.name)
-    .then(playlist => res.status(200).json(playlist))
-    .catch(e => handleError(res, e, log));
-  });
-
-  router.put('/:id/share', (req, res) => {
-    if (typeof req.body.share === 'undefined') {
-      return res.status(422).json('share is not set');
-    }
-    if (typeof req.body.share !== 'boolean') {
-      return res.status(422).json('share has to be of type boolean');
+  const patchableKeys = ['name', 'shared', 'description'];
+  router.patch('/:id', (req, res, next) => {
+    const patches = Object.keys(req.body);
+    for (const patchKey of patches) {
+      if (patchableKeys.indexOf(patchKey) === -1) {
+        next(new HTTPError(400, `Key "${patchKey}" cannot be updated.`));
+        return;
+      }
     }
 
-    controller.sharePlaylist(req.uwave, req.user.id, req.params.id, req.body.share)
-    .then(playlist => res.status(200).json(playlist))
-    .catch(e => handleError(res, e, log));
+    const uw = req.uwave;
+
+    req.user.getPlaylist(req.params.id)
+      .then(playlist => uw.playlists.updatePlaylist(playlist, req.body))
+      .then(serializePlaylist)
+      .then(playlist => res.json(playlist))
+      .catch(next);
   });
 
-  router.put('/:id/move', (req, res) => {
+  router.put('/:id/rename', (req, res, next) => {
+    if (!checkFields(res, req.body, { name: 'string' })) {
+      return;
+    }
+
+    const uw = req.uwave;
+
+    req.user.getPlaylist(req.params.id)
+      .then(playlist => uw.playlists.updatePlaylist(playlist, { name: req.body.name }))
+      .then(serializePlaylist)
+      .then(playlist => res.json(playlist))
+      .catch(next);
+  });
+
+  router.put('/:id/share', (req, res, next) => {
+    if (!checkFields(res, req.body, { shared: 'string' })) {
+      return;
+    }
+
+    const uw = req.uwave;
+
+    req.user.getPlaylist(req.params.id)
+      .then(playlist => uw.playlists.updatePlaylist(playlist, { shared: req.body.shared }))
+      .then(serializePlaylist)
+      .then(playlist => res.json(playlist))
+      .catch(next);
+  });
+
+  router.put('/:id/move', (req, res, next) => {
+    const { after, items } = req.body;
+    if (!Array.isArray(items)) {
+      next(new HTTPError(422, 'Expected "items" to be an array'));
+      return;
+    }
+
+    req.user.getPlaylist(req.params.id)
+      .then(playlist => playlist.moveItems(items, { afterID: after }))
+      .then(result => res.json(result))
+      .catch(next);
+  });
+
+  router.put('/:id/activate', (req, res, next) => {
+    req.user.setActivePlaylist(req.params.id)
+      .then(() => res.json({}))
+      .catch(next);
+  });
+
+  router.get('/:id/media', (req, res, next) => {
+    const filter = req.query.filter || null;
+
+    const pagination = getOffsetPagination(req.query);
+
+    req.user.getPlaylist(req.params.id)
+      .then(playlist => playlist.getItems(filter, pagination))
+      .then(page => toPaginatedResponse(page, { baseUrl: getFullUrl(req) }))
+      .then(page => res.json(page))
+      .catch(next);
+  });
+
+  router.post('/:id/media', (req, res, next) => {
     if (!checkFields(res, req.body, { items: 'object' })) {
-      return null;
+      return;
     }
 
     const { after, items } = req.body;
     if (!Array.isArray(items)) {
-      return res.status(422).json('expected "items" to be an array');
+      next(new HTTPError(422, 'Expected "items" to be an array.'));
+      return;
     }
 
-    controller.movePlaylistItems(req.uwave, req.user.id, req.params.id, after, items)
-    .then(playlist => res.status(200).json(playlist))
-    .catch(e => handleError(res, e, log));
+    req.user.getPlaylist(req.params.id)
+      .then(playlist => playlist.addItems(items, { after }))
+      .then(patch => res.json(patch))
+      .catch(next);
   });
 
-  router.put('/:id/activate', (req, res) => {
-    controller.activatePlaylist(req.uwave, req.user.id, req.params.id)
-    .then(playlist => res.status(200).json(playlist))
-    .catch(e => handleError(res, e, log));
-  });
-
-  router.get('/:id/media', (req, res) => {
-    const { page, limit, filter } = req.query;
-    controller.getPlaylistItems(
-      req.uwave,
-      req.user.id, req.params.id,
-      { page: parseInt(page, 10), limit: parseInt(limit, 10) },
-      filter
-    )
-    .then(playlist => res.status(200).json(playlist))
-    .catch(e => handleError(res, e, log));
-  });
-
-  router.post('/:id/media', (req, res) => {
-    if (!checkFields(res, req.body, { items: 'object' })) {
-      return null;
-    }
-    const { after, items } = req.body;
+  router.delete('/:id/media', (req, res, next) => {
+    const items = req.query.items || req.body.items;
     if (!Array.isArray(items)) {
-      return res.status(422).json('expected "items" to be an array');
+      next(new HTTPError(422, 'Expected "items" to be an array'));
+      return;
     }
 
-    controller.createPlaylistItems(req.uwave, req.user.id, req.params.id, after, items)
-    .then(media => res.status(200).json(media))
-    .catch(e => handleError(res, e, log));
+    req.user.getPlaylist(req.params.id)
+      .then(playlist =>
+        playlist.removeItems(items).then(() => playlist)
+      )
+      .then(playlist => res.json({
+        playlistSize: playlist.size
+      }))
+      .catch(next);
   });
 
-  router.delete('/:id/media', (req, res) => {
-    if (!Array.isArray(req.body.items)) return res.status(422).json('items is not set');
-
-    controller.deletePlaylistItems(req.uwave, req.user.id, req.params.id, req.body.items)
-    .then(playlist => res.status(200).json(playlist))
-    .catch(e => handleError(res, e, log));
+  router.get('/:id/media/:itemID', (req, res, next) => {
+    req.user.getPlaylist(req.params.id)
+      .then(playlist => playlist.getItem(req.params.itemID))
+      .then(item => res.json(item))
+      .catch(next);
   });
 
-  router.get('/:id/media/:mediaID', (req, res) => {
-    controller.getPlaylistItem(req.uwave, req.user.id, req.params.id, req.params.mediaID)
-    .then(media => res.status(200).json(media))
-    .catch(e => handleError(res, e, log));
-  });
-
-  router.put('/:id/media/:mediaID', (req, res) => {
+  router.put('/:id/media/:itemID', (req, res, next) => {
     if (!checkFields(res, req.body, {
       artist: 'string',
       title: 'string',
@@ -146,33 +220,24 @@ export default function playlistRoutes() {
       return null;
     }
 
-    const { body, params, user } = req;
-
-    const metadata = {
-      artist: body.artist,
-      title: body.title,
-      start: body.start,
-      end: body.end
+    const patch = {
+      artist: req.body.artist,
+      title: req.body.title,
+      start: req.body.start,
+      end: req.body.end
     };
 
-    controller.updatePlaylistItem(req.uwave, user.id, params.id, params.mediaID, metadata)
-    .then(media => res.status(200).json(media))
-    .catch(e => handleError(res, e, log));
+    req.user.getPlaylist(req.params.id)
+      .then(playlist => playlist.updateItem(req.params.itemID, patch))
+      .then(item => res.json(item))
+      .catch(next);
   });
 
-  router.delete('/:id/media/:mediaID', (req, res) => {
-    const { params, user } = req;
-    controller.deletePlaylistItems(req.uwave, user.id, params.id, [params.mediaID])
-    .then(playlist => res.status(200).json(playlist))
-    .catch(e => handleError(res, e, log));
-  });
-
-  router.post('/:id/media/:mediaID/copy', (req, res) => {
-    if (!checkFields(res, req.body, { toPlaylistID: 'string' })) return;
-
-    controller.copyPlaylistItem(req.uwave, req.user.id, req.params.id, req.params.mediaID)
-    .then(playlist => res.status(200).json(playlist))
-    .catch(e => handleError(res, e, log));
+  router.delete('/:id/media/:mediaID', (req, res, next) => {
+    req.user.getPlaylist(req.params.id)
+      .then(playlist => playlist.removeItem(req.params.mediaID))
+      .then(removed => res.json(removed))
+      .catch(next);
   });
 
   return router;
