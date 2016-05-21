@@ -1,3 +1,4 @@
+import debug from 'debug';
 import createRouter from 'router';
 import * as url from 'url';
 
@@ -5,6 +6,8 @@ import protect from '../middleware/protect';
 import { checkFields } from '../utils';
 import { serializePlaylist } from '../utils/serialize';
 import { HTTPError } from '../errors';
+
+const log = debug('uwave:api:v1:playlists');
 
 const parseNumber = (str, defaultN) => {
   const n = parseInt(str, 10);
@@ -65,11 +68,22 @@ export default function playlistRoutes() {
       return;
     }
 
+    async function activateIfFirst(playlist) {
+      try {
+        await req.user.getActivePlaylist();
+      } catch (e) {
+        log(`activating first playlist for ${req.user.id} ${req.user.username}`);
+        await req.user.setActivePlaylist(playlist);
+      }
+      return playlist;
+    }
+
     req.user.createPlaylist({
       name: req.body.name,
       description: req.body.description,
       shared: req.body.shared
     })
+      .then(activateIfFirst)
       .then(serializePlaylist)
       .then(playlist => res.json(playlist))
       .catch(next);
