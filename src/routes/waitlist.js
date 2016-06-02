@@ -18,7 +18,7 @@ export default function waitlistRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.post('/', (req, res) => {
+  router.post('/', protect(), (req, res) => {
     if (!req.body.userID) return res.status(422).json('userID is not set');
     let _position = parseInt(req.body.position, 10);
     _position = (!isNaN(_position) ? _position : -1);
@@ -54,7 +54,7 @@ export default function waitlistRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.delete('/:id', (req, res) => {
+  router.delete('/:id', protect(), (req, res) => {
     let promise;
     if (req.user.id !== req.params.id) {
       if (req.user.role < ROLE_MODERATOR) {
