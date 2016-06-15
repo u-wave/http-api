@@ -217,6 +217,13 @@ export default function playlistRoutes() {
       .catch(next);
   });
 
+  router.post('/:id/shuffle', (req, res, next) => {
+    req.user.getPlaylist(req.params.id)
+      .then(playlist => playlist.shuffle())
+      .then(() => res.json({}))
+      .catch(next);
+  });
+
   router.get('/:id/media/:itemID', (req, res, next) => {
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.getItem(req.params.itemID))
