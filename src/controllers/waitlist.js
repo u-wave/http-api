@@ -163,7 +163,7 @@ export async function moveWaitlist(uw, moderatorID, userID, position) {
   if (beforeID) {
     await uw.redis.linsert('waitlist', 'BEFORE', beforeID, user.id);
   } else {
-    await uw.redis.lpush('waitlist', user.id);
+    await uw.redis.rpush('waitlist', user.id);
   }
 
   waitlist = await getWaitlist(uw);
