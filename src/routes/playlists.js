@@ -1,57 +1,16 @@
 import debug from 'debug';
 import createRouter from 'router';
-import * as url from 'url';
 
 import protect from '../middleware/protect';
 import { checkFields } from '../utils';
 import { serializePlaylist } from '../utils/serialize';
 import { HTTPError } from '../errors';
+import getOffsetPagination from '../utils/getOffsetPagination';
+import toPaginatedResponse from '../utils/toPaginatedResponse';
 
 const log = debug('uwave:api:v1:playlists');
 
-const parseNumber = (str, defaultN) => {
-  const n = parseInt(str, 10);
-  return isFinite(n) ? n : defaultN;
-};
-
 const getFullUrl = req => `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-
-const appendQuery = (base, query) => {
-  const parsed = url.parse(base, true);
-  Object.assign(parsed.query, query);
-  return url.format(parsed);
-};
-
-const toPaginatedResponse = (page, { baseUrl = '' } = {}) => ({
-  meta: {
-    offset: page.currentPage.offset,
-    pageSize: page.pageSize,
-    results: page.filteredSize,
-    total: page.totalSize,
-  },
-  links: {
-    self: appendQuery(baseUrl, { page: page.currentPage }),
-    next: appendQuery(baseUrl, { page: page.nextPage }),
-    prev: appendQuery(baseUrl, { page: page.prevPage }),
-  },
-  data: page.data,
-});
-
-const getOffsetPagination = (query, defaultSize = 100) => {
-  if (typeof query.page === 'object') {
-    return {
-      offset: parseNumber(query.page.offset, 0),
-      limit: parseNumber(query.page.limit, defaultSize),
-    };
-  }
-  // Old way: using a `page=` and a `limit=` query parameter.
-  const page = parseNumber(query.page, 0);
-  const limit = parseNumber(query.limit, defaultSize);
-  return {
-    offset: page * limit,
-    limit,
-  };
-};
 
 export default function playlistRoutes() {
   const router = createRouter().use(protect());

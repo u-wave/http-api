@@ -47,6 +47,7 @@
     "mongoose": "^4.1.6",
     "ms": "^0.7.1",
     "parse-iso-duration": "^1.0.0",
+    "qs": "^6.2.1",
     "random-string": "^0.1.2",
     "ratelimiter": "^2.1.2",
     "request": "^2.70.0",
