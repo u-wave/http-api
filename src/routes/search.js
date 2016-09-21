@@ -1,18 +1,19 @@
-import debug from 'debug';
 import router from 'router';
 
 import protect from '../middleware/protect';
-import * as controller from '../controllers/search';
-import { handleError } from '../errors';
-
-const log = debug('uwave:api:v1:search');
+import { searchAll, search } from '../controllers/search';
 
 export default function searchRoutes() {
   return router()
     .use(protect())
-    .get('/', (req, res) => {
-      controller.search(req.uwave, req.query.query)
-        .then(results => res.status(200).json(results))
-        .catch(e => handleError(res, e, log));
+    .get('/', (req, res, next) => {
+      searchAll(req.uwave, req.query.query)
+        .then(results => res.json(results))
+        .catch(next);
+    })
+    .get('/:source', (req, res, next) => {
+      search(req.uwave, req.params.source, req.query.query)
+        .then(results => res.json(results))
+        .catch(next);
     });
 }
