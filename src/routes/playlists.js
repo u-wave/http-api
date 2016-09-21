@@ -6,6 +6,7 @@ import { checkFields } from '../utils';
 import { serializePlaylist } from '../utils/serialize';
 import { HTTPError } from '../errors';
 import getOffsetPagination from '../utils/getOffsetPagination';
+import toItemResponse from '../utils/toItemResponse';
 import toPaginatedResponse from '../utils/toPaginatedResponse';
 
 const log = debug('uwave:api:v1:playlists');
@@ -42,14 +43,16 @@ export default function playlistRoutes() {
     })
       .then(activateIfFirst)
       .then(serializePlaylist)
-      .then(playlist => res.json(playlist))
+      .then(playlist => toItemResponse(playlist, { url: req.fullUrl }))
+      .then(item => res.json(item))
       .catch(next);
   });
 
   router.get('/:id', (req, res, next) => {
     req.user.getPlaylist(req.params.id)
       .then(serializePlaylist)
-      .then(playlist => res.json(playlist))
+      .then(playlist => toItemResponse(playlist, { url: req.fullUrl }))
+      .then(item => res.json(item))
       .catch(next);
   });
 
@@ -77,7 +80,8 @@ export default function playlistRoutes() {
     req.user.getPlaylist(req.params.id)
       .then(playlist => uw.playlists.updatePlaylist(playlist, req.body))
       .then(serializePlaylist)
-      .then(playlist => res.json(playlist))
+      .then(playlist => toItemResponse(playlist, { url: req.fullUrl }))
+      .then(item => res.json(item))
       .catch(next);
   });
 
@@ -91,7 +95,8 @@ export default function playlistRoutes() {
     req.user.getPlaylist(req.params.id)
       .then(playlist => uw.playlists.updatePlaylist(playlist, { name: req.body.name }))
       .then(serializePlaylist)
-      .then(playlist => res.json(playlist))
+      .then(playlist => toItemResponse(playlist, { url: req.fullUrl }))
+      .then(item => res.json(item))
       .catch(next);
   });
 
@@ -105,7 +110,8 @@ export default function playlistRoutes() {
     req.user.getPlaylist(req.params.id)
       .then(playlist => uw.playlists.updatePlaylist(playlist, { shared: req.body.shared }))
       .then(serializePlaylist)
-      .then(playlist => res.json(playlist))
+      .then(playlist => toItemResponse(playlist, { url: req.fullUrl }))
+      .then(item => res.json(item))
       .catch(next);
   });
 
@@ -168,22 +174,26 @@ export default function playlistRoutes() {
       .then(playlist =>
         playlist.removeItems(items).then(() => playlist)
       )
-      .then(playlist => res.json({
-        playlistSize: playlist.size,
+      .then(playlist => toItemResponse({}, {
+        meta: {
+          playlistSize: playlist.size,
+        },
       }))
+      .then(item => res.json(item))
       .catch(next);
   });
 
   router.post('/:id/shuffle', (req, res, next) => {
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.shuffle())
-      .then(() => res.json({}))
+      .then(() => toItemResponse({}))
       .catch(next);
   });
 
   router.get('/:id/media/:itemID', (req, res, next) => {
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.getItem(req.params.itemID))
+      .then(playlistItem => toItemResponse(playlistItem, { url: req.fullUrl }))
       .then(item => res.json(item))
       .catch(next);
   });
@@ -207,6 +217,7 @@ export default function playlistRoutes() {
 
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.updateItem(req.params.itemID, patch))
+      .then(playlistItem => toItemResponse(playlistItem, { url: req.fullUrl }))
       .then(item => res.json(item))
       .catch(next);
   });
