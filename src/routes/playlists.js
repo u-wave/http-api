@@ -10,8 +10,6 @@ import toPaginatedResponse from '../utils/toPaginatedResponse';
 
 const log = debug('uwave:api:v1:playlists');
 
-const getFullUrl = req => `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-
 export default function playlistRoutes() {
   const router = createRouter().use(protect());
 
@@ -137,7 +135,7 @@ export default function playlistRoutes() {
 
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.getItems(filter, pagination))
-      .then(page => toPaginatedResponse(page, { baseUrl: getFullUrl(req) }))
+      .then(page => toPaginatedResponse(page, { baseUrl: req.fullUrl }))
       .then(page => res.json(page))
       .catch(next);
   });
