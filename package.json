@@ -25,7 +25,7 @@
     "through2": "^2.0.1"
   },
   "scripts": {
-    "test": "eslint src gulpfile.js",
+    "test": "eslint .",
     "build": "gulp build",
     "watch": "gulp watch",
     "prepublish": "npm run build"

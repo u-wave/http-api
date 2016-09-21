@@ -238,7 +238,7 @@ export default function playlistRoutes() {
       start: 'number',
       end: 'number',
     })) {
-      return null;
+      return;
     }
 
     const patch = {

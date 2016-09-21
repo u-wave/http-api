@@ -1,5 +1,6 @@
 import Promise from 'bluebird';
 
+// eslint-disable-next-line import/prefer-default-export
 export function search(uw, query) {
   const promises = {};
   uw.sources.forEach((source) => {

@@ -15,7 +15,8 @@ export default function rateLimit(prefix, opts) {
 
     const limiter = new RateLimiter({
       ...opts,
-      id, db,
+      id,
+      db,
     });
 
     limiter.get((err, limit) => {
@@ -27,7 +28,7 @@ export default function rateLimit(prefix, opts) {
 
       if (limit.remaining) return next();
 
-      const retryAfter = Math.floor(limit.reset - Date.now() / 1000);
+      const retryAfter = Math.floor(limit.reset - (Date.now() / 1000));
       res.set('Retry-After', retryAfter);
       return next(new RateLimitError(
         createErrorMessage(retryAfter, ms(retryAfter * 1000, { long: true }))

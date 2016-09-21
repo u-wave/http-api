@@ -1,4 +1,5 @@
 import Router from 'router';
+import bodyParser from 'body-parser';
 
 // routes
 import authenticate from './routes/authenticate';
@@ -15,7 +16,6 @@ import now from './routes/now';
 import imports from './routes/import';
 
 // middleware
-import bodyParser from 'body-parser';
 import attachUwaveMeta from './middleware/attachUwaveMeta';
 import authenticator from './middleware/authenticator';
 import errorHandler from './middleware/errorHandler';

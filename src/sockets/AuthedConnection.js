@@ -48,11 +48,9 @@ export default class AuthedConnection extends EventEmitter {
 
   onMessage(raw: string) {
     const { command, data } = tryJsonParse(raw) || {};
-    if (!command) {
-      return null;
+    if (command) {
+      this.emit('command', command, data);
     }
-
-    this.emit('command', command, data);
   }
 
   send(command: string, data: any) {

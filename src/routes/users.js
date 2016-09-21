@@ -104,15 +104,18 @@ export default function userRoutes() {
 
   router.put('/:id/avatar', (req, res, next) => {
     if (!req.body.avatar) {
-      return res.status(422).json('avatar is not set');
+      res.status(422).json('avatar is not set');
+      return;
     }
 
     if (typeof req.body.avatar !== 'string') {
-      return res.status(422).json('avatar has to be of type string');
+      res.status(422).json('avatar has to be of type string');
+      return;
     }
 
     if (!req.user.id !== req.params.id && req.user.role < ROLE_MANAGER) {
-      return res.status(403).json('you need to be a manager to do this');
+      res.status(403).json('you need to be a manager to do this');
+      return;
     }
 
     controller.setAvatar(req.uwave, req.user.id, req.params.id, req.body.avatar)
@@ -122,15 +125,18 @@ export default function userRoutes() {
 
   router.put('/:id/status', (req, res, next) => {
     if (typeof req.body.status === 'undefined') {
-      return res.status(422).json('status is not set');
+      res.status(422).json('status is not set');
+      return;
     }
 
-    if (typeof req.body.status !== 'number' || isNaN(req.body.status)) {
-      return res.status(422).json('status has to be a number and not NaN');
+    if (typeof req.body.status !== 'number' || !isFinite(req.body.status)) {
+      res.status(422).json('status has to be a number');
+      return;
     }
 
     if (req.user.id !== req.params.id) {
-      return res.status(403).json('you can\'t change the status of another user');
+      res.status(403).json('you can\'t change the status of another user');
+      return;
     }
 
     controller.setStatus(req.uwave, req.user.id, req.body.status)

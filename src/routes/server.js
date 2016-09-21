@@ -1,6 +1,6 @@
 import router from 'router';
 
-import * as controller from '../controller/server';
+import * as controller from '../controllers/server';
 
 export default function serverRoutes() {
   return router()

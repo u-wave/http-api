@@ -13,11 +13,12 @@ function getHeaderToken(headers) {
       return parts[1];
     }
   }
+  return null;
 }
 
 export default function authenticatorMiddleware({ uw }, options) {
   async function authenticator(req) {
-    const token = req.query && req.query.token || getHeaderToken(req.headers);
+    const token = (req.query && req.query.token) || getHeaderToken(req.headers);
     if (!token) {
       return;
     }

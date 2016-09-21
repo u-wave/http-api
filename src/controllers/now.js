@@ -4,6 +4,7 @@ import { getServerTime } from './server';
 
 import { serializePlaylist } from '../utils/serialize';
 
+// eslint-disable-next-line import/prefer-default-export
 export async function getState(v1, uw, user) {
   const User = uw.model('User');
 
@@ -13,8 +14,7 @@ export async function getState(v1, uw, user) {
   const users = uw.redis.lrange('users', 0, -1)
     .then(userIDs => User.find({ _id: { $in: userIDs } }));
   const waitlist = uw.redis.lrange('waitlist', 0, -1);
-  const waitlistLocked = uw.redis.get('waitlist:lock')
-    .then(lock => lock ? true : false);
+  const waitlistLocked = uw.redis.get('waitlist:lock').then(Boolean);
   const activePlaylist = user ? user.getActivePlaylistID() : null;
   const playlists = user ? user.getPlaylists() : null;
   const time = getServerTime();

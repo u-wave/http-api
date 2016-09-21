@@ -1,11 +1,13 @@
 import { NotFoundError } from '../errors';
 import { fetchMedia } from './search';
 
-export function getAllMedia(uw, page, limit) {
+export function getAllMedia(uw, rawPage, rawLimit) {
   const Media = uw.model('Media');
-  const _page = isNaN(page) ? 0 : page;
-  const _limit = isNaN(limit) ? 200 : Math.min(limit, 200);
-  return Media.find({}).setOptions({ limit: _limit, skip: _limit * _page });
+  const page = isFinite(rawPage) ? rawPage : 0;
+  const limit = isFinite(rawLimit) ? Math.min(rawLimit, 200) : 200;
+  return Media.find({})
+    .skip(limit * page)
+    .limit(limit);
 }
 
 export function getMedia(uw, sourceType, sourceID) {
@@ -30,8 +32,8 @@ export function editMedia(uw, props) {
   const Media = uw.model('Media');
   if (props.auto) {
     return fetchMedia(props.sourceType, props.sourceID, uw.keys)
-    .then((updatedMedia) => {
-      return Media.findOneAndUpdate(
+    .then(updatedMedia =>
+      Media.findOneAndUpdate(
         { sourceType: props.sourceType, sourceID: props.sourceID },
         {
           artist: updatedMedia.artist,
@@ -39,8 +41,8 @@ export function editMedia(uw, props) {
           nsfw: updatedMedia.nsfw,
           restricted: updatedMedia.restricted,
         }
-      );
-    })
+      )
+    )
     .then((media) => {
       if (!media) throw new NotFoundError('Media not found.');
       return media;

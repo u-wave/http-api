@@ -5,7 +5,7 @@ import request from 'request';
 
 import * as controller from '../controllers/authenticate';
 import { checkFields } from '../utils';
-import handleError, { HTTPError } from '../errors';
+import { handleError, HTTPError } from '../errors';
 import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import { ROLE_MANAGER } from '../roles';
 
@@ -70,37 +70,38 @@ export default function authenticateRoutes(v1, options) {
 
   router.post('/login', (req, res) => {
     if (!checkFields(res, req.body, { email: 'string', password: 'string' })) {
-      return null;
+      return;
     }
 
     controller.login(req.uwave, req.body.email, req.body.password, options)
-    .then(token => res.status(200).json(token))
-    .catch(e => handleError(res, e, log));
+      .then(token => res.status(200).json(token))
+      .catch(e => handleError(res, e, log));
   });
 
   router.post('/password/reset', (req, res) => {
     if (!checkFields(res, req.body, { email: 'string' })) {
-      return null;
+      return;
     }
 
     controller.reset(req.uwave, req.body.email)
-    .then(token => res.status(200).json(token))
-    .catch(e => handleError(res, e, log));
+      .then(token => res.status(200).json(token))
+      .catch(e => handleError(res, e, log));
   });
 
   router.post('/password/reset/:reset', (req, res) => {
     if (!checkFields(res, req.body, { email: 'string', password: 'string' })) {
-      return null;
+      return;
     }
 
     controller.changePassword(req.uwave, req.body.email, req.body.password, req.params.reset)
-    .then(auth => res.status(200).json(auth))
-    .catch(e => handleError(res, e, log));
+      .then(auth => res.status(200).json(auth))
+      .catch(e => handleError(res, e, log));
   });
 
   router.delete('/session/:id', (req, res) => {
     if (req.user.id !== req.params.id && req.user.role < ROLE_MANAGER) {
-      return res.status(403).json('you need to be at least a manager to do this');
+      res.status(403).json('you need to be at least a manager to do this');
+      return;
     }
 
     controller.removeSession(req.uwave, req.params.id)

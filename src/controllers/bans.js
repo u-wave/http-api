@@ -25,9 +25,10 @@ export async function getBans(uw, filter = null, pagination = {}) {
   const page = isFinite(pagination.page) ? pagination.page : 0;
   const limit = isFinite(pagination.limit) ? pagination.limit : 50;
 
-  const query = User.find()
-    .where('banned').ne(null)
-    .where('expiresAt').gt(Date.now())
+  const query = User.find().where({
+    banned: { $ne: null },
+    expiresAt: { $gt: Date.now() },
+  })
     .skip(page * limit)
     .limit(limit)
     .populate('banned.moderator')

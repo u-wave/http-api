@@ -197,7 +197,7 @@ export default class SocketServer {
     /**
      * Broadcast the next track.
      */
-    'advance:complete'(next) {
+    'advance:complete': (next) => {
       if (next) {
         this.broadcast('advance', {
           historyID: next._id,
@@ -213,7 +213,7 @@ export default class SocketServer {
     /**
      * Broadcast a chat message.
      */
-    'chat:message'({ userID, message, timestamp }) {
+    'chat:message': ({ userID, message, timestamp }) => {
       this.broadcast('chatMessage', {
         _id: userID,
         message,
@@ -225,7 +225,7 @@ export default class SocketServer {
      * delete a specific message, a userID property to delete messages by a
      * user, or be empty to delete all messages.
      */
-    'chat:delete'({ moderatorID, filter }) {
+    'chat:delete': ({ moderatorID, filter }) => {
       if (filter.id) {
         this.broadcast('chatDeleteByID', {
           moderatorID,
@@ -243,7 +243,7 @@ export default class SocketServer {
     /**
      * Broadcast that a user was muted in chat.
      */
-    'chat:mute'({ moderatorID, userID, duration }) {
+    'chat:mute': ({ moderatorID, userID, duration }) => {
       this.broadcast('chatMute', {
         userID,
         moderatorID,
@@ -253,13 +253,13 @@ export default class SocketServer {
     /**
      * Broadcast that a user was unmuted in chat.
      */
-    'chat:unmute'({ moderatorID, userID }) {
+    'chat:unmute': ({ moderatorID, userID }) => {
       this.broadcast('chatUnmute', { userID, moderatorID });
     },
     /**
      * Broadcast a vote for the current track.
      */
-    'booth:vote'({ userID, direction }) {
+    'booth:vote': ({ userID, direction }) => {
       this.broadcast('vote', {
         _id: userID,
         value: direction,
@@ -268,28 +268,28 @@ export default class SocketServer {
     /**
      * Cycle a single user's playlist.
      */
-    'playlist:cycle'({ userID, playlistID }) {
+    'playlist:cycle': ({ userID, playlistID }) => {
       this.sendTo(userID, 'playlistCycle', { playlistID });
     },
     /**
      * Broadcast that a user left the waitlist.
      */
-    'waitlist:leave'({ userID, waitlist }) {
+    'waitlist:leave': ({ userID, waitlist }) => {
       this.broadcast('waitlistLeave', { userID, waitlist });
     },
     /**
      * Broadcast that a user was removed from the waitlist.
      */
-    'waitlist:remove'({ userID, moderatorID, waitlist }) {
+    'waitlist:remove': ({ userID, moderatorID, waitlist }) => {
       this.broadcast('waitlistRemove', { userID, moderatorID, waitlist });
     },
     /**
      * Broadcast a waitlist update.
      */
-    'waitlist:update'(waitlist) {
+    'waitlist:update': (waitlist) => {
       this.broadcast('waitlistUpdate', waitlist);
     },
-    'user:update'({ userID, moderatorID, new: update }) {
+    'user:update': ({ userID, moderatorID, new: update }) => {
       if ('role' in update) {
         this.broadcast('roleChange', {
           moderatorID,
@@ -305,7 +305,7 @@ export default class SocketServer {
         });
       }
     },
-    async 'user:join'({ userID }) {
+    'user:join': async ({ userID }) => { // eslint-disable-line arrow-parens
       const User = this.uw.model('User');
 
       await this.uw.redis.rpush('users', userID);
@@ -314,25 +314,25 @@ export default class SocketServer {
     /**
      * Broadcast that a user left the server.
      */
-    'user:leave'({ userID }) {
+    'user:leave': ({ userID }) => {
       this.broadcast('leave', userID);
     },
     /**
      * Broadcast a ban event.
      */
-    'user:ban'({ moderatorID, userID, permanent, duration, expiresAt }) {
+    'user:ban': ({ moderatorID, userID, permanent, duration, expiresAt }) => {
       this.broadcast('ban', { moderatorID, userID, permanent, duration, expiresAt });
     },
     /**
      * Broadcast an unban event.
      */
-    'user:unban'({ moderatorID, userID }) {
+    'user:unban': ({ moderatorID, userID }) => {
       this.broadcast('unban', { moderatorID, userID });
     },
     /**
      * Force-close a connection.
      */
-    'api-v1:socket:close'(userID) {
+    'api-v1:socket:close': (userID) => {
       const connection = this.connection(userID);
       if (connection) {
         connection.close();

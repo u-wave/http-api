@@ -6,7 +6,7 @@ export function checkFields(res, obj, types) {
     const value = obj[field];
     if (typeof value === 'undefined') {
       errors.push(`expected "${field}" to be set`);
-    } else if (typeof value !== type) {
+    } else if (typeof value !== type) { // eslint-disable-line valid-typeof
       errors.push(`expected "${field}" to be a ${type}`);
     }
   });
