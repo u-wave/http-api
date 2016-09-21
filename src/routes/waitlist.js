@@ -2,6 +2,7 @@ import debug from 'debug';
 import createRouter from 'router';
 
 import protect from '../middleware/protect';
+import requireActiveConnection from '../middleware/requireActiveConnection';
 import * as controller from '../controllers/waitlist';
 import { checkFields } from '../utils';
 import handleError from '../errors';
@@ -18,7 +19,7 @@ export default function waitlistRoutes() {
     .catch(e => handleError(res, e, log));
   });
 
-  router.post('/', protect(), (req, res) => {
+  router.post('/', protect(), requireActiveConnection(), (req, res) => {
     if (!req.body.userID) return res.status(422).json('userID is not set');
     let _position = parseInt(req.body.position, 10);
     _position = (!isNaN(_position) ? _position : -1);
