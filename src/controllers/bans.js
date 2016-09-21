@@ -25,9 +25,10 @@ export async function getBans(uw, filter = null, pagination = {}) {
   const page = isFinite(pagination.page) ? pagination.page : 0;
   const limit = isFinite(pagination.limit) ? pagination.limit : 50;
 
-  const query = User.find()
-    .where('banned').ne(null)
-    .where('expiresAt').gt(Date.now())
+  const query = User.find().where({
+    banned: { $ne: null },
+    expiresAt: { $gt: Date.now() },
+  })
     .skip(page * limit)
     .limit(limit)
     .populate('banned.moderator')
@@ -38,7 +39,7 @@ export async function getBans(uw, filter = null, pagination = {}) {
   }
 
   const bannedUsers = await query.exec();
-  return bannedUsers.map(user => {
+  return bannedUsers.map((user) => {
     const ban = user.banned;
     delete user.banned;
     ban.user = user;
@@ -63,7 +64,7 @@ export async function addBan(uw, user, { duration, moderatorID, permanent = fals
     duration: permanent ? -1 : duration,
     expiresAt: permanent ? 0 : Date.now() + duration,
     moderator: moderatorID,
-    reason: ''
+    reason: '',
   };
 
   await userModel.save();
@@ -74,7 +75,7 @@ export async function addBan(uw, user, { duration, moderatorID, permanent = fals
     moderatorID: userModel.banned.moderator.id,
     duration: userModel.banned.duration,
     expiresAt: userModel.banned.expiresAt,
-    permanent
+    permanent,
   });
 
   return userModel.banned;
@@ -88,7 +89,7 @@ export async function removeBan(uw, user, { moderatorID }) {
   const userModel = await User.findById(userID);
 
   if (!userModel) {
-    throw new NotFoundError(`User not found.`);
+    throw new NotFoundError('User not found.');
   }
   if (!userModel.banned) {
     throw new NotFoundError(`User "${user.username}" is not banned.`);
@@ -100,7 +101,7 @@ export async function removeBan(uw, user, { moderatorID }) {
 
   uw.publish('user:unban', {
     userID: `${userModel.id}`,
-    moderatorID
+    moderatorID,
   });
 
   return {};

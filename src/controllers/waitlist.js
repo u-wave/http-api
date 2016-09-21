@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 
 import {
   getCurrentDJ,
-  isEmpty as boothIsEmpty
+  isEmpty as boothIsEmpty,
 } from '../controllers/booth';
 import { createCommand } from '../sockets';
 import { APIError, HTTPError, NotFoundError, PermissionError } from '../errors';
@@ -33,22 +33,22 @@ export async function getWaitlist(uw) {
   return await uw.redis.lrange('waitlist', 0, -1);
 }
 
-async function _getWaitlist(uw, forceJoin) {
-  const isLocked = await uw.redis.get('waitlist:lock');
-  if (isLocked && !forceJoin) {
-    throw new PermissionError('The waitlist is locked. Only staff can join.');
-  }
-  return await getWaitlist(uw);
+function isWaitlistLocked(uw) {
+  return uw.redis.get('waitlist:lock').then(Boolean);
 }
 
 export async function appendToWaitlist(uw, userID, forceJoin) {
   const User = uw.model('User');
 
-  const user = await User.findOne(new ObjectId(userID));
+  const user = await User.findById(userID);
 
   if (!user) throw new PermissionError('User not found.');
 
-  let waitlist = await _getWaitlist(uw, forceJoin);
+  if (!forceJoin && await isWaitlistLocked(uw)) {
+    throw new PermissionError('The waitlist is locked. Only staff can join.');
+  }
+
+  let waitlist = await getWaitlist(uw);
 
   if (isInWaitlist(waitlist, user.id)) {
     throw new PermissionError('You are already in the waitlist.');
@@ -71,7 +71,7 @@ export async function appendToWaitlist(uw, userID, forceJoin) {
 
   uw.redis.publish('v1', createCommand('waitlistJoin', {
     userID: user.id,
-    waitlist
+    waitlist,
   }));
 
   if (await boothIsEmpty(uw)) {
@@ -88,7 +88,11 @@ export async function insertWaitlist(uw, moderatorID, id, position, forceJoin) {
 
   if (!user) throw new NotFoundError('User not found.');
 
-  let waitlist = await _getWaitlist(uw, forceJoin);
+  if (!forceJoin && await isWaitlistLocked(uw)) {
+    throw new PermissionError('The waitlist is locked. Only staff can join.');
+  }
+
+  let waitlist = await getWaitlist(uw);
 
   const clampedPosition = clamp(position, 0, waitlist.length - 1);
 
@@ -119,7 +123,7 @@ export async function insertWaitlist(uw, moderatorID, id, position, forceJoin) {
     userID: id,
     moderatorID,
     position: clampedPosition,
-    waitlist
+    waitlist,
   }));
 
   if (await boothIsEmpty(uw)) {
@@ -172,7 +176,7 @@ export async function moveWaitlist(uw, moderatorID, userID, position) {
     userID,
     moderatorID,
     position: clampedPosition,
-    waitlist
+    waitlist,
   }));
 
   return waitlist;
@@ -230,7 +234,7 @@ export async function lockWaitlist(uw, moderatorID, lock) {
     await uw.redis.del('waitlist:lock');
   }
 
-  const isLocked = Boolean(await uw.redis.get('waitlist:lock'));
+  const isLocked = await isWaitlistLocked(uw);
 
   if (isLocked !== lock) {
     throw new APIError(
@@ -240,7 +244,7 @@ export async function lockWaitlist(uw, moderatorID, lock) {
 
   uw.redis.publish('v1', createCommand('waitlistLock', {
     moderatorID,
-    locked: isLocked
+    locked: isLocked,
   }));
 
   return { locked: lock };

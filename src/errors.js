@@ -18,18 +18,10 @@ export class APIError extends Error {
 
 export class PasswordError extends APIError {
   name = 'PasswordError';
-
-  constructor(message) {
-    super(message);
-  }
 }
 
 export class TokenError extends APIError {
   name = 'TokenError';
-
-  constructor(message) {
-    super(message);
-  }
 }
 
 export class HTTPError extends APIError {

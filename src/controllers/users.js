@@ -9,7 +9,7 @@ import { leaveWaitlist } from './waitlist';
 export function setStatus(uw, id, status) {
   uw.redis.publish('v1', createCommand('statusChange', {
     userID: id,
-    status: clamp(status, 0, 3)
+    status: clamp(status, 0, 3),
   }));
 }
 
@@ -29,16 +29,16 @@ export async function disconnectUser(uw, user) {
   uw.publish('user:leave', { userID });
 }
 
-export function getHistory(uw, id, page, limit) {
+export function getHistory(uw, id, rawPage, rawLimit) {
   const History = uw.model('History');
 
-  const _page = !isNaN(page) ? page : 0;
-  const _limit = !isNaN(limit) ? limit : 25;
+  const page = isFinite(rawPage) ? rawPage : 0;
+  const limit = isFinite(rawLimit) ? rawLimit : 25;
 
   return History.find({ user: id })
-    .skip(_page * _limit)
-    .limit(_limit)
+    .skip(page * limit)
+    .limit(limit)
     .sort({ playedAt: -1 })
     .populate('media.media user')
-    .then(history => paginate(_page, _limit, history));
+    .then(history => paginate(page, limit, history));
 }

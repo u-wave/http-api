@@ -20,7 +20,7 @@ export function createCommand(command, data) {
 export default class SocketServer {
   connections = [];
   options = {
-    timeout: 30
+    timeout: 30,
   };
 
   lastGuestCount = 0;
@@ -41,13 +41,13 @@ export default class SocketServer {
     this.wss = new WebSocket.Server({
       server: options.server,
       port: options.port,
-      clientTracking: false
+      clientTracking: false,
     });
 
     this.sub.on('ready', () => this.sub.subscribe('v1'));
     this.sub.on('message', (channel, command) => {
       this.onServerMessage(channel, command)
-        .catch(e => { throw e; });
+        .catch((e) => { throw e; });
     });
 
     this.wss.on('connection', this.onSocketConnected.bind(this));
@@ -65,7 +65,7 @@ export default class SocketServer {
     const disconnectedIDs = userIDs.filter(userID => !this.connection(userID));
 
     const disconnectedUsers = await User.where('_id').in(disconnectedIDs);
-    disconnectedUsers.forEach(user => {
+    disconnectedUsers.forEach((user) => {
       this.add(this.createLostConnection(user));
     });
   }
@@ -90,12 +90,12 @@ export default class SocketServer {
    */
   createGuestConnection(socket) {
     const connection = new GuestConnection(this.uw, socket, {
-      secret: this.options.secret
+      secret: this.options.secret,
     });
     connection.on('close', () => {
       this.remove(connection);
     });
-    connection.on('authenticate', async user => {
+    connection.on('authenticate', async (user) => { // eslint-disable-line arrow-parens
       debug('connecting', user.id, user.username);
       if (await connection.isReconnect(user)) {
         debug('is reconnection');
@@ -187,7 +187,7 @@ export default class SocketServer {
     },
     vote(user, direction) {
       return vote(this.uw, user.id, direction);
-    }
+    },
   };
 
   /**
@@ -197,14 +197,14 @@ export default class SocketServer {
     /**
      * Broadcast the next track.
      */
-    'advance:complete'(next) {
+    'advance:complete': (next) => {
       if (next) {
         this.broadcast('advance', {
           historyID: next._id,
           userID: next.user._id,
           item: next.item._id,
           media: next.media,
-          playedAt: new Date(next.playedAt).getTime()
+          playedAt: new Date(next.playedAt).getTime(),
         });
       } else {
         this.broadcast('advance', null);
@@ -213,11 +213,11 @@ export default class SocketServer {
     /**
      * Broadcast a chat message.
      */
-    'chat:message'({ userID, message, timestamp }) {
+    'chat:message': ({ userID, message, timestamp }) => {
       this.broadcast('chatMessage', {
         _id: userID,
         message,
-        timestamp
+        timestamp,
       });
     },
     /**
@@ -225,16 +225,16 @@ export default class SocketServer {
      * delete a specific message, a userID property to delete messages by a
      * user, or be empty to delete all messages.
      */
-    'chat:delete'({ moderatorID, filter }) {
+    'chat:delete': ({ moderatorID, filter }) => {
       if (filter.id) {
         this.broadcast('chatDeleteByID', {
           moderatorID,
-          _id: filter.id
+          _id: filter.id,
         });
       } else if (filter.userID) {
         this.broadcast('chatDeleteByUser', {
           moderatorID,
-          userID: filter.userID
+          userID: filter.userID,
         });
       } else if (isEmpty(filter)) {
         this.broadcast('chatDelete', { moderatorID });
@@ -243,69 +243,69 @@ export default class SocketServer {
     /**
      * Broadcast that a user was muted in chat.
      */
-    'chat:mute'({ moderatorID, userID, duration }) {
+    'chat:mute': ({ moderatorID, userID, duration }) => {
       this.broadcast('chatMute', {
         userID,
         moderatorID,
-        expiresAt: Date.now() + duration
+        expiresAt: Date.now() + duration,
       });
     },
     /**
      * Broadcast that a user was unmuted in chat.
      */
-    'chat:unmute'({ moderatorID, userID }) {
+    'chat:unmute': ({ moderatorID, userID }) => {
       this.broadcast('chatUnmute', { userID, moderatorID });
     },
     /**
      * Broadcast a vote for the current track.
      */
-    'booth:vote'({ userID, direction }) {
+    'booth:vote': ({ userID, direction }) => {
       this.broadcast('vote', {
         _id: userID,
-        value: direction
+        value: direction,
       });
     },
     /**
      * Cycle a single user's playlist.
      */
-    'playlist:cycle'({ userID, playlistID }) {
+    'playlist:cycle': ({ userID, playlistID }) => {
       this.sendTo(userID, 'playlistCycle', { playlistID });
     },
     /**
      * Broadcast that a user left the waitlist.
      */
-    'waitlist:leave'({ userID, waitlist }) {
+    'waitlist:leave': ({ userID, waitlist }) => {
       this.broadcast('waitlistLeave', { userID, waitlist });
     },
     /**
      * Broadcast that a user was removed from the waitlist.
      */
-    'waitlist:remove'({ userID, moderatorID, waitlist }) {
+    'waitlist:remove': ({ userID, moderatorID, waitlist }) => {
       this.broadcast('waitlistRemove', { userID, moderatorID, waitlist });
     },
     /**
      * Broadcast a waitlist update.
      */
-    'waitlist:update'(waitlist) {
+    'waitlist:update': (waitlist) => {
       this.broadcast('waitlistUpdate', waitlist);
     },
-    'user:update'({ userID, moderatorID, new: update }) {
+    'user:update': ({ userID, moderatorID, new: update }) => {
       if ('role' in update) {
         this.broadcast('roleChange', {
           moderatorID,
           userID,
-          role: update.role
+          role: update.role,
         });
       }
       if ('username' in update) {
         this.broadcast('nameChange', {
           moderatorID,
           userID,
-          username: update.username
+          username: update.username,
         });
       }
     },
-    async 'user:join'({ userID }) {
+    'user:join': async ({ userID }) => { // eslint-disable-line arrow-parens
       const User = this.uw.model('User');
 
       await this.uw.redis.rpush('users', userID);
@@ -314,30 +314,30 @@ export default class SocketServer {
     /**
      * Broadcast that a user left the server.
      */
-    'user:leave'({ userID }) {
+    'user:leave': ({ userID }) => {
       this.broadcast('leave', userID);
     },
     /**
      * Broadcast a ban event.
      */
-    'user:ban'({ moderatorID, userID, permanent, duration, expiresAt }) {
+    'user:ban': ({ moderatorID, userID, permanent, duration, expiresAt }) => {
       this.broadcast('ban', { moderatorID, userID, permanent, duration, expiresAt });
     },
     /**
      * Broadcast an unban event.
      */
-    'user:unban'({ moderatorID, userID }) {
+    'user:unban': ({ moderatorID, userID }) => {
       this.broadcast('unban', { moderatorID, userID });
     },
     /**
      * Force-close a connection.
      */
-    'api-v1:socket:close'(userID) {
+    'api-v1:socket:close': (userID) => {
       const connection = this.connection(userID);
       if (connection) {
         connection.close();
       }
-    }
+    },
   };
 
   /**
@@ -396,7 +396,7 @@ export default class SocketServer {
   broadcast(command: string, data: any) {
     debug('broadcast', command, data);
 
-    this.connections.forEach(connection => {
+    this.connections.forEach((connection) => {
       connection.send(command, data);
     });
   }
@@ -420,7 +420,7 @@ export default class SocketServer {
    */
   recountGuests = debounce(() => {
     const guests = this.connections
-      .filter((connection) => connection instanceof GuestConnection)
+      .filter(connection => connection instanceof GuestConnection)
       .length;
 
     if (guests !== this.lastGuestCount) {

@@ -2,7 +2,7 @@ import debug from 'debug';
 import router from 'router';
 
 import * as controller from '../controllers/now';
-import handleError from '../errors';
+import { handleError } from '../errors';
 
 const log = debug('uwave:api:v1:now');
 

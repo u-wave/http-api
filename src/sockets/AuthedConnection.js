@@ -39,7 +39,7 @@ export default class AuthedConnection extends EventEmitter {
     } else {
       debug('no queued messages', this.user.id, this.user.username);
     }
-    messages.forEach(message => {
+    messages.forEach((message) => {
       const { command, data } = JSON.parse(message);
       this.send(command, data);
     });
@@ -48,11 +48,9 @@ export default class AuthedConnection extends EventEmitter {
 
   onMessage(raw: string) {
     const { command, data } = tryJsonParse(raw) || {};
-    if (!command) {
-      return null;
+    if (command) {
+      this.emit('command', command, data);
     }
-
-    this.emit('command', command, data);
   }
 
   send(command: string, data: any) {

@@ -34,7 +34,7 @@ export default class LostConnection extends EventEmitter {
   }
 
   setTimeout(timeout) {
-    this._timer = setTimeout(() => {
+    this.removeTimer = setTimeout(() => {
       this.close();
       this.uw.redis.del(this.key, this.messagesKey);
     }, timeout * 1000);
@@ -54,7 +54,7 @@ export default class LostConnection extends EventEmitter {
   }
 
   removed() {
-    clearTimeout(this._timer);
+    clearTimeout(this.removeTimer);
   }
 
   toString() {
