@@ -25,8 +25,8 @@ function verifyCaptcha(responseString, options) {
       json: true,
       form: {
         response: responseString,
-        secret: options.recaptcha.secret
-      }
+        secret: options.recaptcha.secret,
+      },
     }, (err, resp) => {
       if (!err && resp.body.success) {
         resolve(resp.body);
@@ -49,7 +49,7 @@ export default function authenticateRoutes(v1, options) {
     if (!checkFields(res, req.body, {
       email: 'string',
       username: 'string',
-      password: 'string'
+      password: 'string',
     })) {
       return;
     }
@@ -104,7 +104,7 @@ export default function authenticateRoutes(v1, options) {
     }
 
     controller.removeSession(req.uwave, req.params.id)
-    .then(user => {
+    .then((user) => {
       if (!Object.keys(user).length) {
         res.status(200).json('logged out');
       } else {

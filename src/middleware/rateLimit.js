@@ -15,7 +15,7 @@ export default function rateLimit(prefix, opts) {
 
     const limiter = new RateLimiter({
       ...opts,
-      id, db
+      id, db,
     });
 
     limiter.get((err, limit) => {

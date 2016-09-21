@@ -6,5 +6,5 @@ export const serializePlaylist = model => ({
   description: model.description,
   shared: model.shared,
   nsfw: model.nsfw,
-  size: model.media.length
+  size: model.media.length,
 });

@@ -29,7 +29,7 @@ export async function getState(v1, uw, user) {
     waitlistLocked,
     activePlaylist,
     playlists,
-    time
+    time,
   });
 
   if (state.playlists) {

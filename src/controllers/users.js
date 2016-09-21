@@ -9,7 +9,7 @@ import { leaveWaitlist } from './waitlist';
 export function setStatus(uw, id, status) {
   uw.redis.publish('v1', createCommand('statusChange', {
     userID: id,
-    status: clamp(status, 0, 3)
+    status: clamp(status, 0, 3),
   }));
 }
 

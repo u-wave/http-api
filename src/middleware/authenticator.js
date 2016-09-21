@@ -51,7 +51,7 @@ export default function authenticatorMiddleware({ uw }, options) {
       .then(() => {
         next();
       })
-      .catch(error => {
+      .catch((error) => {
         next(error);
       });
   };

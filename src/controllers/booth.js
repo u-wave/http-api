@@ -25,7 +25,7 @@ export async function getBooth(uw) {
   const stats = await Promise.props({
     upvotes: uw.redis.lrange('booth:upvotes', 0, -1),
     downvotes: uw.redis.lrange('booth:downvotes', 0, -1),
-    favorites: uw.redis.lrange('booth:favorites', 0, -1)
+    favorites: uw.redis.lrange('booth:favorites', 0, -1),
   });
 
   return {
@@ -34,7 +34,7 @@ export async function getBooth(uw) {
     playedAt: Date.parse(historyEntry.playedAt),
     userID: `${historyEntry.user}`,
     media: historyEntry.media,
-    stats
+    stats,
   };
 }
 
@@ -68,7 +68,7 @@ export async function replaceBooth(uw, moderatorID, id) {
 
   uw.redis.publish('v1', createCommand('boothReplace', {
     moderatorID,
-    userID: id
+    userID: id,
   }));
   uw.advance();
   return waitlist;
@@ -77,14 +77,14 @@ export async function replaceBooth(uw, moderatorID, id) {
 async function addVote(uw, userID, direction) {
   await Promise.all([
     uw.redis.lrem('booth:upvotes', 0, userID),
-    uw.redis.lrem('booth:downvotes', 0, userID)
+    uw.redis.lrem('booth:downvotes', 0, userID),
   ]);
   await uw.redis.lpush(
     direction > 0 ? 'booth:upvotes' : 'booth:downvotes',
     userID
   );
   uw.publish('booth:vote', {
-    userID, direction
+    userID, direction,
   });
 }
 
@@ -141,14 +141,14 @@ export async function favorite(uw, id, playlistID, historyID) {
   uw.redis.lpush('booth:favorites', id);
   uw.redis.publish('v1', createCommand('favorite', {
     userID: id,
-    playlistID
+    playlistID,
   }));
 
   await playlist.save();
 
   return {
     playlistSize: playlist.media.length,
-    added: [playlistItem]
+    added: [playlistItem],
   };
 }
 

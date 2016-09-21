@@ -20,8 +20,8 @@ export default class GuestConnection extends EventEmitter {
       this.emit('close');
     });
 
-    this.events.on('message', jwt => {
-      this.attemptAuth(jwt).catch(error => {
+    this.events.on('message', (jwt) => {
+      this.attemptAuth(jwt).catch((error) => {
         this.send('error', error.message);
       });
     });
@@ -65,6 +65,6 @@ export default class GuestConnection extends EventEmitter {
   }
 
   toString() {
-    return `Guest`;
+    return 'Guest';
   }
 }

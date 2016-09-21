@@ -87,7 +87,7 @@ export default class ApiV1 extends Router {
     this.sockets = new WSServer(uw, {
       port: options.socketPort,
       server: options.server,
-      secret: options.secret
+      secret: options.secret,
     });
 
     this
@@ -95,7 +95,7 @@ export default class ApiV1 extends Router {
       .use(this.attachUwaveToRequest())
       .use(authenticator(this, {
         secret: options.secret,
-        recaptcha: options.recaptcha
+        recaptcha: options.recaptcha,
       }))
       .use(rateLimit('api-v1-http', { max: 500, duration: 60 * 1000 }));
 

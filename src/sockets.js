@@ -20,7 +20,7 @@ export function createCommand(command, data) {
 export default class SocketServer {
   connections = [];
   options = {
-    timeout: 30
+    timeout: 30,
   };
 
   lastGuestCount = 0;
@@ -41,13 +41,13 @@ export default class SocketServer {
     this.wss = new WebSocket.Server({
       server: options.server,
       port: options.port,
-      clientTracking: false
+      clientTracking: false,
     });
 
     this.sub.on('ready', () => this.sub.subscribe('v1'));
     this.sub.on('message', (channel, command) => {
       this.onServerMessage(channel, command)
-        .catch(e => { throw e; });
+        .catch((e) => { throw e; });
     });
 
     this.wss.on('connection', this.onSocketConnected.bind(this));
@@ -65,7 +65,7 @@ export default class SocketServer {
     const disconnectedIDs = userIDs.filter(userID => !this.connection(userID));
 
     const disconnectedUsers = await User.where('_id').in(disconnectedIDs);
-    disconnectedUsers.forEach(user => {
+    disconnectedUsers.forEach((user) => {
       this.add(this.createLostConnection(user));
     });
   }
@@ -90,12 +90,12 @@ export default class SocketServer {
    */
   createGuestConnection(socket) {
     const connection = new GuestConnection(this.uw, socket, {
-      secret: this.options.secret
+      secret: this.options.secret,
     });
     connection.on('close', () => {
       this.remove(connection);
     });
-    connection.on('authenticate', async user => {
+    connection.on('authenticate', async (user) => { // eslint-disable-line arrow-parens
       debug('connecting', user.id, user.username);
       if (await connection.isReconnect(user)) {
         debug('is reconnection');
@@ -187,7 +187,7 @@ export default class SocketServer {
     },
     vote(user, direction) {
       return vote(this.uw, user.id, direction);
-    }
+    },
   };
 
   /**
@@ -204,7 +204,7 @@ export default class SocketServer {
           userID: next.user._id,
           item: next.item._id,
           media: next.media,
-          playedAt: new Date(next.playedAt).getTime()
+          playedAt: new Date(next.playedAt).getTime(),
         });
       } else {
         this.broadcast('advance', null);
@@ -217,7 +217,7 @@ export default class SocketServer {
       this.broadcast('chatMessage', {
         _id: userID,
         message,
-        timestamp
+        timestamp,
       });
     },
     /**
@@ -229,12 +229,12 @@ export default class SocketServer {
       if (filter.id) {
         this.broadcast('chatDeleteByID', {
           moderatorID,
-          _id: filter.id
+          _id: filter.id,
         });
       } else if (filter.userID) {
         this.broadcast('chatDeleteByUser', {
           moderatorID,
-          userID: filter.userID
+          userID: filter.userID,
         });
       } else if (isEmpty(filter)) {
         this.broadcast('chatDelete', { moderatorID });
@@ -247,7 +247,7 @@ export default class SocketServer {
       this.broadcast('chatMute', {
         userID,
         moderatorID,
-        expiresAt: Date.now() + duration
+        expiresAt: Date.now() + duration,
       });
     },
     /**
@@ -262,7 +262,7 @@ export default class SocketServer {
     'booth:vote'({ userID, direction }) {
       this.broadcast('vote', {
         _id: userID,
-        value: direction
+        value: direction,
       });
     },
     /**
@@ -294,14 +294,14 @@ export default class SocketServer {
         this.broadcast('roleChange', {
           moderatorID,
           userID,
-          role: update.role
+          role: update.role,
         });
       }
       if ('username' in update) {
         this.broadcast('nameChange', {
           moderatorID,
           userID,
-          username: update.username
+          username: update.username,
         });
       }
     },
@@ -337,7 +337,7 @@ export default class SocketServer {
       if (connection) {
         connection.close();
       }
-    }
+    },
   };
 
   /**
@@ -396,7 +396,7 @@ export default class SocketServer {
   broadcast(command: string, data: any) {
     debug('broadcast', command, data);
 
-    this.connections.forEach(connection => {
+    this.connections.forEach((connection) => {
       connection.send(command, data);
     });
   }
@@ -420,7 +420,7 @@ export default class SocketServer {
    */
   recountGuests = debounce(() => {
     const guests = this.connections
-      .filter((connection) => connection instanceof GuestConnection)
+      .filter(connection => connection instanceof GuestConnection)
       .length;
 
     if (guests !== this.lastGuestCount) {

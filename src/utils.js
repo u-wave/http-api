@@ -1,7 +1,7 @@
 export function checkFields(res, obj, types) {
   const errors = [];
 
-  Object.keys(types).forEach(field => {
+  Object.keys(types).forEach((field) => {
     const type = types[field];
     const value = obj[field];
     if (typeof value === 'undefined') {

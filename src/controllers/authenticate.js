@@ -8,7 +8,7 @@ import {
   NotFoundError,
   PasswordError,
   PermissionError,
-  TokenError
+  TokenError,
 } from '../errors';
 import { isBanned as isUserBanned } from './bans';
 
@@ -16,7 +16,7 @@ const ObjectId = mongoose.Types.ObjectId;
 const bcryptHash = Promise.promisify(bcrypt.hash);
 const bcryptCompare = Promise.promisify(bcrypt.compare);
 // `jwt.sign` only passes a single parameter to its callback: the signed token.
-const jwtSign = (...args) => new Promise(resolve => {
+const jwtSign = (...args) => new Promise((resolve) => {
   jwtSignCallback(...args, resolve);
 });
 
@@ -51,7 +51,7 @@ export async function login(uw, email, password, options) {
 
   return {
     jwt: token,
-    user: auth.user
+    user: auth.user,
   };
 }
 
@@ -96,7 +96,7 @@ export async function changePassword(uw, email, password, resetToken) {
 
 export function removeSession(uw, id) {
   const Authentication = uw.model('Authentication');
-  return Authentication.findOne(new ObjectId(id)).then(auth => {
+  return Authentication.findOne(new ObjectId(id)).then((auth) => {
     if (!auth) throw new NotFoundError('Session not found.');
 
     uw.publish('api-v1:socket:close', auth.id);

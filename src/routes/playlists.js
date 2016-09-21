@@ -27,21 +27,21 @@ const toPaginatedResponse = (page, { baseUrl = '' } = {}) => ({
     offset: page.currentPage.offset,
     pageSize: page.pageSize,
     results: page.filteredSize,
-    total: page.totalSize
+    total: page.totalSize,
   },
   links: {
     self: appendQuery(baseUrl, { page: page.currentPage }),
     next: appendQuery(baseUrl, { page: page.nextPage }),
-    prev: appendQuery(baseUrl, { page: page.prevPage })
+    prev: appendQuery(baseUrl, { page: page.prevPage }),
   },
-  data: page.data
+  data: page.data,
 });
 
 const getOffsetPagination = (query, defaultSize = 100) => {
   if (typeof query.page === 'object') {
     return {
       offset: parseNumber(query.page.offset, 0),
-      limit: parseNumber(query.page.limit, defaultSize)
+      limit: parseNumber(query.page.limit, defaultSize),
     };
   }
   // Old way: using a `page=` and a `limit=` query parameter.
@@ -49,7 +49,7 @@ const getOffsetPagination = (query, defaultSize = 100) => {
   const limit = parseNumber(query.limit, defaultSize);
   return {
     offset: page * limit,
-    limit
+    limit,
   };
 };
 
@@ -81,7 +81,7 @@ export default function playlistRoutes() {
     req.user.createPlaylist({
       name: req.body.name,
       description: req.body.description,
-      shared: req.body.shared
+      shared: req.body.shared,
     })
       .then(activateIfFirst)
       .then(serializePlaylist)
@@ -212,7 +212,7 @@ export default function playlistRoutes() {
         playlist.removeItems(items).then(() => playlist)
       )
       .then(playlist => res.json({
-        playlistSize: playlist.size
+        playlistSize: playlist.size,
       }))
       .catch(next);
   });
@@ -236,7 +236,7 @@ export default function playlistRoutes() {
       artist: 'string',
       title: 'string',
       start: 'number',
-      end: 'number'
+      end: 'number',
     })) {
       return null;
     }
@@ -245,7 +245,7 @@ export default function playlistRoutes() {
       artist: req.body.artist,
       title: req.body.title,
       start: req.body.start,
-      end: req.body.end
+      end: req.body.end,
     };
 
     req.user.getPlaylist(req.params.id)

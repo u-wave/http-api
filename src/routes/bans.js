@@ -20,7 +20,7 @@ export default function banRoutes() {
       const {
         duration = 0,
         userID,
-        permanent = false
+        permanent = false,
       } = req.body;
 
       controller.addBan(uw, userID, { moderatorID, duration, permanent })

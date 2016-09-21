@@ -37,7 +37,7 @@ export default function userRoutes() {
 
     const duration = req.body.time;
     req.uwave.getUser(req.params.id)
-      .then(user => {
+      .then((user) => {
         if (!user) throw new NotFoundError('User not found.');
         return user.mute(duration, { moderator: req.user });
       })
@@ -52,7 +52,7 @@ export default function userRoutes() {
     }
 
     req.uwave.getUser(req.params.id)
-      .then(user => {
+      .then((user) => {
         if (!user) throw new NotFoundError('User not found.');
         return user.unmute({ moderator: req.user });
       })
@@ -84,7 +84,7 @@ export default function userRoutes() {
       max: 5,
       duration: 60 * 60 * 1000,
       error: (_, retryAfter) =>
-        `You can only change your username five times per hour. Try again in ${retryAfter}.`
+        `You can only change your username five times per hour. Try again in ${retryAfter}.`,
     }),
     (req, res, next) => {
       if (typeof req.body.username !== 'string') {

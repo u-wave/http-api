@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 
 import {
   getCurrentDJ,
-  isEmpty as boothIsEmpty
+  isEmpty as boothIsEmpty,
 } from '../controllers/booth';
 import { createCommand } from '../sockets';
 import { APIError, HTTPError, NotFoundError, PermissionError } from '../errors';
@@ -71,7 +71,7 @@ export async function appendToWaitlist(uw, userID, forceJoin) {
 
   uw.redis.publish('v1', createCommand('waitlistJoin', {
     userID: user.id,
-    waitlist
+    waitlist,
   }));
 
   if (await boothIsEmpty(uw)) {
@@ -119,7 +119,7 @@ export async function insertWaitlist(uw, moderatorID, id, position, forceJoin) {
     userID: id,
     moderatorID,
     position: clampedPosition,
-    waitlist
+    waitlist,
   }));
 
   if (await boothIsEmpty(uw)) {
@@ -172,7 +172,7 @@ export async function moveWaitlist(uw, moderatorID, userID, position) {
     userID,
     moderatorID,
     position: clampedPosition,
-    waitlist
+    waitlist,
   }));
 
   return waitlist;
@@ -240,7 +240,7 @@ export async function lockWaitlist(uw, moderatorID, lock) {
 
   uw.redis.publish('v1', createCommand('waitlistLock', {
     moderatorID,
-    locked: isLocked
+    locked: isLocked,
   }));
 
   return { locked: lock };

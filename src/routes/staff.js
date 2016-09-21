@@ -45,7 +45,7 @@ export default function staffRoutes() {
         sourceType: 'string',
         sourceID: 'string',
         artist: 'string',
-        title: 'string'
+        title: 'string',
       })) {
         return null;
       }
@@ -56,7 +56,7 @@ export default function staffRoutes() {
     } else if (!checkFields(res, req.body, {
       sourceType: 'string',
       sourceID: 'string',
-      auto: 'boolean'
+      auto: 'boolean',
     })) {
       return res.status(422).json(
         'expected sourceType to be a string, sourceID to be a string and auto to be boolean'

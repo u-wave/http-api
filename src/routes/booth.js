@@ -25,7 +25,7 @@ export default function boothRoutes() {
 
     if (skippingSelf) {
       controller.getCurrentDJ(req.uwave)
-      .then(currentDJ => {
+      .then((currentDJ) => {
         if (!currentDJ || currentDJ !== req.user.id) {
           return res.status(412).json('you are not currently playing');
         }
