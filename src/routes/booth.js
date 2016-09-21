@@ -6,6 +6,8 @@ import * as controller from '../controllers/booth';
 import { checkFields } from '../utils';
 import { handleError } from '../errors';
 import { ROLE_MODERATOR } from '../roles';
+import getOffsetPagination from '../utils/getOffsetPagination';
+import toPaginatedResponse from '../utils/toPaginatedResponse';
 
 const log = debug('uwave:api:v1:booth');
 
@@ -77,9 +79,18 @@ export default function boothRoutes() {
   });
 
   router.get('/history', (req, res) => {
-    const { page, limit } = req.query;
-    controller.getHistory(req.uwave, parseInt(page, 10), parseInt(limit, 10))
-      .then(history => res.status(200).json(history))
+    const pagination = getOffsetPagination(req.query, {
+      defaultSize: 25,
+      maxSize: 100,
+    });
+    controller.getHistory(req.uwave, pagination)
+      .then(history => toPaginatedResponse(history, {
+        included: {
+          media: ['media.media'],
+          user: ['user'],
+        },
+      }))
+      .then(page => res.json(page))
       .catch(e => handleError(res, e, log));
   });
 

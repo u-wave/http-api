@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import Promise from 'bluebird';
+import Page from 'u-wave-core/lib/Page';
 
 import { createCommand } from '../sockets';
-import { paginate } from '../utils';
 import { NotFoundError, PermissionError } from '../errors';
 
 const ObjectId = mongoose.Types.ObjectId;
@@ -152,17 +152,30 @@ export async function favorite(uw, id, playlistID, historyID) {
   };
 }
 
-export async function getHistory(uw, rawPage, rawLimit) {
+export async function getHistory(uw, pagination) {
   const History = uw.model('History');
 
-  const page = isFinite(rawPage) ? rawPage : 0;
-  const limit = isFinite(rawLimit) ? rawLimit : 25;
-
   const history = await History.find({})
-    .skip(page * limit)
-    .limit(limit)
+    .skip(pagination.offset)
+    .limit(pagination.limit)
     .sort({ playedAt: -1 })
     .populate('media.media user');
 
-  return paginate(page, limit, history);
+  const count = await History.count();
+
+  return new Page(history, {
+    pageSize: pagination ? pagination.limit : null,
+    filtered: count,
+    total: count,
+
+    current: pagination,
+    next: pagination ? {
+      offset: pagination.offset + pagination.limit,
+      limit: pagination.limit,
+    } : null,
+    previous: pagination ? {
+      offset: Math.max(pagination.offset - pagination.limit, 0),
+      limit: pagination.limit,
+    } : null,
+  });
 }
