@@ -2,7 +2,7 @@ import debug from 'debug';
 import createRouter from 'router';
 
 import protect from '../middleware/protect';
-import { checkFields } from '../utils';
+import checkFields from '../middleware/checkFields';
 import { serializePlaylist } from '../utils/serialize';
 import { HTTPError } from '../errors';
 import getOffsetPagination from '../utils/getOffsetPagination';
@@ -21,11 +21,7 @@ export default function playlistRoutes() {
       .catch(next);
   });
 
-  router.post('/', (req, res, next) => {
-    if (!checkFields(res, req.body, { name: 'string' })) {
-      return;
-    }
-
+  router.post('/', checkFields({ name: 'string' }), (req, res, next) => {
     async function activateIfFirst(playlist) {
       try {
         await req.user.getActivePlaylist();
@@ -85,11 +81,7 @@ export default function playlistRoutes() {
       .catch(next);
   });
 
-  router.put('/:id/rename', (req, res, next) => {
-    if (!checkFields(res, req.body, { name: 'string' })) {
-      return;
-    }
-
+  router.put('/:id/rename', checkFields({ name: 'string' }), (req, res, next) => {
     const uw = req.uwave;
 
     req.user.getPlaylist(req.params.id)
@@ -100,11 +92,7 @@ export default function playlistRoutes() {
       .catch(next);
   });
 
-  router.put('/:id/share', (req, res, next) => {
-    if (!checkFields(res, req.body, { shared: 'string' })) {
-      return;
-    }
-
+  router.put('/:id/share', checkFields({ shared: 'string' }), (req, res, next) => {
     const uw = req.uwave;
 
     req.user.getPlaylist(req.params.id)
@@ -151,11 +139,7 @@ export default function playlistRoutes() {
       .catch(next);
   });
 
-  router.post('/:id/media', (req, res, next) => {
-    if (!checkFields(res, req.body, { items: 'object' })) {
-      return;
-    }
-
+  router.post('/:id/media', checkFields({ items: 'object' }), (req, res, next) => {
     const { after, items } = req.body;
     if (!Array.isArray(items)) {
       next(new HTTPError(422, 'Expected "items" to be an array.'));
@@ -203,16 +187,12 @@ export default function playlistRoutes() {
       .catch(next);
   });
 
-  router.put('/:id/media/:itemID', (req, res, next) => {
-    if (!checkFields(res, req.body, {
-      artist: 'string',
-      title: 'string',
-      start: 'number',
-      end: 'number',
-    })) {
-      return;
-    }
-
+  router.put('/:id/media/:itemID', checkFields({
+    artist: 'string',
+    title: 'string',
+    start: 'number',
+    end: 'number',
+  }), (req, res, next) => {
     const patch = {
       artist: req.body.artist,
       title: req.body.title,

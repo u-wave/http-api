@@ -3,8 +3,8 @@ import createRouter from 'router';
 import Promise from 'bluebird';
 import request from 'request';
 
+import checkFields from '../middleware/checkFields';
 import * as controller from '../controllers/authenticate';
-import { checkFields } from '../utils';
 import {
   HTTPError,
   PermissionError,
@@ -51,15 +51,11 @@ export default function authenticateRoutes(v1, options) {
     }));
   });
 
-  router.post('/register', (req, res, next) => {
-    if (!checkFields(res, req.body, {
-      email: 'string',
-      username: 'string',
-      password: 'string',
-    })) {
-      return;
-    }
-
+  router.post('/register', checkFields({
+    email: 'string',
+    username: 'string',
+    password: 'string',
+  }), (req, res, next) => {
     const uw = req.uwave;
     const { grecaptcha, email, username, password } = req.body;
 
@@ -75,22 +71,17 @@ export default function authenticateRoutes(v1, options) {
       .catch(error => next(beautifyDuplicateKeyError(error)));
   });
 
-  router.post('/login', (req, res, next) => {
-    if (!checkFields(res, req.body, { email: 'string', password: 'string' })) {
-      return;
-    }
-
+  router.post('/login', checkFields({
+    email: 'string',
+    password: 'string',
+  }), (req, res, next) => {
     controller.login(req.uwave, req.body.email, req.body.password, options)
       .then(toItemResponse)
       .then(item => res.status(200).json(item))
       .catch(next);
   });
 
-  router.post('/password/reset', (req, res, next) => {
-    if (!checkFields(res, req.body, { email: 'string' })) {
-      return;
-    }
-
+  router.post('/password/reset', checkFields({ email: 'string' }), (req, res, next) => {
     controller.reset(req.uwave, req.body.email)
       .then(token => toItemResponse({
         token,
@@ -99,11 +90,10 @@ export default function authenticateRoutes(v1, options) {
       .catch(next);
   });
 
-  router.post('/password/reset/:reset', (req, res, next) => {
-    if (!checkFields(res, req.body, { email: 'string', password: 'string' })) {
-      return;
-    }
-
+  router.post('/password/reset/:reset', checkFields({
+    email: 'string',
+    password: 'string',
+  }), (req, res, next) => {
     controller.changePassword(req.uwave, req.body.email, req.body.password, req.params.reset)
       .then(auth => res.status(200).json(auth))
       .catch(next);

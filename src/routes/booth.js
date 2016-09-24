@@ -1,8 +1,8 @@
 import createRouter from 'router';
 
 import protect from '../middleware/protect';
+import checkFields from '../middleware/checkFields';
 import * as controller from '../controllers/booth';
-import { checkFields } from '../utils';
 import {
   HTTPError,
   PermissionError,
@@ -37,12 +37,18 @@ export default function boothRoutes() {
         .then(skipped => res.status(200).json(skipped))
         .catch(next);
     } else {
+      const errors = [];
       if (req.user.role < ROLE_MODERATOR) {
-        next(new PermissionError('You need to be a moderator to do this'));
-        return;
+        errors.push(new PermissionError('You need to be a moderator to do this'));
       }
-
-      if (!checkFields(res, req.body, { userID: 'string', reason: 'string' })) {
+      if (typeof req.body.userID !== 'string') {
+        errors.push(new HTTPError(422, 'userID: Expected a string'));
+      }
+      if (typeof req.body.reason !== 'string') {
+        errors.push(new HTTPError(422, 'reason: Expected a string'));
+      }
+      if (errors.length > 0) {
+        next(errors);
         return;
       }
 
@@ -52,22 +58,20 @@ export default function boothRoutes() {
     }
   });
 
-  router.post('/replace', protect(ROLE_MODERATOR), (req, res, next) => {
-    if (typeof req.body.userID !== 'string') {
-      next(new HTTPError(422, 'userID: expected a string'));
-      return;
+  router.post('/replace',
+    protect(ROLE_MODERATOR),
+    checkFields({ userID: 'string' }),
+    (req, res, next) => {
+      controller.replaceBooth(req.uwave, req.user.id, req.body.userID)
+        .then(replaced => res.status(200).json(replaced))
+        .catch(next);
     }
+  );
 
-    controller.replaceBooth(req.uwave, req.user.id, req.body.userID)
-      .then(replaced => res.status(200).json(replaced))
-      .catch(next);
-  });
-
-  router.post('/favorite', protect(), (req, res, next) => {
-    if (!checkFields(res, req.body, { playlistID: 'string', historyID: 'string' })) {
-      return;
-    }
-
+  router.post('/favorite', protect(), checkFields({
+    playlistID: 'string',
+    historyID: 'string',
+  }), (req, res, next) => {
     controller.favorite(req.uwave, req.user.id, req.body.playlistID, req.body.historyID)
       .then(playlist => res.status(200).json(playlist))
       .catch(next);

@@ -1,8 +1,8 @@
 import createRouter from 'router';
 
 import protect from '../middleware/protect';
+import checkFields from '../middleware/checkFields';
 import * as controller from '../controllers/staff';
-import { checkFields } from '../utils';
 import { HTTPError } from '../errors';
 import { ROLE_MANAGER } from '../roles';
 
@@ -16,46 +16,52 @@ export default function staffRoutes() {
       .catch(next);
   });
 
-  router.get('/media/:id', protect(ROLE_MANAGER), (req, res, next) => {
-    if (!checkFields(res, req.body, { sourceType: 'string', sourceID: 'string' })) {
-      return;
-    }
-
+  router.get('/media/:id', protect(ROLE_MANAGER), checkFields({
+    sourceType: 'string',
+    sourceID: 'string',
+  }), (req, res, next) => {
     controller.getMedia(req.uwave, req.body.sourceType, req.body.sourceID)
       .then(media => res.status(200).json(media))
       .catch(next);
   });
 
-  router.post('/media/:id', protect(ROLE_MANAGER), (req, res, next) => {
-    if (!checkFields(res, req.body, { sourceType: 'string', sourceID: 'string' })) {
-      return;
-    }
-
+  router.post('/media/:id', protect(ROLE_MANAGER), checkFields({
+    sourceType: 'string',
+    sourceID: 'string',
+  }), (req, res, next) => {
     controller.addMedia(req.uwave, req.body.sourceType, req.body.sourceID)
       .then(media => res.status(200).json(media))
       .catch(next);
   });
 
-  router.put('/media/:id', protect(ROLE_MANAGER), (req, res, next) => {
+  router.put('/media/:id', protect(ROLE_MANAGER), checkFields({
+    sourceType: 'string',
+    sourceID: 'string',
+    artist: 'string',
+    title: 'string',
+  }), (req, res, next) => {
+    // TODO fix this thing again.
+    // It's supposed to accept EITHER:
+    //  - sourceType, sourceID, artist, title
+    // OR:
+    //  - sourceType, sourceID, {auto: true}
+    // When auto === true, the artist and title are retrieved from the media
+    // source.
+    // Currently we can't validate that nicely up-front (and this route is so
+    // far unused anyway), see issue #117.
     if (!req.body.auto) {
-      if (!checkFields(res, req.body, {
-        sourceType: 'string',
-        sourceID: 'string',
-        artist: 'string',
-        title: 'string',
-      })) {
-        return;
-      }
-
       if (!Array.isArray(req.body.restricted)) {
         next(new HTTPError(422, 'restricted: Expected an array of strings'));
         return;
       }
-    } else if (!checkFields(res, req.body, {
-      sourceType: 'string',
-      sourceID: 'string',
-      auto: 'boolean',
-    })) {
+    } else if (
+      // Look how broken this is! omg
+      !checkFields({
+        sourceType: 'string',
+        sourceID: 'string',
+        auto: 'boolean',
+      })
+    ) {
       next(new HTTPError(422,
         'expected sourceType to be a string, sourceID to be a string and auto to be boolean'
       ));
@@ -67,12 +73,10 @@ export default function staffRoutes() {
       .catch(next);
   });
 
-  router.delete('/media/:id', protect(ROLE_MANAGER), (req, res, next) => {
-    if (!checkFields(res, req.body, { sourceType: 'string', sourceID: 'string' })) {
-      res.status(422).json('expected sourceType to be a string and sourceID to be a string');
-      return;
-    }
-
+  router.delete('/media/:id', protect(ROLE_MANAGER), checkFields({
+    sourceType: 'string',
+    sourceID: 'string',
+  }), (req, res, next) => {
     controller.removeMedia(req.uwave, req.body.sourceType, req.body.sourceID)
       .then(media => res.status(200).json(media))
       .catch(next);
