@@ -2,8 +2,10 @@ import clamp from 'clamp';
 
 import { createCommand } from '../sockets';
 
-import { paginate } from '../utils';
-import { skipIfCurrentDJ } from './booth';
+import {
+  skipIfCurrentDJ,
+  getHistory as getHistoryBase,
+} from './booth';
 import { leaveWaitlist } from './waitlist';
 
 export function setStatus(uw, id, status) {
@@ -29,16 +31,6 @@ export async function disconnectUser(uw, user) {
   uw.publish('user:leave', { userID });
 }
 
-export function getHistory(uw, id, rawPage, rawLimit) {
-  const History = uw.model('History');
-
-  const page = isFinite(rawPage) ? rawPage : 0;
-  const limit = isFinite(rawLimit) ? rawLimit : 25;
-
-  return History.find({ user: id })
-    .skip(page * limit)
-    .limit(limit)
-    .sort({ playedAt: -1 })
-    .populate('media.media user')
-    .then(history => paginate(page, limit, history));
+export function getHistory(uw, id, pagination) {
+  return getHistoryBase(uw, pagination, { user: id });
 }

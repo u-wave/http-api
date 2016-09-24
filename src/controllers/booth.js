@@ -149,16 +149,17 @@ export async function favorite(uw, id, playlistID, historyID) {
   };
 }
 
-export async function getHistory(uw, pagination) {
+export async function getHistory(uw, pagination, filter = {}) {
   const History = uw.model('History');
 
   const history = await History.find({})
+    .where(filter)
     .skip(pagination.offset)
     .limit(pagination.limit)
     .sort({ playedAt: -1 })
     .populate('media.media user');
 
-  const count = await History.count();
+  const count = await History.where(filter).count();
 
   return new Page(history, {
     pageSize: pagination ? pagination.limit : null,
