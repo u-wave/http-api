@@ -141,7 +141,12 @@ export default function playlistRoutes() {
 
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.getItems(filter, pagination))
-      .then(page => toPaginatedResponse(page, { baseUrl: req.fullUrl }))
+      .then(page => toPaginatedResponse(page, {
+        baseUrl: req.fullUrl,
+        included: {
+          media: ['media'],
+        },
+      }))
       .then(page => res.json(page))
       .catch(next);
   });

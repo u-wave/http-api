@@ -6,6 +6,8 @@ import * as controller from '../controllers/users';
 import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import { HTTPError, NotFoundError, PermissionError } from '../errors';
 import { ROLE_MANAGER, ROLE_MODERATOR } from '../roles';
+import getOffsetPagination from '../utils/getOffsetPagination';
+import toPaginatedResponse from '../utils/toPaginatedResponse';
 
 export default function userRoutes() {
   const router = createRouter();
@@ -145,9 +147,18 @@ export default function userRoutes() {
   });
 
   router.get('/:id/history', (req, res, next) => {
-    const { page, limit } = req.query;
-    controller.getHistory(req.uwave, req.params.id, parseInt(page, 10), parseInt(limit, 10))
-      .then(history => res.json(history))
+    const pagination = getOffsetPagination(req.query, {
+      defaultSize: 25,
+      maxSize: 100,
+    });
+    controller.getHistory(req.uwave, req.params.id, pagination)
+      .then(history => toPaginatedResponse(history, {
+        included: {
+          media: ['media.media'],
+          user: ['user'],
+        },
+      }))
+      .then(page => res.json(page))
       .catch(next);
   });
 

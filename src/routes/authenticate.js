@@ -7,6 +7,7 @@ import * as controller from '../controllers/authenticate';
 import { checkFields } from '../utils';
 import { handleError, HTTPError } from '../errors';
 import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
+import toItemResponse from '../utils/toItemResponse';
 import { ROLE_MANAGER } from '../roles';
 
 const log = debug('uwave:api:v1:auth');
@@ -42,7 +43,9 @@ export default function authenticateRoutes(v1, options) {
   const router = createRouter();
 
   router.get('/', (req, res) => {
-    res.json(req.user || {});
+    res.json(toItemResponse(req.user || {}, {
+      url: req.fullUrl,
+    }));
   });
 
   router.post('/register', (req, res, next) => {
@@ -64,38 +67,43 @@ export default function authenticateRoutes(v1, options) {
 
     verifyCaptcha(grecaptcha, options)
       .then(() => uw.createUser({ email, username, password }))
-      .then(user => res.json(user))
+      .then(user => toItemResponse(user))
+      .then(item => res.json(item))
       .catch(error => next(beautifyDuplicateKeyError(error)));
   });
 
-  router.post('/login', (req, res) => {
+  router.post('/login', (req, res, next) => {
     if (!checkFields(res, req.body, { email: 'string', password: 'string' })) {
       return;
     }
 
     controller.login(req.uwave, req.body.email, req.body.password, options)
-      .then(token => res.status(200).json(token))
-      .catch(e => handleError(res, e, log));
+      .then(toItemResponse)
+      .then(item => res.status(200).json(item))
+      .catch(next);
   });
 
-  router.post('/password/reset', (req, res) => {
+  router.post('/password/reset', (req, res, next) => {
     if (!checkFields(res, req.body, { email: 'string' })) {
       return;
     }
 
     controller.reset(req.uwave, req.body.email)
-      .then(token => res.status(200).json(token))
-      .catch(e => handleError(res, e, log));
+      .then(token => toItemResponse({
+        token,
+      }))
+      .then(item => res.status(200).json(item))
+      .catch(next);
   });
 
-  router.post('/password/reset/:reset', (req, res) => {
+  router.post('/password/reset/:reset', (req, res, next) => {
     if (!checkFields(res, req.body, { email: 'string', password: 'string' })) {
       return;
     }
 
     controller.changePassword(req.uwave, req.body.email, req.body.password, req.params.reset)
       .then(auth => res.status(200).json(auth))
-      .catch(e => handleError(res, e, log));
+      .catch(next);
   });
 
   router.delete('/session/:id', (req, res) => {

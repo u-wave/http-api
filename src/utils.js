@@ -17,7 +17,3 @@ export function checkFields(res, obj, types) {
   }
   return true;
 }
-
-export function paginate(page, size, result, error = null) {
-  return { page, size, result, error };
-}
