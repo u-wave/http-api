@@ -1,4 +1,7 @@
 import Promise from 'bluebird';
+// Will be unnecessary later when a history module exists in -core.
+// For now we'll assume that we've got a u-wave-core peer installed.
+// eslint-disable-next-line
 import Page from 'u-wave-core/lib/Page';
 
 import { createCommand } from '../sockets';
