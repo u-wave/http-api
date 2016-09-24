@@ -5,7 +5,10 @@ import request from 'request';
 
 import * as controller from '../controllers/authenticate';
 import { checkFields } from '../utils';
-import { handleError, HTTPError } from '../errors';
+import {
+  HTTPError,
+  PermissionError,
+} from '../errors';
 import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import toItemResponse from '../utils/toItemResponse';
 import { ROLE_MANAGER } from '../roles';
@@ -106,21 +109,20 @@ export default function authenticateRoutes(v1, options) {
       .catch(next);
   });
 
-  router.delete('/session/:id', (req, res) => {
+  router.delete('/session/:id', (req, res, next) => {
     if (req.user.id !== req.params.id && req.user.role < ROLE_MANAGER) {
-      res.status(403).json('you need to be at least a manager to do this');
+      next(new PermissionError('You need to be a manager to do this'));
       return;
     }
 
     controller.removeSession(req.uwave, req.params.id)
-    .then((user) => {
-      if (!Object.keys(user).length) {
+      .then((user) => {
+        if (Object.keys(user).length) {
+          throw new HTTPError(500, 'Couldn\'t delete session');
+        }
         res.status(200).json('logged out');
-      } else {
-        res.status(500).json('couldn\'t delete session');
-      }
-    })
-    .catch(e => handleError(res, e, log));
+      })
+      .catch(next);
   });
 
   return router;

@@ -1,26 +1,26 @@
-import debug from 'debug';
 import createRouter from 'router';
 
 import protect from '../middleware/protect';
 import * as controller from '../controllers/booth';
 import { checkFields } from '../utils';
-import { handleError } from '../errors';
+import {
+  HTTPError,
+  PermissionError,
+} from '../errors';
 import { ROLE_MODERATOR } from '../roles';
 import getOffsetPagination from '../utils/getOffsetPagination';
 import toPaginatedResponse from '../utils/toPaginatedResponse';
 
-const log = debug('uwave:api:v1:booth');
-
 export default function boothRoutes() {
   const router = createRouter();
 
-  router.get('/', (req, res) => {
+  router.get('/', (req, res, next) => {
     controller.getBooth(req.uwave)
       .then(booth => res.status(200).json(booth))
-      .catch(e => handleError(res, e, log));
+      .catch(next);
   });
 
-  router.post('/skip', protect(), (req, res) => {
+  router.post('/skip', protect(), (req, res, next) => {
     const skippingSelf = (!req.body.userID && !req.body.reason) ||
       req.body.userID === req.user.id;
     const opts = { remove: !!req.body.remove };
@@ -29,17 +29,16 @@ export default function boothRoutes() {
       controller.getCurrentDJ(req.uwave)
         .then((currentDJ) => {
           if (!currentDJ || currentDJ !== req.user.id) {
-            res.status(412).json('you are not currently playing');
-            return null;
+            throw new HTTPError(412, 'You are not currently playing');
           }
 
-          return controller.skipBooth(req.uwave, null, req.user.id, null, opts)
-            .then(skipped => res.status(200).json(skipped));
+          return controller.skipBooth(req.uwave, null, req.user.id, null, opts);
         })
-        .catch(e => handleError(res, e, log));
+        .then(skipped => res.status(200).json(skipped))
+        .catch(next);
     } else {
       if (req.user.role < ROLE_MODERATOR) {
-        res.status(412).json('you need to be at least a moderator to do this');
+        next(new PermissionError('You need to be a moderator to do this'));
         return;
       }
 
@@ -49,36 +48,32 @@ export default function boothRoutes() {
 
       controller.skipBooth(req.uwave, req.user.id, req.body.userID, req.body.reason, opts)
         .then(skipped => res.status(200).json(skipped))
-        .catch(e => handleError(res, e, log));
+        .catch(next);
     }
   });
 
-  router.post('/replace', protect(ROLE_MODERATOR), (req, res) => {
-    if (typeof req.body.userID === 'undefined') {
-      res.status(422).json('userID is not set');
-      return;
-    }
+  router.post('/replace', protect(ROLE_MODERATOR), (req, res, next) => {
     if (typeof req.body.userID !== 'string') {
-      res.status(422).json('userID has to be of type string');
+      next(new HTTPError(422, 'userID: expected a string'));
       return;
     }
 
     controller.replaceBooth(req.uwave, req.user.id, req.body.userID)
       .then(replaced => res.status(200).json(replaced))
-      .catch(e => handleError(res, e, log));
+      .catch(next);
   });
 
-  router.post('/favorite', protect(), (req, res) => {
+  router.post('/favorite', protect(), (req, res, next) => {
     if (!checkFields(res, req.body, { playlistID: 'string', historyID: 'string' })) {
       return;
     }
 
     controller.favorite(req.uwave, req.user.id, req.body.playlistID, req.body.historyID)
       .then(playlist => res.status(200).json(playlist))
-      .catch(e => handleError(res, e, log));
+      .catch(next);
   });
 
-  router.get('/history', (req, res) => {
+  router.get('/history', (req, res, next) => {
     const pagination = getOffsetPagination(req.query, {
       defaultSize: 25,
       maxSize: 100,
@@ -91,7 +86,7 @@ export default function boothRoutes() {
         },
       }))
       .then(page => res.json(page))
-      .catch(e => handleError(res, e, log));
+      .catch(next);
   });
 
   return router;
