@@ -64,6 +64,7 @@ export default function toPaginatedResponse(
       pageSize: page.pageSize,
       results: page.filteredSize,
       total: page.totalSize,
+      included,
     },
     links: {
       self: appendQuery(baseUrl, { page: page.currentPage }),
