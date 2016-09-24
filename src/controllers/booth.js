@@ -1,11 +1,8 @@
-import mongoose from 'mongoose';
 import Promise from 'bluebird';
 import Page from 'u-wave-core/lib/Page';
 
 import { createCommand } from '../sockets';
 import { NotFoundError, PermissionError } from '../errors';
-
-const ObjectId = mongoose.Types.ObjectId;
 
 export async function isEmpty(uw) {
   return !(await uw.redis.get('booth:historyID'));
@@ -15,7 +12,7 @@ export async function getBooth(uw) {
   const History = uw.model('History');
 
   const historyID = await uw.redis.get('booth:historyID');
-  const historyEntry = await History.findOne(new ObjectId(historyID))
+  const historyEntry = await History.findById(historyID)
     .populate('media.media');
 
   if (!historyEntry || !historyEntry.user) {
@@ -112,7 +109,7 @@ export async function favorite(uw, id, playlistID, historyID) {
   const PlaylistItem = uw.model('PlaylistItem');
   const History = uw.model('History');
 
-  const historyEntry = await History.findOne(new ObjectId(historyID))
+  const historyEntry = await History.findById(historyID)
     .populate('media.media');
 
   if (!historyEntry) {
@@ -122,7 +119,7 @@ export async function favorite(uw, id, playlistID, historyID) {
     throw new PermissionError('You can\'t favorite your own plays.');
   }
 
-  const playlist = await Playlist.findOne(new ObjectId(playlistID));
+  const playlist = await Playlist.findById(playlistID);
 
   if (!playlist) throw new NotFoundError('Playlist not found.');
   if (`${playlist.author}` !== id) {
