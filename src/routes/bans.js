@@ -41,6 +41,7 @@ export default function banRoutes() {
       const moderatorID = req.user.id;
       const { userID } = req.params;
       controller.removeBan(uw, userID, { moderatorID })
+        .then(toItemResponse)
         .then(result => res.json(result))
         .catch(next);
     });

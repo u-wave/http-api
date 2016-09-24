@@ -7,6 +7,7 @@ import { serializePlaylist } from '../utils/serialize';
 import { HTTPError } from '../errors';
 import getOffsetPagination from '../utils/getOffsetPagination';
 import toItemResponse from '../utils/toItemResponse';
+import toListResponse from '../utils/toListResponse';
 import toPaginatedResponse from '../utils/toPaginatedResponse';
 
 const log = debug('uwave:api:v1:playlists');
@@ -17,7 +18,8 @@ export default function playlistRoutes() {
   router.get('/', (req, res, next) => {
     req.user.getPlaylists()
       .then(playlists => playlists.map(serializePlaylist))
-      .then(playlists => res.json(playlists))
+      .then(playlists => toListResponse(playlists, { url: req.fullUrl }))
+      .then(list => res.json(list))
       .catch(next);
   });
 
@@ -57,6 +59,7 @@ export default function playlistRoutes() {
 
     req.user.getPlaylist(req.params.id)
       .then(playlist => uw.playlists.deletePlaylist(playlist))
+      .then(toItemResponse)
       .then(result => res.json(result))
       .catch(next);
   });
@@ -112,13 +115,15 @@ export default function playlistRoutes() {
 
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.moveItems(items, { afterID: after }))
-      .then(result => res.json(result))
+      .then(result => toItemResponse(result))
+      .then(item => res.json(item))
       .catch(next);
   });
 
   router.put('/:id/activate', (req, res, next) => {
     req.user.setActivePlaylist(req.params.id)
-      .then(() => res.json({}))
+      .then(() => toItemResponse({}))
+      .then(item => res.json(item))
       .catch(next);
   });
 
@@ -148,6 +153,12 @@ export default function playlistRoutes() {
 
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.addItems(items, { after }))
+      .then(({ added, afterID, playlistSize }) => toListResponse(added, {
+        included: {
+          media: ['media'],
+        },
+        meta: { afterID, playlistSize },
+      }))
       .then(patch => res.json(patch))
       .catch(next);
   });
@@ -210,7 +221,8 @@ export default function playlistRoutes() {
   router.delete('/:id/media/:mediaID', (req, res, next) => {
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.removeItem(req.params.mediaID))
-      .then(removed => res.json(removed))
+      .then(toItemResponse)
+      .then(item => res.json(item))
       .catch(next);
   });
 

@@ -9,6 +9,8 @@ import {
 } from '../errors';
 import { ROLE_MODERATOR } from '../roles';
 import getOffsetPagination from '../utils/getOffsetPagination';
+import toItemResponse from '../utils/toItemResponse';
+import toListResponse from '../utils/toListResponse';
 import toPaginatedResponse from '../utils/toPaginatedResponse';
 
 export default function boothRoutes() {
@@ -16,7 +18,8 @@ export default function boothRoutes() {
 
   router.get('/', (req, res, next) => {
     controller.getBooth(req.uwave)
-      .then(booth => res.status(200).json(booth))
+      .then(booth => toItemResponse(booth, { url: req.fullUrl }))
+      .then(item => res.status(200).json(item))
       .catch(next);
   });
 
@@ -34,7 +37,8 @@ export default function boothRoutes() {
 
           return controller.skipBooth(req.uwave, null, req.user.id, null, opts);
         })
-        .then(skipped => res.status(200).json(skipped))
+        .then(() => toItemResponse({}))
+        .then(item => res.status(200).json(item))
         .catch(next);
     } else {
       const errors = [];
@@ -53,7 +57,8 @@ export default function boothRoutes() {
       }
 
       controller.skipBooth(req.uwave, req.user.id, req.body.userID, req.body.reason, opts)
-        .then(skipped => res.status(200).json(skipped))
+        .then(() => toItemResponse({}))
+        .then(item => res.status(200).json(item))
         .catch(next);
     }
   });
@@ -63,7 +68,8 @@ export default function boothRoutes() {
     checkFields({ userID: 'string' }),
     (req, res, next) => {
       controller.replaceBooth(req.uwave, req.user.id, req.body.userID)
-        .then(replaced => res.status(200).json(replaced))
+        .then(() => toItemResponse({}))
+        .then(item => res.status(200).json(item))
         .catch(next);
     }
   );
@@ -73,6 +79,9 @@ export default function boothRoutes() {
     historyID: 'string',
   }), (req, res, next) => {
     controller.favorite(req.uwave, req.user.id, req.body.playlistID, req.body.historyID)
+      .then(({ added, playlistSize }) => toListResponse(added, {
+        meta: { playlistSize },
+      }))
       .then(playlist => res.status(200).json(playlist))
       .catch(next);
   });

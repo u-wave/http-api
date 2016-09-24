@@ -5,6 +5,8 @@ import requireActiveConnection from '../middleware/requireActiveConnection';
 import checkFields from '../middleware/checkFields';
 import * as controller from '../controllers/waitlist';
 import { PermissionError } from '../errors';
+import toItemResponse from '../utils/toItemResponse';
+import toListResponse from '../utils/toListResponse';
 import { ROLE_MANAGER, ROLE_MODERATOR } from '../roles';
 
 export default function waitlistRoutes() {
@@ -12,7 +14,8 @@ export default function waitlistRoutes() {
 
   router.get('/', (req, res, next) => {
     controller.getWaitlist(req.uwave)
-      .then(waitlist => res.status(200).json(waitlist))
+      .then(waitlist => toListResponse(waitlist, { url: req.fullUrl }))
+      .then(list => res.status(200).json(list))
       .catch(next);
   });
 
@@ -36,14 +39,16 @@ export default function waitlistRoutes() {
         ? controller.appendToWaitlist(req.uwave, targetID, isModerator)
         : controller.insertWaitlist(req.uwave, req.user.id, targetID, position, isModerator);
       promise
-        .then(waitlist => res.status(200).json(waitlist))
+        .then(waitlist => toListResponse(waitlist, { url: req.fullUrl }))
+        .then(list => res.status(200).json(list))
         .catch(next);
     }
   );
 
   router.delete('/', protect(ROLE_MANAGER), (req, res, next) => {
     controller.clearWaitlist(req.uwave, req.user.id)
-      .then(waitlist => res.status(200).json(waitlist))
+      .then(waitlist => toListResponse(waitlist, { url: req.fullUrl }))
+      .then(list => res.status(200).json(list))
       .catch(next);
   });
 
@@ -52,7 +57,8 @@ export default function waitlistRoutes() {
     position: 'number',
   }), (req, res, next) => {
     controller.moveWaitlist(req.uwave, req.user.id, req.body.userID, req.body.position)
-      .then(waitlist => res.status(200).json(waitlist))
+      .then(waitlist => toListResponse(waitlist, { url: req.fullUrl }))
+      .then(list => res.status(200).json(list))
       .catch(next);
   });
 
@@ -69,7 +75,8 @@ export default function waitlistRoutes() {
     }
 
     promise
-      .then(waitlist => res.status(200).json(waitlist))
+      .then(waitlist => toListResponse(waitlist, { url: req.fullUrl }))
+      .then(list => res.status(200).json(list))
       .catch(next);
   });
 
@@ -77,7 +84,10 @@ export default function waitlistRoutes() {
     lock: 'boolean',
   }), (req, res, next) => {
     controller.lockWaitlist(req.uwave, req.user.id, req.body.lock)
-      .then(state => res.status(200).json(state))
+      .then(locked => toItemResponse({
+        locked,
+      }, { url: req.fullUrl }))
+      .then(item => res.status(200).json(item))
       .catch(next);
   });
 

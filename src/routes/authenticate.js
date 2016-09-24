@@ -76,7 +76,9 @@ export default function authenticateRoutes(v1, options) {
     password: 'string',
   }), (req, res, next) => {
     controller.login(req.uwave, req.body.email, req.body.password, options)
-      .then(toItemResponse)
+      .then(({ jwt, user }) => toItemResponse(user, {
+        meta: { jwt },
+      }))
       .then(item => res.status(200).json(item))
       .catch(next);
   });
@@ -95,7 +97,10 @@ export default function authenticateRoutes(v1, options) {
     password: 'string',
   }), (req, res, next) => {
     controller.changePassword(req.uwave, req.body.email, req.body.password, req.params.reset)
-      .then(auth => res.status(200).json(auth))
+      .then(message => toItemResponse({}, {
+        meta: { message },
+      }))
+      .then(item => res.status(200).json(item))
       .catch(next);
   });
 
@@ -110,8 +115,11 @@ export default function authenticateRoutes(v1, options) {
         if (Object.keys(user).length) {
           throw new HTTPError(500, 'Couldn\'t delete session');
         }
-        res.status(200).json('logged out');
+        return toItemResponse({}, {
+          meta: { message: 'logged out' },
+        });
       })
+      .then(item => res.status(200).json(item))
       .catch(next);
   });
 

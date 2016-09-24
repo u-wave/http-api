@@ -7,22 +7,26 @@ import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import { HTTPError, NotFoundError, PermissionError } from '../errors';
 import { ROLE_MANAGER, ROLE_MODERATOR } from '../roles';
 import getOffsetPagination from '../utils/getOffsetPagination';
+import toItemResponse from '../utils/toItemResponse';
 import toPaginatedResponse from '../utils/toPaginatedResponse';
 
 export default function userRoutes() {
   const router = createRouter();
 
   router.get('/', protect(ROLE_MANAGER), (req, res, next) => {
-    const limit = isFinite(req.query.limit) ? Math.min(req.query.limit, 50) : 50;
-    const offset = isFinite(req.query.page) ? limit * req.query.page : 0;
+    const pagination = getOffsetPagination(req.query, {
+      defaultSize: 50,
+    });
 
-    req.uwave.getUsers({ offset, limit })
-      .then(users => res.json(users))
+    req.uwave.getUsers(pagination)
+      .then(users => toPaginatedResponse(users, { baseUrl: req.fullUrl }))
+      .then(page => res.json(page))
       .catch(next);
   });
 
   router.get('/:id', (req, res, next) => {
     req.uwave.getUser(req.params.id)
+      .then(user => toItemResponse(user, { url: req.fullUrl }))
       .then(user => res.json(user))
       .catch(next);
   });
@@ -43,7 +47,8 @@ export default function userRoutes() {
         if (!user) throw new NotFoundError('User not found.');
         return user.mute(duration, { moderator: req.user });
       })
-      .then(() => res.json({}))
+      .then(() => toItemResponse({}))
+      .then(item => res.json(item))
       .catch(next);
   });
 
@@ -58,7 +63,8 @@ export default function userRoutes() {
         if (!user) throw new NotFoundError('User not found.');
         return user.unmute({ moderator: req.user });
       })
-      .then(() => res.json({}))
+      .then(() => toItemResponse({}))
+      .then(item => res.json(item))
       .catch(next);
   });
 
@@ -77,7 +83,8 @@ export default function userRoutes() {
       { role: req.body.role },
       { moderator: req.user }
     )
-      .then(user => res.json(user))
+      .then(user => toItemResponse(user))
+      .then(item => res.json(item))
       .catch(next);
   });
 
@@ -99,7 +106,8 @@ export default function userRoutes() {
         { username: req.body.username },
         { moderator: req.user }
       )
-        .then(user => res.json(user))
+        .then(user => toItemResponse(user))
+        .then(item => res.json(item))
         .catch(error => next(beautifyDuplicateKeyError(error)));
     }
   );
@@ -121,7 +129,8 @@ export default function userRoutes() {
     }
 
     controller.setAvatar(req.uwave, req.user.id, req.params.id, req.body.avatar)
-      .then(user => res.json(user))
+      .then(user => toItemResponse(user))
+      .then(item => res.json(item))
       .catch(next);
   });
 
@@ -142,7 +151,8 @@ export default function userRoutes() {
     }
 
     controller.setStatus(req.uwave, req.user.id, req.body.status)
-      .then(user => res.json(user))
+      .then(user => toItemResponse(user))
+      .then(item => res.json(item))
       .catch(next);
   });
 
