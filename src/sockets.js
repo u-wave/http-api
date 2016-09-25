@@ -213,12 +213,8 @@ export default class SocketServer {
     /**
      * Broadcast a chat message.
      */
-    'chat:message': ({ userID, message, timestamp }) => {
-      this.broadcast('chatMessage', {
-        _id: userID,
-        message,
-        timestamp,
-      });
+    'chat:message': (message) => {
+      this.broadcast('chatMessage', message);
     },
     /**
      * Delete chat messages. The delete filter can have an _id property to
