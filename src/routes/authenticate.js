@@ -3,10 +3,14 @@ import createRouter from 'router';
 import Promise from 'bluebird';
 import request from 'request';
 
+import checkFields from '../middleware/checkFields';
 import * as controller from '../controllers/authenticate';
-import { checkFields } from '../utils';
-import { handleError, HTTPError } from '../errors';
+import {
+  HTTPError,
+  PermissionError,
+} from '../errors';
 import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
+import toItemResponse from '../utils/toItemResponse';
 import { ROLE_MANAGER } from '../roles';
 
 const log = debug('uwave:api:v1:auth');
@@ -42,18 +46,16 @@ export default function authenticateRoutes(v1, options) {
   const router = createRouter();
 
   router.get('/', (req, res) => {
-    res.json(req.user || {});
+    res.json(toItemResponse(req.user || {}, {
+      url: req.fullUrl,
+    }));
   });
 
-  router.post('/register', (req, res, next) => {
-    if (!checkFields(res, req.body, {
-      email: 'string',
-      username: 'string',
-      password: 'string',
-    })) {
-      return;
-    }
-
+  router.post('/register', checkFields({
+    email: 'string',
+    username: 'string',
+    password: 'string',
+  }), (req, res, next) => {
     const uw = req.uwave;
     const { grecaptcha, email, username, password } = req.body;
 
@@ -64,55 +66,61 @@ export default function authenticateRoutes(v1, options) {
 
     verifyCaptcha(grecaptcha, options)
       .then(() => uw.createUser({ email, username, password }))
-      .then(user => res.json(user))
+      .then(user => toItemResponse(user))
+      .then(item => res.json(item))
       .catch(error => next(beautifyDuplicateKeyError(error)));
   });
 
-  router.post('/login', (req, res) => {
-    if (!checkFields(res, req.body, { email: 'string', password: 'string' })) {
-      return;
-    }
-
+  router.post('/login', checkFields({
+    email: 'string',
+    password: 'string',
+  }), (req, res, next) => {
     controller.login(req.uwave, req.body.email, req.body.password, options)
-      .then(token => res.status(200).json(token))
-      .catch(e => handleError(res, e, log));
+      .then(({ jwt, user }) => toItemResponse(user, {
+        meta: { jwt },
+      }))
+      .then(item => res.status(200).json(item))
+      .catch(next);
   });
 
-  router.post('/password/reset', (req, res) => {
-    if (!checkFields(res, req.body, { email: 'string' })) {
-      return;
-    }
-
+  router.post('/password/reset', checkFields({ email: 'string' }), (req, res, next) => {
     controller.reset(req.uwave, req.body.email)
-      .then(token => res.status(200).json(token))
-      .catch(e => handleError(res, e, log));
+      .then(token => toItemResponse({
+        token,
+      }))
+      .then(item => res.status(200).json(item))
+      .catch(next);
   });
 
-  router.post('/password/reset/:reset', (req, res) => {
-    if (!checkFields(res, req.body, { email: 'string', password: 'string' })) {
-      return;
-    }
-
+  router.post('/password/reset/:reset', checkFields({
+    email: 'string',
+    password: 'string',
+  }), (req, res, next) => {
     controller.changePassword(req.uwave, req.body.email, req.body.password, req.params.reset)
-      .then(auth => res.status(200).json(auth))
-      .catch(e => handleError(res, e, log));
+      .then(message => toItemResponse({}, {
+        meta: { message },
+      }))
+      .then(item => res.status(200).json(item))
+      .catch(next);
   });
 
-  router.delete('/session/:id', (req, res) => {
+  router.delete('/session/:id', (req, res, next) => {
     if (req.user.id !== req.params.id && req.user.role < ROLE_MANAGER) {
-      res.status(403).json('you need to be at least a manager to do this');
+      next(new PermissionError('You need to be a manager to do this'));
       return;
     }
 
     controller.removeSession(req.uwave, req.params.id)
-    .then((user) => {
-      if (!Object.keys(user).length) {
-        res.status(200).json('logged out');
-      } else {
-        res.status(500).json('couldn\'t delete session');
-      }
-    })
-    .catch(e => handleError(res, e, log));
+      .then((user) => {
+        if (Object.keys(user).length) {
+          throw new HTTPError(500, 'Couldn\'t delete session');
+        }
+        return toItemResponse({}, {
+          meta: { message: 'logged out' },
+        });
+      })
+      .then(item => res.status(200).json(item))
+      .catch(next);
   });
 
   return router;

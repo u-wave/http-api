@@ -1,6 +1,7 @@
 import createRouter from 'router';
 
 import protect from '../middleware/protect';
+import toItemResponse from '../utils/toItemResponse';
 import { ROLE_MODERATOR } from '../roles';
 
 export default function chatRoutes() {
@@ -11,7 +12,7 @@ export default function chatRoutes() {
       {},
       { moderator: req.user }
     );
-    res.status(200).json('deleted chat');
+    res.status(200).json(toItemResponse({}));
   });
 
   router.delete('/user/:id', protect(ROLE_MODERATOR), (req, res) => {
@@ -19,7 +20,7 @@ export default function chatRoutes() {
       { userID: req.params.id },
       { moderator: req.user }
     );
-    res.status(200).json(`deleted chat ${req.params.id}`);
+    res.status(200).json(toItemResponse({}));
   });
 
   router.delete('/:id', protect(ROLE_MODERATOR), (req, res) => {
@@ -27,7 +28,7 @@ export default function chatRoutes() {
       { id: req.params.id },
       { moderator: req.user }
     );
-    res.status(200).json(`deleted chat by user ${req.params.id}`);
+    res.status(200).json(toItemResponse({}));
   });
 
   return router;

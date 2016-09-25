@@ -1,11 +1,11 @@
-import mongoose from 'mongoose';
 import Promise from 'bluebird';
+// Will be unnecessary later when a history module exists in -core.
+// For now we'll assume that we've got a u-wave-core peer installed.
+// eslint-disable-next-line
+import Page from 'u-wave-core/lib/Page';
 
 import { createCommand } from '../sockets';
-import { paginate } from '../utils';
 import { NotFoundError, PermissionError } from '../errors';
-
-const ObjectId = mongoose.Types.ObjectId;
 
 export async function isEmpty(uw) {
   return !(await uw.redis.get('booth:historyID'));
@@ -15,7 +15,7 @@ export async function getBooth(uw) {
   const History = uw.model('History');
 
   const historyID = await uw.redis.get('booth:historyID');
-  const historyEntry = await History.findOne(new ObjectId(historyID))
+  const historyEntry = await History.findById(historyID)
     .populate('media.media');
 
   if (!historyEntry || !historyEntry.user) {
@@ -112,7 +112,7 @@ export async function favorite(uw, id, playlistID, historyID) {
   const PlaylistItem = uw.model('PlaylistItem');
   const History = uw.model('History');
 
-  const historyEntry = await History.findOne(new ObjectId(historyID))
+  const historyEntry = await History.findById(historyID)
     .populate('media.media');
 
   if (!historyEntry) {
@@ -122,7 +122,7 @@ export async function favorite(uw, id, playlistID, historyID) {
     throw new PermissionError('You can\'t favorite your own plays.');
   }
 
-  const playlist = await Playlist.findOne(new ObjectId(playlistID));
+  const playlist = await Playlist.findById(playlistID);
 
   if (!playlist) throw new NotFoundError('Playlist not found.');
   if (`${playlist.author}` !== id) {
@@ -152,17 +152,31 @@ export async function favorite(uw, id, playlistID, historyID) {
   };
 }
 
-export async function getHistory(uw, rawPage, rawLimit) {
+export async function getHistory(uw, pagination, filter = {}) {
   const History = uw.model('History');
 
-  const page = isFinite(rawPage) ? rawPage : 0;
-  const limit = isFinite(rawLimit) ? rawLimit : 25;
-
   const history = await History.find({})
-    .skip(page * limit)
-    .limit(limit)
+    .where(filter)
+    .skip(pagination.offset)
+    .limit(pagination.limit)
     .sort({ playedAt: -1 })
     .populate('media.media user');
 
-  return paginate(page, limit, history);
+  const count = await History.where(filter).count();
+
+  return new Page(history, {
+    pageSize: pagination ? pagination.limit : null,
+    filtered: count,
+    total: count,
+
+    current: pagination,
+    next: pagination ? {
+      offset: pagination.offset + pagination.limit,
+      limit: pagination.limit,
+    } : null,
+    previous: pagination ? {
+      offset: Math.max(pagination.offset - pagination.limit, 0),
+      limit: pagination.limit,
+    } : null,
+  });
 }

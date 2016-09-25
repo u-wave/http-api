@@ -16,6 +16,7 @@ import now from './routes/now';
 import imports from './routes/import';
 
 // middleware
+import addFullUrl from './middleware/addFullUrl';
 import attachUwaveMeta from './middleware/attachUwaveMeta';
 import authenticator from './middleware/authenticator';
 import errorHandler from './middleware/errorHandler';
@@ -92,6 +93,7 @@ export default class ApiV1 extends Router {
 
     this
       .use(bodyParser.json())
+      .use(addFullUrl())
       .use(this.attachUwaveToRequest())
       .use(authenticator(this, {
         secret: options.secret,

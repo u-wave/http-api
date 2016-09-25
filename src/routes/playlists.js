@@ -1,57 +1,16 @@
 import debug from 'debug';
 import createRouter from 'router';
-import * as url from 'url';
 
 import protect from '../middleware/protect';
-import { checkFields } from '../utils';
+import checkFields from '../middleware/checkFields';
 import { serializePlaylist } from '../utils/serialize';
 import { HTTPError } from '../errors';
+import getOffsetPagination from '../utils/getOffsetPagination';
+import toItemResponse from '../utils/toItemResponse';
+import toListResponse from '../utils/toListResponse';
+import toPaginatedResponse from '../utils/toPaginatedResponse';
 
 const log = debug('uwave:api:v1:playlists');
-
-const parseNumber = (str, defaultN) => {
-  const n = parseInt(str, 10);
-  return isFinite(n) ? n : defaultN;
-};
-
-const getFullUrl = req => `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-
-const appendQuery = (base, query) => {
-  const parsed = url.parse(base, true);
-  Object.assign(parsed.query, query);
-  return url.format(parsed);
-};
-
-const toPaginatedResponse = (page, { baseUrl = '' } = {}) => ({
-  meta: {
-    offset: page.currentPage.offset,
-    pageSize: page.pageSize,
-    results: page.filteredSize,
-    total: page.totalSize,
-  },
-  links: {
-    self: appendQuery(baseUrl, { page: page.currentPage }),
-    next: appendQuery(baseUrl, { page: page.nextPage }),
-    prev: appendQuery(baseUrl, { page: page.prevPage }),
-  },
-  data: page.data,
-});
-
-const getOffsetPagination = (query, defaultSize = 100) => {
-  if (typeof query.page === 'object') {
-    return {
-      offset: parseNumber(query.page.offset, 0),
-      limit: parseNumber(query.page.limit, defaultSize),
-    };
-  }
-  // Old way: using a `page=` and a `limit=` query parameter.
-  const page = parseNumber(query.page, 0);
-  const limit = parseNumber(query.limit, defaultSize);
-  return {
-    offset: page * limit,
-    limit,
-  };
-};
 
 export default function playlistRoutes() {
   const router = createRouter().use(protect());
@@ -59,15 +18,12 @@ export default function playlistRoutes() {
   router.get('/', (req, res, next) => {
     req.user.getPlaylists()
       .then(playlists => playlists.map(serializePlaylist))
-      .then(playlists => res.json(playlists))
+      .then(playlists => toListResponse(playlists, { url: req.fullUrl }))
+      .then(list => res.json(list))
       .catch(next);
   });
 
-  router.post('/', (req, res, next) => {
-    if (!checkFields(res, req.body, { name: 'string' })) {
-      return;
-    }
-
+  router.post('/', checkFields({ name: 'string' }), (req, res, next) => {
     async function activateIfFirst(playlist) {
       try {
         await req.user.getActivePlaylist();
@@ -85,14 +41,16 @@ export default function playlistRoutes() {
     })
       .then(activateIfFirst)
       .then(serializePlaylist)
-      .then(playlist => res.json(playlist))
+      .then(playlist => toItemResponse(playlist, { url: req.fullUrl }))
+      .then(item => res.json(item))
       .catch(next);
   });
 
   router.get('/:id', (req, res, next) => {
     req.user.getPlaylist(req.params.id)
       .then(serializePlaylist)
-      .then(playlist => res.json(playlist))
+      .then(playlist => toItemResponse(playlist, { url: req.fullUrl }))
+      .then(item => res.json(item))
       .catch(next);
   });
 
@@ -101,6 +59,7 @@ export default function playlistRoutes() {
 
     req.user.getPlaylist(req.params.id)
       .then(playlist => uw.playlists.deletePlaylist(playlist))
+      .then(toItemResponse)
       .then(result => res.json(result))
       .catch(next);
   });
@@ -120,35 +79,30 @@ export default function playlistRoutes() {
     req.user.getPlaylist(req.params.id)
       .then(playlist => uw.playlists.updatePlaylist(playlist, req.body))
       .then(serializePlaylist)
-      .then(playlist => res.json(playlist))
+      .then(playlist => toItemResponse(playlist, { url: req.fullUrl }))
+      .then(item => res.json(item))
       .catch(next);
   });
 
-  router.put('/:id/rename', (req, res, next) => {
-    if (!checkFields(res, req.body, { name: 'string' })) {
-      return;
-    }
-
+  router.put('/:id/rename', checkFields({ name: 'string' }), (req, res, next) => {
     const uw = req.uwave;
 
     req.user.getPlaylist(req.params.id)
       .then(playlist => uw.playlists.updatePlaylist(playlist, { name: req.body.name }))
       .then(serializePlaylist)
-      .then(playlist => res.json(playlist))
+      .then(playlist => toItemResponse(playlist, { url: req.fullUrl }))
+      .then(item => res.json(item))
       .catch(next);
   });
 
-  router.put('/:id/share', (req, res, next) => {
-    if (!checkFields(res, req.body, { shared: 'string' })) {
-      return;
-    }
-
+  router.put('/:id/share', checkFields({ shared: 'string' }), (req, res, next) => {
     const uw = req.uwave;
 
     req.user.getPlaylist(req.params.id)
       .then(playlist => uw.playlists.updatePlaylist(playlist, { shared: req.body.shared }))
       .then(serializePlaylist)
-      .then(playlist => res.json(playlist))
+      .then(playlist => toItemResponse(playlist, { url: req.fullUrl }))
+      .then(item => res.json(item))
       .catch(next);
   });
 
@@ -161,13 +115,15 @@ export default function playlistRoutes() {
 
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.moveItems(items, { afterID: after }))
-      .then(result => res.json(result))
+      .then(result => toItemResponse(result))
+      .then(item => res.json(item))
       .catch(next);
   });
 
   router.put('/:id/activate', (req, res, next) => {
     req.user.setActivePlaylist(req.params.id)
-      .then(() => res.json({}))
+      .then(() => toItemResponse({}))
+      .then(item => res.json(item))
       .catch(next);
   });
 
@@ -178,16 +134,17 @@ export default function playlistRoutes() {
 
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.getItems(filter, pagination))
-      .then(page => toPaginatedResponse(page, { baseUrl: getFullUrl(req) }))
+      .then(page => toPaginatedResponse(page, {
+        baseUrl: req.fullUrl,
+        included: {
+          media: ['media'],
+        },
+      }))
       .then(page => res.json(page))
       .catch(next);
   });
 
-  router.post('/:id/media', (req, res, next) => {
-    if (!checkFields(res, req.body, { items: 'object' })) {
-      return;
-    }
-
+  router.post('/:id/media', checkFields({ items: 'object' }), (req, res, next) => {
     const { after, items } = req.body;
     if (!Array.isArray(items)) {
       next(new HTTPError(422, 'Expected "items" to be an array.'));
@@ -196,6 +153,12 @@ export default function playlistRoutes() {
 
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.addItems(items, { after }))
+      .then(({ added, afterID, playlistSize }) => toListResponse(added, {
+        included: {
+          media: ['media'],
+        },
+        meta: { afterID, playlistSize },
+      }))
       .then(patch => res.json(patch))
       .catch(next);
   });
@@ -211,36 +174,37 @@ export default function playlistRoutes() {
       .then(playlist =>
         playlist.removeItems(items).then(() => playlist)
       )
-      .then(playlist => res.json({
-        playlistSize: playlist.size,
+      .then(playlist => toItemResponse({}, {
+        meta: {
+          playlistSize: playlist.size,
+        },
       }))
+      .then(item => res.json(item))
       .catch(next);
   });
 
   router.post('/:id/shuffle', (req, res, next) => {
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.shuffle())
-      .then(() => res.json({}))
+      .then(() => toItemResponse({}))
+      .then(item => res.json(item))
       .catch(next);
   });
 
   router.get('/:id/media/:itemID', (req, res, next) => {
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.getItem(req.params.itemID))
+      .then(playlistItem => toItemResponse(playlistItem, { url: req.fullUrl }))
       .then(item => res.json(item))
       .catch(next);
   });
 
-  router.put('/:id/media/:itemID', (req, res, next) => {
-    if (!checkFields(res, req.body, {
-      artist: 'string',
-      title: 'string',
-      start: 'number',
-      end: 'number',
-    })) {
-      return;
-    }
-
+  router.put('/:id/media/:itemID', checkFields({
+    artist: 'string',
+    title: 'string',
+    start: 'number',
+    end: 'number',
+  }), (req, res, next) => {
     const patch = {
       artist: req.body.artist,
       title: req.body.title,
@@ -250,6 +214,7 @@ export default function playlistRoutes() {
 
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.updateItem(req.params.itemID, patch))
+      .then(playlistItem => toItemResponse(playlistItem, { url: req.fullUrl }))
       .then(item => res.json(item))
       .catch(next);
   });
@@ -257,7 +222,8 @@ export default function playlistRoutes() {
   router.delete('/:id/media/:mediaID', (req, res, next) => {
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.removeItem(req.params.mediaID))
-      .then(removed => res.json(removed))
+      .then(toItemResponse)
+      .then(item => res.json(item))
       .catch(next);
   });
 

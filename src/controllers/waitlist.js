@@ -1,5 +1,4 @@
 import clamp from 'clamp';
-import mongoose from 'mongoose';
 
 import {
   getCurrentDJ,
@@ -7,8 +6,6 @@ import {
 } from '../controllers/booth';
 import { createCommand } from '../sockets';
 import { APIError, HTTPError, NotFoundError, PermissionError } from '../errors';
-
-const ObjectId = mongoose.Types.ObjectId;
 
 function isInWaitlist(waitlist, userID) {
   return waitlist.some(waitingID => waitingID === userID);
@@ -84,7 +81,7 @@ export async function appendToWaitlist(uw, userID, forceJoin) {
 export async function insertWaitlist(uw, moderatorID, id, position, forceJoin) {
   const User = uw.model('User');
 
-  const user = await User.find(new ObjectId(id));
+  const user = await User.findById(id);
 
   if (!user) throw new NotFoundError('User not found.');
 
@@ -150,7 +147,7 @@ export async function moveWaitlist(uw, moderatorID, userID, position) {
     throw new HTTPError(400, 'That user does not have anything to play');
   }
 
-  const user = await User.findOne(new ObjectId(userID.toLowerCase()));
+  const user = await User.findById(userID.toLowerCase());
   if (!user) {
     throw new NotFoundError('User not found.');
   }
