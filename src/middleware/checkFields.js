@@ -16,7 +16,7 @@ export default function checkFields(types) {
       const type = types[field];
       const value = req.body[field];
       if (typeof value !== type) { // eslint-disable-line valid-typeof
-        errors.push(new InputError(`Expected a ${type}`, {
+        errors.push(new InputError(`${field}: Expected a ${type}`, {
           source: { field },
         }));
       }
