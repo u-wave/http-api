@@ -187,6 +187,7 @@ export default function playlistRoutes() {
     req.user.getPlaylist(req.params.id)
       .then(playlist => playlist.shuffle())
       .then(() => toItemResponse({}))
+      .then(item => res.json(item))
       .catch(next);
   });
 
