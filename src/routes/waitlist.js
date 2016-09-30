@@ -1,5 +1,6 @@
 import router from 'router';
 import route from '../route';
+import * as validations from '../validations';
 import protect from '../middleware/protect';
 import requireActiveConnection from '../middleware/requireActiveConnection';
 import checkFields from '../middleware/checkFields';
@@ -18,7 +19,7 @@ export default function waitlistRoutes() {
       '/',
       protect(),
       requireActiveConnection(),
-      checkFields({ userID: 'string' }),
+      checkFields(validations.joinWaitlist),
       route(controller.addToWaitlist),
     )
     // DELETE /waitlist/ - Clear the waitlist.
@@ -31,10 +32,7 @@ export default function waitlistRoutes() {
     .put(
       '/move',
       protect(ROLE_MODERATOR),
-      checkFields({
-        userID: 'string',
-        position: 'number',
-      }),
+      checkFields(validations.moveWaitlist),
       route(controller.moveWaitlist),
     )
     // DELETE /waitlist/:id - Remove a user from the waitlist.
@@ -47,7 +45,7 @@ export default function waitlistRoutes() {
     .put(
       '/lock',
       protect(ROLE_MODERATOR),
-      checkFields({ lock: 'boolean' }),
+      checkFields(validations.lockWaitlist),
       route(controller.lockWaitlist),
     );
 }

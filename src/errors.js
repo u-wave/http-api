@@ -24,6 +24,13 @@ export class APIError extends Error {
   }
 }
 
+export class CombinedError extends APIError {
+  constructor(errors) {
+    super('Multiple errors');
+    this.errors = errors;
+  }
+}
+
 export class PasswordError extends APIError {
   name = 'PasswordError';
 }

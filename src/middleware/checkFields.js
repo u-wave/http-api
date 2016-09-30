@@ -1,3 +1,4 @@
+import joi from 'joi';
 import { HTTPError } from '../errors';
 
 class InputError extends HTTPError {
@@ -9,6 +10,21 @@ class InputError extends HTTPError {
 }
 
 export default function checkFields(types) {
+  if (typeof types.validate === 'function') {
+    return (req, res, next) => {
+      joi.validate(req, types, {
+        abortEarly: false,
+        allowUnknown: true,
+      }, (err) => {
+        if (err) {
+          next(err);
+        } else {
+          next();
+        }
+      });
+    };
+  }
+
   return (req, res, next) => {
     const errors = [];
 

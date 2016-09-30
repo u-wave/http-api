@@ -1,7 +1,7 @@
 import Promise from 'bluebird';
-
 import { createCommand } from '../sockets';
 import {
+  CombinedError,
   HTTPError,
   NotFoundError,
   PermissionError,
@@ -96,7 +96,7 @@ export async function skipBooth(req) {
     errors.push(new HTTPError(422, 'reason: Expected a string'));
   }
   if (errors.length > 0) {
-    throw errors;
+    throw new CombinedError(errors);
   }
 
   await doSkip(req.uwave, req.user.id, req.body.userID, req.body.reason, opts);

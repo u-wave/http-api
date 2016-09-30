@@ -34,6 +34,7 @@
     "got": "^7.1.0",
     "ioredis": "^3.0.0",
     "is-empty-object": "^1.1.1",
+    "joi": "^10.6.0",
     "jsonwebtoken": "^8.0.0",
     "lodash": "^4.16.1",
     "ms": "^2.0.0",

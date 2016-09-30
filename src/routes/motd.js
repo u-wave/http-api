@@ -1,5 +1,7 @@
 import router from 'router';
+
 import route from '../route';
+import * as validations from '../validations';
 import protect from '../middleware/protect';
 import checkFields from '../middleware/checkFields';
 import * as controller from '../controllers/motd';
@@ -16,7 +18,7 @@ export default function motdRoutes() {
     .put(
       '/',
       protect(ROLE_MANAGER),
-      checkFields({ motd: 'string' }),
+      checkFields(validations.setMotd),
       route(controller.setMotd),
     );
 }
