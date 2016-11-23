@@ -5,9 +5,6 @@ import setPath from 'lodash/set';
 
 function extractIncluded(data, included) {
   const includedTypes = Object.keys(included);
-  const includeds = {};
-  const had = {};
-
   if (includedTypes.length === 0) {
     return {
       data,
@@ -15,15 +12,17 @@ function extractIncluded(data, included) {
     };
   }
 
-  for (const typeName of includedTypes) {
-    includeds[typeName] = [];
-  }
+  const includeds = includedTypes.reduce(
+    (map, typeName) => Object.assign(map, { [typeName]: [] }),
+    {});
+
+  const had = {};
 
   const resultData = [];
-  for (const initialItem of data) {
+  data.forEach((initialItem) => {
     let item = isPlainObject(initialItem) ? initialItem : initialItem.toJSON();
-    for (const type of includedTypes) {
-      for (const path of included[type]) {
+    includedTypes.forEach((type) => {
+      included[type].forEach((path) => {
         const includedItem = getPath(item, path);
         if (includedItem) {
           if (item === initialItem) {
@@ -35,10 +34,10 @@ function extractIncluded(data, included) {
             had[type + includedItem._id] = true;
           }
         }
-      }
-    }
+      });
+    });
     resultData.push(item);
-  }
+  });
 
   return {
     included: includeds,

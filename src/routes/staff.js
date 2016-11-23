@@ -63,7 +63,7 @@ export default function staffRoutes() {
       })
     ) {
       next(new HTTPError(422,
-        'expected sourceType to be a string, sourceID to be a string and auto to be boolean'
+        'expected sourceType to be a string, sourceID to be a string and auto to be boolean',
       ));
       return;
     }

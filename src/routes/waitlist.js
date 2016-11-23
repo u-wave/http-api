@@ -42,7 +42,7 @@ export default function waitlistRoutes() {
         .then(waitlist => toListResponse(waitlist, { url: req.fullUrl }))
         .then(list => res.status(200).json(list))
         .catch(next);
-    }
+    },
   );
 
   router.delete('/', protect(ROLE_MANAGER), (req, res, next) => {

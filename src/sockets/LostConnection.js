@@ -45,7 +45,7 @@ export default class LostConnection extends EventEmitter {
 
     this.uw.redis.rpush(
       this.messagesKey,
-      JSON.stringify({ command, data })
+      JSON.stringify({ command, data }),
     );
   }
 

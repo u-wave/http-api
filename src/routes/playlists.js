@@ -67,11 +67,16 @@ export default function playlistRoutes() {
   const patchableKeys = ['name', 'shared', 'description'];
   router.patch('/:id', (req, res, next) => {
     const patches = Object.keys(req.body);
-    for (const patchKey of patches) {
+
+    const hasUnpatchableKey = patches.some((patchKey) => {
       if (patchableKeys.indexOf(patchKey) === -1) {
         next(new HTTPError(400, `Key "${patchKey}" cannot be updated.`));
-        return;
+        return true;
       }
+      return false;
+    });
+    if (hasUnpatchableKey) {
+      return;
     }
 
     const uw = req.uwave;
@@ -172,7 +177,7 @@ export default function playlistRoutes() {
 
     req.user.getPlaylist(req.params.id)
       .then(playlist =>
-        playlist.removeItems(items).then(() => playlist)
+        playlist.removeItems(items).then(() => playlist),
       )
       .then(playlist => toItemResponse({}, {
         meta: {

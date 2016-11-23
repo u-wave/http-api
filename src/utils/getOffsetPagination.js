@@ -5,7 +5,7 @@ const parseNumber = (str, defaultN) => {
 
 export default function getOffsetPagination(
   query,
-  { defaultSize = 100, maxSize = 100 } = {}
+  { defaultSize = 100, maxSize = 100 } = {},
 ) {
   if (typeof query.page === 'object') {
     return {

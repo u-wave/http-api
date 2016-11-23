@@ -40,8 +40,8 @@ export function editMedia(uw, props) {
           title: updatedMedia.title,
           nsfw: updatedMedia.nsfw,
           restricted: updatedMedia.restricted,
-        }
-      )
+        },
+      ),
     )
     .then((media) => {
       if (!media) throw new NotFoundError('Media not found.');
@@ -50,7 +50,7 @@ export function editMedia(uw, props) {
   }
   return Media.findOneAndUpdate(
     { sourceType: props.sourceType, sourceID: props.sourceID },
-    { artist: props.artist, title: props.title, nsfw: props.nsfw, restricted: props.restricted }
+    { artist: props.artist, title: props.title, nsfw: props.nsfw, restricted: props.restricted },
   )
   .then((media) => {
     if (!media) throw new NotFoundError('Media not found.');

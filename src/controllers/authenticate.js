@@ -44,7 +44,7 @@ export async function login(uw, email, password, options) {
   const token = await jwtSign(
     { id: auth.user.id },
     options.secret,
-    { expiresIn: '31d' }
+    { expiresIn: '31d' },
   );
 
   return {
@@ -76,7 +76,7 @@ export async function changePassword(uw, email, password, resetToken) {
   if (!token || token !== resetToken) {
     throw new TokenError(
       'That reset token is invalid. Please double-check your token or request ' +
-      'a new password reset.'
+      'a new password reset.',
     );
   }
 
