@@ -71,7 +71,7 @@ export default function boothRoutes() {
         .then(() => toItemResponse({}))
         .then(item => res.status(200).json(item))
         .catch(next);
-    }
+    },
   );
 
   router.post('/favorite', protect(), checkFields({

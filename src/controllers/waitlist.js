@@ -58,7 +58,7 @@ export async function appendToWaitlist(uw, userID, forceJoin) {
   if (!(await hasValidPlaylist(uw, user.id))) {
     throw new HTTPError(400,
       'You don\'t have anything to play. Please add some songs to your ' +
-      'playlist and try again.'
+      'playlist and try again.',
     );
   }
 
@@ -104,7 +104,7 @@ export async function insertWaitlist(uw, moderatorID, id, position, forceJoin) {
   if (!(await hasValidPlaylist(uw, id))) {
     throw new HTTPError(400,
       'You don\'t have anything to play. Please add some songs to your ' +
-      'playlist and try again.'
+      'playlist and try again.',
     );
   }
 
@@ -235,7 +235,7 @@ export async function lockWaitlist(uw, moderatorID, lock) {
 
   if (isLocked !== lock) {
     throw new APIError(
-      `Could not ${lock ? 'lock' : 'unlock'} the waitlist. Please try again.`
+      `Could not ${lock ? 'lock' : 'unlock'} the waitlist. Please try again.`,
     );
   }
 

@@ -10,7 +10,7 @@ export default function chatRoutes() {
   router.delete('/', protect(ROLE_MODERATOR), (req, res) => {
     req.uwave.deleteChat(
       {},
-      { moderator: req.user }
+      { moderator: req.user },
     );
     res.status(200).json(toItemResponse({}));
   });
@@ -18,7 +18,7 @@ export default function chatRoutes() {
   router.delete('/user/:id', protect(ROLE_MODERATOR), (req, res) => {
     req.uwave.deleteChat(
       { userID: req.params.id },
-      { moderator: req.user }
+      { moderator: req.user },
     );
     res.status(200).json(toItemResponse({}));
   });
@@ -26,7 +26,7 @@ export default function chatRoutes() {
   router.delete('/:id', protect(ROLE_MODERATOR), (req, res) => {
     req.uwave.deleteChat(
       { id: req.params.id },
-      { moderator: req.user }
+      { moderator: req.user },
     );
     res.status(200).json(toItemResponse({}));
   });

@@ -81,7 +81,7 @@ export default function userRoutes() {
     req.uwave.updateUser(
       req.params.id,
       { role: req.body.role },
-      { moderator: req.user }
+      { moderator: req.user },
     )
       .then(user => toItemResponse(user))
       .then(item => res.json(item))
@@ -104,12 +104,12 @@ export default function userRoutes() {
       req.uwave.updateUser(
         req.params.id,
         { username: req.body.username },
-        { moderator: req.user }
+        { moderator: req.user },
       )
         .then(user => toItemResponse(user))
         .then(item => res.json(item))
         .catch(error => next(beautifyDuplicateKeyError(error)));
-    }
+    },
   );
 
   router.put('/:id/avatar', (req, res, next) => {

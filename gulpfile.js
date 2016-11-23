@@ -1,3 +1,4 @@
+/* eslint comma-dangle: ["error", "always-multiline"] */
 const gulp = require('gulp');
 const babel = require('gulp-babel');
 const newer = require('gulp-newer');

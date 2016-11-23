@@ -81,7 +81,7 @@ async function addVote(uw, userID, direction) {
   ]);
   await uw.redis.lpush(
     direction > 0 ? 'booth:upvotes' : 'booth:downvotes',
-    userID
+    userID,
   );
   uw.publish('booth:vote', {
     userID, direction,

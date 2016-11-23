@@ -14,7 +14,7 @@ function appendQuery(base, query) {
 
 export default function toPaginatedResponse(
   page,
-  { baseUrl = '', included = {} } = {}
+  { baseUrl = '', included = {} } = {},
 ) {
   return Object.assign(toListResponse(page.data, {
     included,
