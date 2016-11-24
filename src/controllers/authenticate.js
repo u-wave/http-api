@@ -13,10 +13,7 @@ import { isBanned as isUserBanned } from './bans';
 
 const bcryptHash = Promise.promisify(bcrypt.hash);
 const bcryptCompare = Promise.promisify(bcrypt.compare);
-// `jwt.sign` only passes a single parameter to its callback: the signed token.
-const jwtSign = (...args) => new Promise((resolve) => {
-  jwtSignCallback(...args, resolve);
-});
+const jwtSign = Promise.promisify(jwtSignCallback);
 
 export function getCurrentUser(uw, id) {
   const User = uw.model('User');
