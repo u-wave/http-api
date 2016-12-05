@@ -11,8 +11,6 @@ import {
 } from '../errors';
 import { isBanned as isUserBanned } from './bans';
 
-const bcryptHash = Promise.promisify(bcrypt.hash);
-const bcryptCompare = Promise.promisify(bcrypt.compare);
 const jwtSign = Promise.promisify(jwtSignCallback);
 
 export function getCurrentUser(uw, id) {
@@ -29,7 +27,7 @@ export async function login(uw, email, password, options) {
     throw new NotFoundError('No user was found with that email address.');
   }
 
-  const correct = await bcryptCompare(password, auth.hash);
+  const correct = await bcrypt.compare(password, auth.hash);
   if (!correct) {
     throw new PasswordError('password is incorrect');
   }
@@ -77,7 +75,7 @@ export async function changePassword(uw, email, password, resetToken) {
     );
   }
 
-  const hash = await bcryptHash(password, 10);
+  const hash = await bcrypt.hash(password, 10);
 
   const auth = await Authentication.findOneAndUpdate({ email }, { hash });
 
