@@ -26,8 +26,8 @@ async function hasValidPlaylist(uw, userID) {
   return playlist && playlist.size > 0;
 }
 
-export async function getWaitlist(uw) {
-  return await uw.redis.lrange('waitlist', 0, -1);
+export function getWaitlist(uw) {
+  return uw.redis.lrange('waitlist', 0, -1);
 }
 
 function isWaitlistLocked(uw) {
