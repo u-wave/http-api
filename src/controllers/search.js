@@ -23,5 +23,5 @@ export async function search(uw, sourceName, query) {
   if (!source) {
     throw new NotFoundError('Source not found.');
   }
-  return await source.search(query);
+  return source.search(query);
 }

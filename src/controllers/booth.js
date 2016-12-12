@@ -38,8 +38,8 @@ export async function getBooth(uw) {
   };
 }
 
-export async function getCurrentDJ(uw) {
-  return await uw.redis.get('booth:currentDJ');
+export function getCurrentDJ(uw) {
+  return uw.redis.get('booth:currentDJ');
 }
 
 export function skipBooth(uw, moderatorID, userID, reason, opts = {}) {
