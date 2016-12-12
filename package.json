@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "array-find": "^1.0.0",
-    "bcrypt": "^0.8.5",
+    "bcrypt": "^1.0.0",
     "bluebird": "^3.4.6",
     "body-parser": "^1.15.0",
     "clamp": "^1.0.1",
