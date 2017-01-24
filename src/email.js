@@ -10,8 +10,8 @@ export function sendEmail(emailAddress, subject, token) {
     port: 25,
     debug: true,
     tls: {
-    rejectUnauthorized: false
-    }
+      rejectUnauthorized: false,
+    },
   };
 
   // create reusable transporter object using the default SMTP transport
@@ -21,8 +21,8 @@ export function sendEmail(emailAddress, subject, token) {
   const mailOptions = {
     from: '"welovekpop u-wave" <noreply@welovekpop.club>',
     to: emailAddress,
-    subject: subject,
-    text: 'token is: ' + token
+    subject,
+    text: `token is: ${token}`,
   };
 
   // send mail with defined transport object

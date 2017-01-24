@@ -66,7 +66,7 @@ export async function reset(uw, email) {
   await uw.redis.set(`reset:${email.toLowerCase()}`, token);
   await uw.redis.expire(`reset:${email.toLowerCase()}`, 24 * 60 * 60);
 
-  return await sendEmail(email, "reset password", token);
+  return sendEmail(email, 'reset password', token);
 }
 
 export async function changePassword(uw, email, password, resetToken) {
@@ -76,7 +76,7 @@ export async function changePassword(uw, email, password, resetToken) {
   if (!token || token !== resetToken) {
     throw new TokenError(
       'That reset token and/or email address is invalid. Please double-check your reset ' +
-      'token and/or request a new password reset.'
+      'token and/or request a new password reset.',
     );
   }
 
