@@ -2,10 +2,7 @@ import clamp from 'clamp';
 
 import { createCommand } from '../sockets';
 
-import {
-  skipIfCurrentDJ,
-  getHistory as getHistoryBase,
-} from './booth';
+import { skipIfCurrentDJ } from './booth';
 import { leaveWaitlist } from './waitlist';
 
 export function setStatus(uw, id, status) {
@@ -31,6 +28,7 @@ export async function disconnectUser(uw, user) {
   uw.publish('user:leave', { userID });
 }
 
-export function getHistory(uw, id, pagination) {
-  return getHistoryBase(uw, pagination, { user: id });
+export async function getHistory(uw, id, pagination) {
+  const user = await uw.getUser(id);
+  return user.getPlayHistory(pagination);
 }
