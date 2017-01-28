@@ -30,5 +30,5 @@ export async function disconnectUser(uw, user) {
 
 export async function getHistory(uw, id, pagination) {
   const user = await uw.getUser(id);
-  return user.getPlayHistory(pagination);
+  return user.getHistory(pagination);
 }
