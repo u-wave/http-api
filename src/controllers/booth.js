@@ -1,8 +1,4 @@
 import Promise from 'bluebird';
-// Will be unnecessary later when a history module exists in -core.
-// For now we'll assume that we've got a u-wave-core peer installed.
-// eslint-disable-next-line
-import Page from 'u-wave-core/lib/Page';
 
 import { createCommand } from '../sockets';
 import { NotFoundError, PermissionError } from '../errors';
@@ -152,31 +148,6 @@ export async function favorite(uw, id, playlistID, historyID) {
   };
 }
 
-export async function getHistory(uw, pagination, filter = {}) {
-  const History = uw.model('History');
-
-  const history = await History.find({})
-    .where(filter)
-    .skip(pagination.offset)
-    .limit(pagination.limit)
-    .sort({ playedAt: -1 })
-    .populate('media.media user');
-
-  const count = await History.where(filter).count();
-
-  return new Page(history, {
-    pageSize: pagination ? pagination.limit : null,
-    filtered: count,
-    total: count,
-
-    current: pagination,
-    next: pagination ? {
-      offset: pagination.offset + pagination.limit,
-      limit: pagination.limit,
-    } : null,
-    previous: pagination ? {
-      offset: Math.max(pagination.offset - pagination.limit, 0),
-      limit: pagination.limit,
-    } : null,
-  });
+export function getHistory(uw, pagination) {
+  return uw.getHistory(pagination);
 }
