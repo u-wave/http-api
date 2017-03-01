@@ -1,4 +1,4 @@
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import Promise from 'bluebird';
 import { sign as jwtSignCallback } from 'jsonwebtoken';
 import randomString from 'random-string';
