@@ -37,7 +37,7 @@
     "lodash": "^4.16.1",
     "ms": "^1.0.0",
     "qs": "^6.2.1",
-    "random-string": "^0.1.2",
+    "random-string": "^0.2.0",
     "ratelimiter": "^3.0.2",
     "request": "^2.70.0",
     "router": "^1.1.4",
