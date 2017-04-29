@@ -16,6 +16,9 @@ export default function banRoutes() {
       controller.getBans(uw, filter, pagination)
         .then(bans => toPaginatedResponse(bans, {
           baseUrl: req.fullUrl,
+          included: {
+            user: ['user', 'moderator'],
+          },
         }))
         .then(page => res.json(page))
         .catch(next);

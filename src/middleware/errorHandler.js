@@ -18,7 +18,7 @@ export default function errorHandler() {
   return (errors, req, res, next) => {
     if (errors) {
       const responseErrors = array(errors).reduce((acc, err) => {
-        debug(err.message);
+        debug(err);
         if (err instanceof APIError) {
           return [...acc, {
             status: err.status || 500,
