@@ -35,7 +35,7 @@
     "is-empty-object": "^1.1.1",
     "jsonwebtoken": "^7.1.9",
     "lodash": "^4.16.1",
-    "ms": "^1.0.0",
+    "ms": "^2.0.0",
     "qs": "^6.2.1",
     "random-string": "^0.2.0",
     "ratelimiter": "^3.0.2",
