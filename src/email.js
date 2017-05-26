@@ -4,7 +4,7 @@ import EmailError from './errors';
 
 const log = debug('uwave:api:v1:email');
 
-export function sendEmail(emailAddress, subject, token) {
+export function sendEmail(emailAddress, token, options) {
   const smtpOptions = {
     host: 'localhost',
     port: 25,
@@ -14,17 +14,28 @@ export function sendEmail(emailAddress, subject, token) {
     },
   };
 
+  var mailTransport = null;
+  if (options.mailTransport) {
+    mailTransport = options.mailTransport;
+  } else {
+    mailTransport = nodemailer;
+  }
+
   // create reusable transporter object using the default SMTP transport
-  const transporter = nodemailer.createTransport(smtpOptions);
+  const transporter = mailTransport.createTransport(smtpOptions);
 
   // setup e-mail data with unicode symbols
   const mailOptions = {
-    from: '"welovekpop u-wave" <noreply@welovekpop.club>',
+    from: options.from,
     to: emailAddress,
-    subject,
-    text: `token is: ${token}`,
+    subject: options.subject,
+    text: `reset url is: https://welovekpop.club/reset/${token}`,
   };
 
   // send mail with defined transport object
-  return transporter.sendMail(mailOptions);
+  if (transporter.sendMail(mailOptions)) {
+    return true;
+  } else {
+    return false;
+  }
 }

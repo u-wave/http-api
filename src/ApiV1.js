@@ -99,7 +99,7 @@ export default class ApiV1 extends Router {
       .use(rateLimit('api-v1-http', { max: 500, duration: 60 * 1000 }));
 
     this
-      .use('/auth', authenticate(this, { secret: options.secret }))
+      .use('/auth', authenticate(this, { secret: options.secret, mailTransport: options.mailTransport, from: '"welovekpop u-wave" <noreply@welovekpop.club>', subject: 'reset password' }))
       .use('/bans', bans(this))
       .use('/booth', booth(this))
       .use('/chat', chat(this))
