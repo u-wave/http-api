@@ -329,10 +329,11 @@ export default class SocketServer {
      * Force-close a connection.
      */
     'api-v1:socket:close': (userID) => {
-      const connection = this.connection(userID);
-      if (connection) {
-        connection.close();
-      }
+      this.connections.forEach((connection) => {
+        if (connection.user && connection.user.id === userID) {
+          connection.close();
+        }
+      });
     },
   };
 
@@ -405,10 +406,13 @@ export default class SocketServer {
    * @param {*} data Command data.
    */
   sendTo(user, command: string, data: any) {
-    const conn = this.connection(user);
-    if (conn) {
-      conn.send(command, data);
-    }
+    const userID = typeof user === 'object' ? user.id : user;
+
+    this.connections.forEach((connection) => {
+      if (connection.user && connection.user.id === userID) {
+        connection.send(command, data);
+      }
+    });
   }
 
   /**
