@@ -22,7 +22,9 @@ export function getCurrentUser(uw, id) {
 export async function login(uw, email, password, options) {
   const Authentication = uw.model('Authentication');
 
-  const auth = await Authentication.findOne({ email }).populate('user').exec();
+  const auth = await Authentication.findOne({
+    email: email.toLowerCase(),
+  }).populate('user').exec();
   if (!auth) {
     throw new NotFoundError('No user was found with that email address.');
   }
@@ -51,15 +53,17 @@ export async function login(uw, email, password, options) {
 export async function reset(uw, email) {
   const Authentication = uw.model('Authentication');
 
-  const auth = await Authentication.findOne({ email });
+  const auth = await Authentication.findOne({
+    email: email.toLowerCase(),
+  });
   if (!auth) {
     throw new NotFoundError('User not found.');
   }
 
   const token = randomString({ length: 35, special: false });
 
-  await uw.redis.set(`reset:${email}`, token);
-  await uw.redis.expire(`reset:${email}`, 24 * 60 * 60);
+  await uw.redis.set(`reset:${email.toLowerCase()}`, token);
+  await uw.redis.expire(`reset:${email.toLowerCase()}`, 24 * 60 * 60);
 
   return token;
 }
@@ -67,7 +71,7 @@ export async function reset(uw, email) {
 export async function changePassword(uw, email, password, resetToken) {
   const Authentication = uw.model('Authentication');
 
-  const token = await uw.redis.get(`reset:${email}`);
+  const token = await uw.redis.get(`reset:${email.toLowerCase()}`);
   if (!token || token !== resetToken) {
     throw new TokenError(
       'That reset token is invalid. Please double-check your token or request ' +
@@ -77,13 +81,13 @@ export async function changePassword(uw, email, password, resetToken) {
 
   const hash = await bcrypt.hash(password, 10);
 
-  const auth = await Authentication.findOneAndUpdate({ email }, { hash });
+  const auth = await Authentication.findOneAndUpdate({ email: email.toLowerCase() }, { hash });
 
   if (!auth) {
     throw new NotFoundError('No user was found with that email address.');
   }
 
-  await uw.redis.del(`reset:${email}`);
+  await uw.redis.del(`reset:${email.toLowerCase()}`);
   return `updated password for ${email}`;
 }
 
