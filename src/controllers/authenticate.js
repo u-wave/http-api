@@ -31,11 +31,11 @@ export async function login(uw, email, password, options) {
 
   const correct = await bcrypt.compare(password, auth.hash);
   if (!correct) {
-    throw new PasswordError('password is incorrect');
+    throw new PasswordError('That password is incorrect.');
   }
 
   if (await isUserBanned(uw, auth.user)) {
-    throw new PermissionError('You have been banned');
+    throw new PermissionError('You have been banned.');
   }
 
   const token = await jwtSign(

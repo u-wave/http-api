@@ -5,6 +5,7 @@
         "node": 4
       },
       "exclude": [
+        "transform-es2015-classes",
         "transform-regenerator"
       ]
     }],
