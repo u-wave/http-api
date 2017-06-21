@@ -163,6 +163,7 @@ export default function userRoutes() {
     });
     controller.getHistory(req.uwave, req.params.id, pagination)
       .then(history => toPaginatedResponse(history, {
+        baseUrl: req.fullUrl,
         included: {
           media: ['media.media'],
           user: ['user'],

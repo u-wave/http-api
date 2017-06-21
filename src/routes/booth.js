@@ -93,6 +93,7 @@ export default function boothRoutes() {
     });
     controller.getHistory(req.uwave, pagination)
       .then(history => toPaginatedResponse(history, {
+        baseUrl: req.fullUrl,
         included: {
           media: ['media.media'],
           user: ['user'],
