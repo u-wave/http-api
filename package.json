@@ -1,6 +1,6 @@
 {
   "name": "u-wave-api-v1",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "HTTP API interface for üWave.",
   "license": "MIT",
   "repository": "u-wave/api-v1",
