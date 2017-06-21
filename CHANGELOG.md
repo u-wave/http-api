@@ -1,3 +1,14 @@
+# 0.2.1 / 21 Jun 2016
+
+Features:
+
+ * Make email addresses case insensitive. (#139)
+
+Bugfixes:
+
+ * Fix history pagination links. (#141)
+ * Fix errors being hidden. (#140)
+
 # 0.2.0 / 15 Jun 2016
 
 Features:
