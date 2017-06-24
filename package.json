@@ -52,7 +52,7 @@
     "babel-plugin-transform-flow-comments": "^6.5.0",
     "babel-preset-env": "^1.2.2",
     "babel-preset-stage-2": "^6.5.0",
-    "eslint": "^3.10.2",
+    "eslint": "^4.1.0",
     "eslint-config-airbnb-base": "^11.0.0",
     "eslint-plugin-import": "^2.2.0",
     "gulp": "^3.9.1",
