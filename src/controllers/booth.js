@@ -44,13 +44,6 @@ export function skipBooth(uw, moderatorID, userID, reason, opts = {}) {
   return Promise.resolve(true);
 }
 
-export async function skipIfCurrentDJ(uw, userID) {
-  const currentDJ = await getCurrentDJ(uw);
-  if (userID === currentDJ) {
-    await uw.advance({ remove: true });
-  }
-}
-
 export async function replaceBooth(uw, moderatorID, id) {
   let waitlist = await uw.redis.lrange('waitlist', 0, -1);
 
