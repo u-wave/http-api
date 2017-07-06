@@ -428,6 +428,12 @@ export default class SocketServer {
         }
       });
     },
+    'emoji:add': (emoji) => {
+      this.broadcast('emoji:add', emoji);
+    },
+    'emoji:remove': (emoji) => {
+      this.broadcast('emoji:remove', emoji);
+    },
   };
 
   /**

@@ -16,6 +16,7 @@ import chat from './routes/chat';
 import motd from './routes/motd';
 import now from './routes/now';
 import imports from './routes/import';
+import emoji from './routes/emoji';
 
 // middleware
 import addFullUrl from './middleware/addFullUrl';
@@ -135,6 +136,7 @@ export default class UwaveHttpApi extends Router {
       .use('/bans', bans(this))
       .use('/booth', booth(this))
       .use('/chat', chat(this))
+      .use('/emoji', emoji(this))
       .use('/import', imports(this))
       .use('/motd', motd(this))
       .use('/now', now(this))
