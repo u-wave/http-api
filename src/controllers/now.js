@@ -1,6 +1,5 @@
 import Promise from 'bluebird';
 import { getBooth } from './booth';
-import { getServerTime } from './server';
 
 import { serializePlaylist } from '../utils/serialize';
 
@@ -17,7 +16,7 @@ export async function getState(v1, uw, user) {
   const waitlistLocked = uw.redis.get('waitlist:lock').then(Boolean);
   const activePlaylist = user ? user.getActivePlaylistID() : null;
   const playlists = user ? user.getPlaylists() : null;
-  const time = getServerTime();
+  const time = Date.now();
 
   const state = await Promise.props({
     motd,
