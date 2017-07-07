@@ -1,7 +1,6 @@
 import EventEmitter from 'events';
 import Ultron from 'ultron';
 import WebSocket from 'ws';
-import ms from 'ms';
 import tryJsonParse from 'try-json-parse';
 
 const debug = require('debug')('uwave:api:sockets:authed');

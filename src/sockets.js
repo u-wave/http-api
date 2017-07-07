@@ -3,6 +3,7 @@ import find from 'array-find';
 import isEmpty from 'is-empty-object';
 import tryJsonParse from 'try-json-parse';
 import WebSocket from 'ws';
+import ms from 'ms';
 
 import { vote } from './controllers/booth';
 import { disconnectUser } from './controllers/users';
@@ -27,7 +28,7 @@ export default class SocketServer {
 
   pinger = setInterval(() => {
     this.ping();
-  }, 10000);
+  }, ms('10 seconds'));
 
   /**
    * Create a socket server.
@@ -440,5 +441,5 @@ export default class SocketServer {
       this.broadcast('guests', guests);
       this.lastGuestCount = guests;
     }
-  }, 2000);
+  }, ms('2 seconds'));
 }

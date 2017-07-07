@@ -2,7 +2,6 @@ import EventEmitter from 'events';
 import Ultron from 'ultron';
 import WebSocket from 'ws';
 import { verify } from 'jsonwebtoken';
-import ms from 'ms';
 import { isBanned as isUserBanned } from '../controllers/bans';
 
 type ConnectionOptions = { timeout: number };
