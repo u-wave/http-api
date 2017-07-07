@@ -25,6 +25,10 @@ export default class SocketServer {
 
   lastGuestCount = 0;
 
+  pinger = setInterval(() => {
+    this.ping();
+  }, 10000);
+
   /**
    * Create a socket server.
    *
@@ -365,6 +369,7 @@ export default class SocketServer {
    * Stop the socket server.
    */
   destroy() {
+    clearInterval(this.pinger);
     this.sub.removeAllListeners();
     this.sub.unsubscribe('v1', 'uwave');
     this.sub.close();
@@ -382,6 +387,14 @@ export default class SocketServer {
     return find(this.connections, connection =>
       connection.user && connection.user.id === userID,
     );
+  }
+
+  ping() {
+    this.connections.forEach((connection) => {
+      if (connection.socket) {
+        connection.ping();
+      }
+    });
   }
 
   /**
