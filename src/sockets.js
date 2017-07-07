@@ -3,6 +3,7 @@ import find from 'array-find';
 import isEmpty from 'is-empty-object';
 import tryJsonParse from 'try-json-parse';
 import WebSocket from 'ws';
+import ms from 'ms';
 
 import { vote } from './controllers/booth';
 import { disconnectUser } from './controllers/users';
@@ -24,6 +25,10 @@ export default class SocketServer {
   };
 
   lastGuestCount = 0;
+
+  pinger = setInterval(() => {
+    this.ping();
+  }, ms('10 seconds'));
 
   /**
    * Create a socket server.
@@ -365,6 +370,7 @@ export default class SocketServer {
    * Stop the socket server.
    */
   destroy() {
+    clearInterval(this.pinger);
     this.sub.removeAllListeners();
     this.sub.unsubscribe('v1', 'uwave');
     this.sub.close();
@@ -382,6 +388,14 @@ export default class SocketServer {
     return find(this.connections, connection =>
       connection.user && connection.user.id === userID,
     );
+  }
+
+  ping() {
+    this.connections.forEach((connection) => {
+      if (connection.socket) {
+        connection.ping();
+      }
+    });
   }
 
   /**
@@ -427,5 +441,5 @@ export default class SocketServer {
       this.broadcast('guests', guests);
       this.lastGuestCount = guests;
     }
-  }, 2000);
+  }, ms('2 seconds'));
 }

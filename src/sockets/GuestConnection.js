@@ -2,12 +2,13 @@ import EventEmitter from 'events';
 import Ultron from 'ultron';
 import WebSocket from 'ws';
 import { verify } from 'jsonwebtoken';
-
 import { isBanned as isUserBanned } from '../controllers/bans';
 
 type ConnectionOptions = { timeout: number };
 
 export default class GuestConnection extends EventEmitter {
+  lastMessage = Date.now();
+
   constructor(uw, socket: WebSocket, options: ConnectionOptions) {
     super();
     this.uw = uw;
@@ -54,7 +55,16 @@ export default class GuestConnection extends EventEmitter {
 
   send(command: string, data: any) {
     this.socket.send(JSON.stringify({ command, data }));
+    this.lastMessage = Date.now();
   }
+
+  ping() {
+    if (Date.now() - this.lastMessage > 5000) {
+      this.socket.send('-');
+      this.lastMessage = Date.now();
+    }
+  }
+
 
   close() {
     this.socket.close();
