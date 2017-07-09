@@ -1,4 +1,15 @@
-# 0.2.1 / 21 Jun 2016
+# 0.2.2 / 09 Jul 2017
+
+Features:
+
+ * Periodically send keepalive messages to connected sockets. (#147)
+ * Add source maps. (#151)
+
+Internal:
+
+ * Add Node 7 and 8 to CI. (#148)
+
+# 0.2.1 / 21 Jun 2017
 
 Features:
 
@@ -9,7 +20,7 @@ Bugfixes:
  * Fix history pagination links. (#141)
  * Fix errors being hidden. (#140)
 
-# 0.2.0 / 15 Jun 2016
+# 0.2.0 / 15 Jun 2017
 
 Features:
 
