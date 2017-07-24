@@ -13,8 +13,7 @@ export function getAllMedia(uw, rawPage, rawLimit) {
 export function getMedia(uw, sourceType, sourceID) {
   const Media = uw.model('Media');
 
-  return Media.find({ sourceType, sourceID })
-  .then((media) => {
+  return Media.find({ sourceType, sourceID }).then((media) => {
     if (!media) throw new NotFoundError('Media not found.');
 
     return media;
@@ -31,8 +30,7 @@ export function addMedia(uw, sourceType, sourceID) {
 export function editMedia(uw, props) {
   const Media = uw.model('Media');
   if (props.auto) {
-    return fetchMedia(props.sourceType, props.sourceID, uw.keys)
-    .then(updatedMedia =>
+    return fetchMedia(props.sourceType, props.sourceID, uw.keys).then(updatedMedia =>
       Media.findOneAndUpdate(
         { sourceType: props.sourceType, sourceID: props.sourceID },
         {
@@ -42,8 +40,7 @@ export function editMedia(uw, props) {
           restricted: updatedMedia.restricted,
         },
       ),
-    )
-    .then((media) => {
+    ).then((media) => {
       if (!media) throw new NotFoundError('Media not found.');
       return media;
     });
@@ -51,8 +48,7 @@ export function editMedia(uw, props) {
   return Media.findOneAndUpdate(
     { sourceType: props.sourceType, sourceID: props.sourceID },
     { artist: props.artist, title: props.title, nsfw: props.nsfw, restricted: props.restricted },
-  )
-  .then((media) => {
+  ).then((media) => {
     if (!media) throw new NotFoundError('Media not found.');
     return media;
   });
@@ -60,8 +56,7 @@ export function editMedia(uw, props) {
 
 export function removeMedia(uw, sourceType, sourceID) {
   const Media = uw.model('Media');
-  return Media.findOneAndRemove({ sourceType, sourceID })
-  .then((media) => {
+  return Media.findOneAndRemove({ sourceType, sourceID }).then((media) => {
     if (!media) throw new NotFoundError('Media not found.');
     return media;
   });
