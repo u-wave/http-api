@@ -33,9 +33,6 @@ export function sendEmail(emailAddress, token, options) {
   };
 
   // send mail with defined transport object
-  if (transporter.sendMail(mailOptions)) {
-    return true;
-  } else {
-    return false;
-  }
+  return transporter.sendMail(mailOptions)
+    .then(() => ({}))
 }
