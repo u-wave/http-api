@@ -14,15 +14,8 @@ export function sendEmail(emailAddress, token, options) {
     },
   };
 
-  var mailTransport = null;
-  if (options.mailTransport) {
-    mailTransport = options.mailTransport;
-  } else {
-    mailTransport = nodemailer;
-  }
-
   // create reusable transporter object using the default SMTP transport
-  const transporter = mailTransport.createTransport(smtpOptions);
+  const transporter = nodemailer.createTransport(options.mailTransport || smtpOptions);
 
   // setup e-mail data with unicode symbols
   const mailOptions = {
