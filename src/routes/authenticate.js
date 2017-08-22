@@ -90,6 +90,9 @@ export default function authenticateRoutes(v1, options) {
         token,
       }))
       .then(item => res.status(200).json(item))
+      .catch((err) => {
+        throw new EmailError(err.message);
+      })
       .catch(next);
   });
 

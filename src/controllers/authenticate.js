@@ -10,7 +10,7 @@ import {
   TokenError,
 } from '../errors';
 import { isBanned as isUserBanned } from './bans';
-import { sendEmail } from '../email';
+import sendEmail from '../email';
 
 const jwtSign = Promise.promisify(jwtSignCallback);
 
@@ -76,8 +76,7 @@ export async function changePassword(uw, email, password, resetToken) {
   if (!token || token !== resetToken) {
     throw new TokenError(
       'That reset token and/or email address is invalid. Please double-check your reset ' +
-      'token and/or request a new password reset.',
-    );
+      'token or request a new password reset.');
   }
 
   const hash = await bcrypt.hash(password, 10);

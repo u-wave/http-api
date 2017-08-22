@@ -1,10 +1,6 @@
-import debug from 'debug';
 import nodemailer from 'nodemailer';
-import EmailError from './errors';
 
-const log = debug('uwave:api:v1:email');
-
-export function sendEmail(emailAddress, token, options) {
+export default function sendEmail(emailAddress, token, options) {
   const smtpOptions = {
     host: 'localhost',
     port: 25,
@@ -27,5 +23,5 @@ export function sendEmail(emailAddress, token, options) {
 
   // send mail with defined transport object
   return transporter.sendMail(mailOptions)
-    .then(() => ({}))
+    .then(() => ({}));
 }
