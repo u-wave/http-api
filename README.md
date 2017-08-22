@@ -37,9 +37,12 @@ parameter is a `u-wave-core` instance. Available options are:
    pass an object with ReCaptcha options. The only available option is `secret`,
    which is the ReCaptcha secret obtained from the "Server-side integration"
    panel on your [ReCaptcha site admin page][recaptcha].
+ - `mailTransport` - [nodemailer](https://nodemailer.com) SMTP options or a transport object,
+   used to send password reset emails.
 
 ```js
 import express from 'express';
+import stubTransport from 'nodemailer-stub-transport';
 import uwave from 'u-wave-core';
 import createWebApi from 'u-wave-api-v1';
 
@@ -55,6 +58,7 @@ const api = createWebApi(uw, {
   secret: secret, // Encryption secret
   server: server, // HTTP server
   recaptcha: { secret: 'AABBCC...' }, // Optional
+  mailTransport: stubTransport(), // Optional
 });
 
 app.use('/v1', api);
