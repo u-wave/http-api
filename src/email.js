@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 
-export default function sendEmail(emailAddress, token, options) {
+export default function sendEmail(emailAddress, options) {
   const smtpOptions = {
     host: 'localhost',
     port: 25,
@@ -14,12 +14,9 @@ export default function sendEmail(emailAddress, token, options) {
   const transporter = nodemailer.createTransport(options.mailTransport || smtpOptions);
 
   // setup e-mail data with unicode symbols
-  const mailOptions = {
-    from: options.from,
-    to: emailAddress,
-    subject: options.subject,
-    text: `reset url is: https://welovekpop.club/reset/${token}`,
-  };
+  const mailOptions = Object.assign({
+    to: emailAddress
+  }, options.email);
 
   // send mail with defined transport object
   return transporter.sendMail(mailOptions)

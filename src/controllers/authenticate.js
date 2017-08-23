@@ -51,7 +51,7 @@ export async function login(uw, email, password, options) {
   };
 }
 
-export async function reset(uw, email, options) {
+export async function reset(uw, email, requestUrl, options) {
   const Authentication = uw.model('Authentication');
 
   const auth = await Authentication.findOne({
@@ -66,7 +66,13 @@ export async function reset(uw, email, options) {
   await uw.redis.set(`reset:${email.toLowerCase()}`, token);
   await uw.redis.expire(`reset:${email.toLowerCase()}`, 24 * 60 * 60);
 
-  return sendEmail(email, token, options);
+  return sendEmail(email, {
+    mailTransport: options.mailTransport,
+    email: options.createPasswordResetEmail({
+      token,
+      requestUrl,
+    }),
+  });
 }
 
 export async function changePassword(uw, email, password, resetToken) {

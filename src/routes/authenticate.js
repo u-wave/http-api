@@ -85,10 +85,8 @@ export default function authenticateRoutes(v1, options) {
   });
 
   router.post('/password/reset', checkFields({ email: 'string' }), (req, res, next) => {
-    controller.reset(req.uwave, req.body.email, options)
-      .then(token => toItemResponse({
-        token,
-      }))
+    controller.reset(req.uwave, req.body.email, req.fullUrl, options)
+      .then(result => toItemResponse(result))
       .then(item => res.status(200).json(item))
       .catch((err) => {
         throw new EmailError(err.message);
