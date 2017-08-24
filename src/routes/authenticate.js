@@ -94,11 +94,8 @@ export default function authenticateRoutes(v1, options) {
       .catch(next);
   });
 
-  router.post('/password/reset/:reset', checkFields({
-    email: 'string',
-    password: 'string',
-  }), (req, res, next) => {
-    controller.changePassword(req.uwave, req.body.email, req.body.password, req.params.reset)
+  router.post('/password/reset/:reset', checkFields({ password: 'string', }), (req, res, next) => {
+    controller.changePassword(req.uwave, req.params.reset, req.body.password)
       .then(message => toItemResponse({}, {
         meta: { message },
       }))
