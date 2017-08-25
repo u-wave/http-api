@@ -8,6 +8,7 @@ import * as controller from '../controllers/authenticate';
 import {
   HTTPError,
   PermissionError,
+  EmailError,
 } from '../errors';
 import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import toItemResponse from '../utils/toItemResponse';
@@ -84,19 +85,17 @@ export default function authenticateRoutes(v1, options) {
   });
 
   router.post('/password/reset', checkFields({ email: 'string' }), (req, res, next) => {
-    controller.reset(req.uwave, req.body.email)
-      .then(token => toItemResponse({
-        token,
-      }))
+    controller.reset(req.uwave, req.body.email, req.fullUrl, options)
+      .then(result => toItemResponse(result))
       .then(item => res.status(200).json(item))
+      .catch((err) => {
+        throw new EmailError(err.message);
+      })
       .catch(next);
   });
 
-  router.post('/password/reset/:reset', checkFields({
-    email: 'string',
-    password: 'string',
-  }), (req, res, next) => {
-    controller.changePassword(req.uwave, req.body.email, req.body.password, req.params.reset)
+  router.post('/password/reset/:reset', checkFields({ password: 'string', }), (req, res, next) => {
+    controller.changePassword(req.uwave, req.params.reset, req.body.password)
       .then(message => toItemResponse({}, {
         meta: { message },
       }))

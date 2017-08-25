@@ -10,6 +10,7 @@ import {
   TokenError,
 } from '../errors';
 import { isBanned as isUserBanned } from './bans';
+import sendEmail from '../email';
 
 const jwtSign = Promise.promisify(jwtSignCallback);
 
@@ -50,7 +51,7 @@ export async function login(uw, email, password, options) {
   };
 }
 
-export async function reset(uw, email) {
+export async function reset(uw, email, requestUrl, options) {
   const Authentication = uw.model('Authentication');
 
   const auth = await Authentication.findOne({
@@ -62,33 +63,38 @@ export async function reset(uw, email) {
 
   const token = randomString({ length: 35, special: false });
 
-  await uw.redis.set(`reset:${email.toLowerCase()}`, token);
-  await uw.redis.expire(`reset:${email.toLowerCase()}`, 24 * 60 * 60);
+  await uw.redis.set(`reset:${token}`, auth.user.toString());
+  await uw.redis.expire(`reset:${token}`, 24 * 60 * 60);
 
-  return token;
+  return sendEmail(email, {
+    mailTransport: options.mailTransport,
+    email: options.createPasswordResetEmail({
+      token,
+      requestUrl,
+    }),
+  });
 }
 
-export async function changePassword(uw, email, password, resetToken) {
+export async function changePassword(uw, resetToken, password) {
   const Authentication = uw.model('Authentication');
 
-  const token = await uw.redis.get(`reset:${email.toLowerCase()}`);
-  if (!token || token !== resetToken) {
+  const userId = await uw.redis.get(`reset:${resetToken}`);
+  if (!userId) {
     throw new TokenError(
-      'That reset token is invalid. Please double-check your token or request ' +
-      'a new password reset.',
-    );
+      'That reset token is invalid. Please double-check your reset ' +
+      'token or request a new password reset.');
   }
 
   const hash = await bcrypt.hash(password, 10);
 
-  const auth = await Authentication.findOneAndUpdate({ email: email.toLowerCase() }, { hash });
+  const auth = await Authentication.findOneAndUpdate({ user: userId }, { hash });
 
   if (!auth) {
     throw new NotFoundError('No user was found with that email address.');
   }
 
-  await uw.redis.del(`reset:${email.toLowerCase()}`);
-  return `updated password for ${email}`;
+  await uw.redis.del(`reset:${resetToken}`);
+  return `updated password for ${userId}`;
 }
 
 export function removeSession(uw, id) {

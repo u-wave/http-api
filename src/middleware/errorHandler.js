@@ -1,4 +1,8 @@
-import { APIError, RedisReplyError } from '../errors';
+import {
+  APIError,
+  EmailError,
+  RedisReplyError,
+} from '../errors';
 
 const debug = require('debug')('uwave:api:v1:error');
 
@@ -45,6 +49,12 @@ export default function errorHandler() {
             status: 410,
             code: 'redis-error',
             title: 'Database error, please try again later.',
+          }];
+        } else if (err instanceof EmailError) {
+          return [...acc, {
+            status: 500,
+            code: 'email-error',
+            title: 'Failed to send email.',
           }];
         }
         return [...acc, {
