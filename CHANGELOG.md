@@ -1,3 +1,13 @@
+# 0.3.0 / 25 Aug 2017
+
+Features:
+
+ * Add password reset emails. (#89 by @gnowxilef)
+
+Internal:
+
+ * Dependency updates.
+
 # 0.2.2 / 09 Jul 2017
 
 Features:
