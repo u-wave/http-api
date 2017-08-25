@@ -15,7 +15,7 @@ export default function sendEmail(emailAddress, options) {
 
   // setup e-mail data with unicode symbols
   const mailOptions = Object.assign({
-    to: emailAddress
+    to: emailAddress,
   }, options.email);
 
   // send mail with defined transport object

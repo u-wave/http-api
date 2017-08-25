@@ -59,7 +59,7 @@ function defaultCreatePasswordResetEmail({ token, requestUrl }) {
   const hostname = parsed.hostname;
   const webroot = url.format({
     ...parsed,
-    pathname: ''
+    pathname: '',
   });
   return {
     from: `noreply@${hostname}`,
@@ -69,8 +69,8 @@ function defaultCreatePasswordResetEmail({ token, requestUrl }) {
 
       To reset your password, please visit:
       ${webroot}/reset/${token}
-    `
-  }
+    `,
+  };
 }
 
 export default class ApiV1 extends Router {
@@ -122,7 +122,8 @@ export default class ApiV1 extends Router {
       .use('/auth', authenticate(this, {
         secret: options.secret,
         mailTransport: options.mailTransport,
-        createPasswordResetEmail: options.createPasswordResetEmail || defaultCreatePasswordResetEmail,
+        createPasswordResetEmail:
+          options.createPasswordResetEmail || defaultCreatePasswordResetEmail,
       }))
       .use('/bans', bans(this))
       .use('/booth', booth(this))
