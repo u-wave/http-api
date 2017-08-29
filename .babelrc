@@ -2,16 +2,12 @@
   "presets": [
     ["env", {
       "targets": {
-        "node": 4
-      },
-      "exclude": [
-        "transform-es2015-classes",
-        "transform-regenerator"
-      ]
-    }],
-    "stage-2"
+        "node": 6
+      }
+    }]
   ],
   "plugins": [
+    "transform-object-rest-spread",
     "transform-class-properties",
     "transform-export-extensions",
     "transform-flow-comments"
