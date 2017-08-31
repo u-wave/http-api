@@ -4,7 +4,11 @@ import { getBooth } from './booth';
 import { serializePlaylist } from '../utils/serialize';
 
 // eslint-disable-next-line import/prefer-default-export
-export async function getState(v1, uw, user) {
+export async function getState(req) {
+  const uw = req.uwave;
+  const v1 = req.uwaveApiV1;
+  const user = req.user;
+
   const User = uw.model('User');
 
   const guests = v1.getGuestCount();
