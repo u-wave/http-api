@@ -1,9 +1,5 @@
 import clamp from 'clamp';
 
-import {
-  getCurrentDJ,
-  isEmpty as boothIsEmpty,
-} from '../controllers/booth';
 import { createCommand } from '../sockets';
 import {
   APIError,
@@ -19,6 +15,14 @@ import toListResponse from '../utils/toListResponse';
 
 function isInWaitlist(waitlist, userID) {
   return waitlist.some(waitingID => waitingID === userID);
+}
+
+function getCurrentDJ(uw) {
+  return uw.redis.get('booth:currentDJ');
+}
+
+async function isBoothEmpty(uw) {
+  return !(await uw.redis.get('booth:historyID'));
 }
 
 async function isCurrentDJ(uw, userID) {
@@ -125,7 +129,7 @@ export async function addToWaitlist(req) {
     });
   }
 
-  if (await boothIsEmpty(uw)) {
+  if (await isBoothEmpty(uw)) {
     await uw.advance();
   }
 

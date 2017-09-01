@@ -1,5 +1,5 @@
 import Promise from 'bluebird';
-import { getBooth } from './booth';
+import { getBoothData } from './booth';
 
 import { serializePlaylist } from '../utils/serialize';
 
@@ -13,7 +13,7 @@ export async function getState(req) {
 
   const guests = v1.getGuestCount();
   const motd = uw.getMotd();
-  const booth = getBooth(uw);
+  const booth = getBoothData(uw);
   const users = uw.redis.lrange('users', 0, -1)
     .then(userIDs => User.find({ _id: { $in: userIDs } }));
   const waitlist = uw.redis.lrange('waitlist', 0, -1);

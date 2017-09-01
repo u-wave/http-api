@@ -1,13 +1,18 @@
 import Promise from 'bluebird';
 
 import { createCommand } from '../sockets';
-import { NotFoundError, PermissionError } from '../errors';
+import {
+  HTTPError,
+  NotFoundError,
+  PermissionError,
+} from '../errors';
+import { ROLE_MODERATOR } from '../roles';
+import getOffsetPagination from '../utils/getOffsetPagination';
+import toItemResponse from '../utils/toItemResponse';
+import toListResponse from '../utils/toListResponse';
+import toPaginatedResponse from '../utils/toPaginatedResponse';
 
-export async function isEmpty(uw) {
-  return !(await uw.redis.get('booth:historyID'));
-}
-
-export async function getBooth(uw) {
+export async function getBoothData(uw) {
   const History = uw.model('History');
 
   const historyID = await uw.redis.get('booth:historyID');
@@ -33,15 +38,28 @@ export async function getBooth(uw) {
     stats,
   };
 }
+export async function getBooth(req) {
+  const uw = req.uwave;
 
-export function getCurrentDJ(uw) {
+  const data = await getBoothData(uw);
+
+  return toItemResponse(data, { url: req.fullUrl });
+}
+
+function getCurrentDJ(uw) {
   return uw.redis.get('booth:currentDJ');
 }
 
-export function skipBooth(uw, moderatorID, userID, reason, opts = {}) {
-  uw.redis.publish('v1', createCommand('skip', { moderatorID, userID, reason }));
-  uw.advance({ remove: opts.remove === true });
-  return Promise.resolve(true);
+async function doSkip(uw, moderatorID, userID, reason, opts = {}) {
+  uw.redis.publish('v1', createCommand('skip', {
+    moderatorID,
+    userID,
+    reason,
+  }));
+
+  await uw.advance({
+    remove: opts.remove === true,
+  });
 }
 
 export async function skipIfCurrentDJ(uw, userID) {
@@ -51,23 +69,63 @@ export async function skipIfCurrentDJ(uw, userID) {
   }
 }
 
-export async function replaceBooth(uw, moderatorID, id) {
+export async function skipBooth(req) {
+  const skippingSelf = (!req.body.userID && !req.body.reason) ||
+    req.body.userID === req.user.id;
+  const opts = { remove: !!req.body.remove };
+
+  if (skippingSelf) {
+    const currentDJ = await getCurrentDJ(req.uwave);
+    if (!currentDJ || currentDJ !== req.user.id) {
+      throw new HTTPError(412, 'You are not currently playing');
+    }
+
+    await doSkip(req.uwave, null, req.user.id, null, opts);
+
+    return toItemResponse({});
+  }
+
+  const errors = [];
+  if (req.user.role < ROLE_MODERATOR) {
+    errors.push(new PermissionError('You need to be a moderator to do this'));
+  }
+  if (typeof req.body.userID !== 'string') {
+    errors.push(new HTTPError(422, 'userID: Expected a string'));
+  }
+  if (typeof req.body.reason !== 'string') {
+    errors.push(new HTTPError(422, 'reason: Expected a string'));
+  }
+  if (errors.length > 0) {
+    throw errors;
+  }
+
+  await doSkip(req.uwave, req.user.id, req.body.userID, req.body.reason, opts);
+
+  return toItemResponse({});
+}
+
+export async function replaceBooth(req) {
+  const uw = req.uwave;
+  const moderatorID = req.user.id;
+  const { userID } = req.body;
   let waitlist = await uw.redis.lrange('waitlist', 0, -1);
 
   if (!waitlist.length) throw new NotFoundError('Waitlist is empty.');
 
-  if (waitlist.some(userID => userID === id)) {
-    uw.redis.lrem('waitlist', 1, id);
-    await uw.redis.lpush('waitlist', id);
+  if (waitlist.some(wlID => wlID === userID)) {
+    uw.redis.lrem('waitlist', 1, userID);
+    await uw.redis.lpush('waitlist', userID);
     waitlist = await uw.redis.lrange('waitlist', 0, -1);
   }
 
   uw.redis.publish('v1', createCommand('boothReplace', {
     moderatorID,
-    userID: id,
+    userID,
   }));
-  uw.advance();
-  return waitlist;
+
+  await uw.advance();
+
+  return toItemResponse({});
 }
 
 async function addVote(uw, userID, direction) {
@@ -103,10 +161,14 @@ export async function vote(uw, userID, direction) {
   }
 }
 
-export async function favorite(uw, id, playlistID, historyID) {
+export async function favorite(req) {
+  const uw = req.uwave;
   const Playlist = uw.model('Playlist');
   const PlaylistItem = uw.model('PlaylistItem');
   const History = uw.model('History');
+
+  const id = req.user.id;
+  const { playlistID, historyID } = req.body;
 
   const historyEntry = await History.findById(historyID)
     .populate('media.media');
@@ -141,12 +203,27 @@ export async function favorite(uw, id, playlistID, historyID) {
 
   await playlist.save();
 
-  return {
-    playlistSize: playlist.media.length,
-    added: [playlistItem],
-  };
+  return toListResponse(playlistItem, {
+    meta: {
+      playlistSize: playlist.media.length,
+    },
+  });
 }
 
-export function getHistory(uw, pagination) {
-  return uw.getHistory(pagination);
+export async function getHistory(req) {
+  const uw = req.uwave;
+  const pagination = getOffsetPagination(req.query, {
+    defaultSize: 25,
+    maxSize: 100,
+  });
+
+  const history = await uw.getHistory(pagination);
+
+  return toPaginatedResponse(history, {
+    baseUrl: req.fullUrl,
+    included: {
+      media: ['media.media'],
+      user: ['user'],
+    },
+  });
 }
