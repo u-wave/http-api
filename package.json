@@ -47,6 +47,7 @@
     "ws": "^3.0.0"
   },
   "devDependencies": {
+    "babel-core": "^6.26.0",
     "babel-eslint": "^7.1.1",
     "babel-plugin-transform-class-properties": "^6.5.0",
     "babel-plugin-transform-export-extensions": "^6.5.0",
@@ -57,7 +58,7 @@
     "eslint-config-airbnb-base": "^11.3.0",
     "eslint-plugin-import": "^2.7.0",
     "gulp": "^3.9.1",
-    "gulp-babel": "^6.1.2",
+    "gulp-babel": "^7.0.0",
     "gulp-newer": "^1.1.0",
     "gulp-plumber": "^1.1.0",
     "gulp-sourcemaps": "^2.6.0",
