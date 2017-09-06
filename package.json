@@ -33,7 +33,7 @@
     "escape-string-regexp": "^1.0.5",
     "ioredis": "^3.0.0",
     "is-empty-object": "^1.1.1",
-    "jsonwebtoken": "^7.1.9",
+    "jsonwebtoken": "^8.0.0",
     "lodash": "^4.16.1",
     "ms": "^2.0.0",
     "nodemailer": "^2.3.2",
