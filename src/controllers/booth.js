@@ -19,9 +19,9 @@ export async function getBooth(uw) {
   }
 
   const stats = await Promise.props({
-    upvotes: uw.redis.lrange('booth:upvotes', 0, -1),
-    downvotes: uw.redis.lrange('booth:downvotes', 0, -1),
-    favorites: uw.redis.lrange('booth:favorites', 0, -1),
+    upvotes: uw.redis.smembers('booth:upvotes'),
+    downvotes: uw.redis.smembers('booth:downvotes'),
+    favorites: uw.redis.smembers('booth:favorites'),
   });
 
   return {
@@ -72,10 +72,10 @@ export async function replaceBooth(uw, moderatorID, id) {
 
 async function addVote(uw, userID, direction) {
   await Promise.all([
-    uw.redis.lrem('booth:upvotes', 0, userID),
-    uw.redis.lrem('booth:downvotes', 0, userID),
+    uw.redis.srem('booth:upvotes', userID),
+    uw.redis.srem('booth:downvotes', userID),
   ]);
-  await uw.redis.lpush(
+  await uw.redis.sadd(
     direction > 0 ? 'booth:upvotes' : 'booth:downvotes',
     userID,
   );
@@ -90,13 +90,13 @@ export async function vote(uw, userID, direction) {
     const historyID = await uw.redis.get('booth:historyID');
     if (historyID === null) return;
     if (direction > 0) {
-      const upvoted = await uw.redis.lrange('booth:upvotes', 0, -1);
-      if (upvoted.indexOf(userID) === -1) {
+      const upvoted = await uw.redis.sismember('booth:upvotes', userID);
+      if (!upvoted) {
         await addVote(uw, userID, 1);
       }
     } else {
-      const downvoted = await uw.redis.lrange('booth:downvotes', 0, -1);
-      if (downvoted.indexOf(userID) === -1) {
+      const downvoted = await uw.redis.sismember('booth:downvotes', userID);
+      if (!downvoted) {
         await addVote(uw, userID, -1);
       }
     }
@@ -133,8 +133,7 @@ export async function favorite(uw, id, playlistID, historyID) {
 
   playlist.media.push(playlistItem.id);
 
-  uw.redis.lrem('booth:favorites', 0, id);
-  uw.redis.lpush('booth:favorites', id);
+  await uw.redis.sadd('booth:favorites', id);
   uw.redis.publish('v1', createCommand('favorite', {
     userID: id,
     playlistID,
