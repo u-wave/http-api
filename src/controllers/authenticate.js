@@ -3,7 +3,7 @@ import createDebug from 'debug';
 import Promise from 'bluebird';
 import { sign as jwtSignCallback } from 'jsonwebtoken';
 import randomString from 'random-string';
-import request from 'request';
+import got from 'got';
 import {
   HTTPError,
   NotFoundError,
@@ -59,30 +59,28 @@ export async function login(options, req) {
   });
 }
 
-function verifyCaptcha(responseString, options) {
+async function verifyCaptcha(responseString, options) {
   if (!options.recaptcha) {
     log('ReCaptcha validation is disabled');
-    return Promise.resolve();
+    return null;
   } else if (!responseString) {
     throw new Error('ReCaptcha validation failed. Please try again.');
   }
 
-  return new Promise((resolve, reject) => {
-    request.post('https://www.google.com/recaptcha/api/siteverify', {
-      json: true,
-      form: {
-        response: responseString,
-        secret: options.recaptcha.secret,
-      },
-    }, (err, resp) => {
-      if (!err && resp.body.success) {
-        resolve(resp.body);
-      } else {
-        log('recaptcha validation failure', resp.body);
-        reject(new Error('ReCaptcha validation failed. Please try again.'));
-      }
-    });
+  const response = await got.post('https://www.google.com/recaptcha/api/siteverify', {
+    json: true,
+    form: true,
+    body: {
+      response: responseString,
+      secret: options.recaptcha.secret,
+    },
   });
+
+  if (!response.body.success) {
+    log('recaptcha validation failure', response.body);
+    throw new Error('ReCaptcha validation failed. Please try again.');
+  }
+  return null;
 }
 
 export async function register(options, req) {
