@@ -167,7 +167,7 @@ export async function favorite(req) {
   const PlaylistItem = uw.model('PlaylistItem');
   const History = uw.model('History');
 
-  const id = req.user.id;
+  const { id } = req.user;
   const { playlistID, historyID } = req.body;
 
   const historyEntry = await History.findById(historyID)

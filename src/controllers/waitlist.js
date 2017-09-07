@@ -114,9 +114,11 @@ export async function addToWaitlist(req) {
     throw new PermissionError('You are already currently playing.');
   }
   if (!(await hasValidPlaylist(uw, user.id))) {
-    throw new HTTPError(400,
+    throw new HTTPError(
+      400,
       'You don\'t have anything to play. Please add some songs to your ' +
-      'playlist and try again.');
+      'playlist and try again.',
+    );
   }
 
   if (user.id === moderator.id) {
@@ -254,8 +256,7 @@ export async function lockWaitlist(req) {
   const isLocked = await isWaitlistLocked(uw);
 
   if (isLocked !== lock) {
-    throw new APIError(
-      `Could not ${lock ? 'lock' : 'unlock'} the waitlist. Please try again.`);
+    throw new APIError(`Could not ${lock ? 'lock' : 'unlock'} the waitlist. Please try again.`);
   }
 
   uw.redis.publish('v1', createCommand('waitlistLock', {

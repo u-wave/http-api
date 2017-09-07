@@ -86,8 +86,7 @@ export default class SocketServer {
    */
   getLostConnection(user) {
     return find(this.connections, connection =>
-      connection instanceof LostConnection && connection.user.id === user.id,
-    );
+      connection instanceof LostConnection && connection.user.id === user.id);
   }
 
   /**
@@ -321,8 +320,12 @@ export default class SocketServer {
     /**
      * Broadcast a ban event.
      */
-    'user:ban': ({ moderatorID, userID, permanent, duration, expiresAt }) => {
-      this.broadcast('ban', { moderatorID, userID, permanent, duration, expiresAt });
+    'user:ban': ({
+      moderatorID, userID, permanent, duration, expiresAt,
+    }) => {
+      this.broadcast('ban', {
+        moderatorID, userID, permanent, duration, expiresAt,
+      });
     },
     /**
      * Broadcast an unban event.
@@ -386,8 +389,7 @@ export default class SocketServer {
   connection(user) {
     const userID = typeof user === 'object' ? user.id : user;
     return find(this.connections, connection =>
-      connection.user && connection.user.id === userID,
-    );
+      connection.user && connection.user.id === userID);
   }
 
   ping() {

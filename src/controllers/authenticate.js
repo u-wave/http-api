@@ -85,7 +85,9 @@ async function verifyCaptcha(responseString, options) {
 
 export async function register(options, req) {
   const uw = req.uwave;
-  const { grecaptcha, email, username, password } = req.body;
+  const {
+    grecaptcha, email, username, password,
+  } = req.body;
 
   if (/\s/.test(username)) {
     throw new HTTPError(400, 'Usernames can\'t contain spaces.');
@@ -142,8 +144,7 @@ export async function changePassword(req) {
 
   const userId = await uw.redis.get(`reset:${resetToken}`);
   if (!userId) {
-    throw new TokenError(
-      'That reset token is invalid. Please double-check your reset ' +
+    throw new TokenError('That reset token is invalid. Please double-check your reset ' +
       'token or request a new password reset.');
   }
 

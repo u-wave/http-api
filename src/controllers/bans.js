@@ -22,8 +22,10 @@ export async function isBanned(uw, user) {
 export async function getBans(uw, filter = null, pagination = {}) {
   const User = uw.model('User');
 
+  /* eslint-disable no-restricted-globals */
   const page = isFinite(pagination.page) ? pagination.page : 0;
   const limit = isFinite(pagination.limit) ? pagination.limit : 50;
+  /* eslint-enable no-restricted-globals */
 
   const query = User.find().where({
     banned: { $ne: null },

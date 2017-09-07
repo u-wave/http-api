@@ -1,11 +1,11 @@
+import createDebug from 'debug';
 import {
   APIError,
   CombinedError,
-  EmailError,
   RedisReplyError,
 } from '../errors';
 
-const debug = require('debug')('uwave:api:v1:error');
+const debug = createDebug('uwave:api:v1:error');
 
 function toErrorResponse(errors) {
   return {
@@ -15,17 +15,16 @@ function toErrorResponse(errors) {
   };
 }
 
-function array(obj) {
-  return Array.isArray(obj) ? obj : [obj];
-}
-
 function serializeError(err) {
   if (err instanceof CombinedError) {
     return err.errors.reduce(
       (errors, one) => errors.concat(serializeError(one)),
-      []
+      [],
     );
   }
+
+  debug(err);
+
   if (err instanceof APIError) {
     return [{
       status: err.status || 500,
@@ -46,7 +45,7 @@ function serializeError(err) {
   if (err.name === 'ValidationError') {
     return Object.keys(err.errors).reduce(
       (errors, key) => errors.concat(serializeError(err.errors[key])),
-      []
+      [],
     );
   }
   if (err.name === 'ValidatorError') {
@@ -76,7 +75,6 @@ export default function errorHandler() {
       const responseErrors = Array.isArray(errors)
         ? serializeError(new CombinedError(errors))
         : serializeError(errors);
-
 
       res
         .status(responseErrors[0].status)

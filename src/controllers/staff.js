@@ -3,8 +3,10 @@ import { fetchMedia } from './search';
 
 export function getAllMedia(uw, rawPage, rawLimit) {
   const Media = uw.model('Media');
+  /* eslint-disable no-restricted-globals */
   const page = isFinite(rawPage) ? rawPage : 0;
   const limit = isFinite(rawLimit) ? Math.min(rawLimit, 200) : 200;
+  /* eslint-enable no-restricted-globals */
   return Media.find({})
     .skip(limit * page)
     .limit(limit);
@@ -39,15 +41,16 @@ export function editMedia(uw, props) {
           nsfw: updatedMedia.nsfw,
           restricted: updatedMedia.restricted,
         },
-      ),
-    ).then((media) => {
+      )).then((media) => {
       if (!media) throw new NotFoundError('Media not found.');
       return media;
     });
   }
   return Media.findOneAndUpdate(
     { sourceType: props.sourceType, sourceID: props.sourceID },
-    { artist: props.artist, title: props.title, nsfw: props.nsfw, restricted: props.restricted },
+    {
+      artist: props.artist, title: props.title, nsfw: props.nsfw, restricted: props.restricted,
+    },
   ).then((media) => {
     if (!media) throw new NotFoundError('Media not found.');
     return media;

@@ -64,7 +64,8 @@ export async function changeUsername(req) {
     const user = await uw.updateUser(
       id,
       { username },
-      { moderator: req.user });
+      { moderator: req.user },
+    );
 
     return toItemResponse(user);
   } catch (error) {

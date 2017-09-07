@@ -7,7 +7,7 @@ import { serializePlaylist } from '../utils/serialize';
 export async function getState(req) {
   const uw = req.uwave;
   const v1 = req.uwaveApiV1;
-  const user = req.user;
+  const { user } = req;
 
   const User = uw.model('User');
 
