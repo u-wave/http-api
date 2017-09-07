@@ -1,12 +1,12 @@
-import createRouter from 'router';
+import router from 'router';
+import route from '../route';
 import protect from '../middleware/protect';
 import checkFields from '../middleware/checkFields';
 import * as controller from '../controllers/booth';
 import { ROLE_MODERATOR } from '../roles';
-import route from '../route';
 
 export default function boothRoutes() {
-  const router = createRouter()
+  return router()
     // GET /booth/ - Get the current booth status.
     .get(
       '/',
@@ -40,6 +40,4 @@ export default function boothRoutes() {
       '/history',
       route(controller.getHistory),
     );
-
-  return router;
 }

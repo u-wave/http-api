@@ -1,5 +1,4 @@
 import router from 'router';
-
 import route from '../route';
 import * as controller from '../controllers/server';
 

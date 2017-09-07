@@ -1,5 +1,4 @@
 import router from 'router';
-
 import protect from '../middleware/protect';
 import { ROLE_MODERATOR, ROLE_MANAGER } from '../roles';
 import * as controller from '../controllers/bans';

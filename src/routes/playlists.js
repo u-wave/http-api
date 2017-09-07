@@ -1,5 +1,4 @@
 import router from 'router';
-
 import route from '../route';
 import protect from '../middleware/protect';
 import checkFields from '../middleware/checkFields';

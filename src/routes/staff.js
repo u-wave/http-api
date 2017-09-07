@@ -1,5 +1,4 @@
 import createRouter from 'router';
-
 import protect from '../middleware/protect';
 import checkFields from '../middleware/checkFields';
 import * as controller from '../controllers/staff';

@@ -1,6 +1,4 @@
-
 import router from 'router';
-
 import route from '../route';
 import protect from '../middleware/protect';
 import { ROLE_MODERATOR } from '../roles';
