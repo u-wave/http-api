@@ -7,10 +7,12 @@ import { ROLE_MANAGER } from '../roles';
 
 export default function motdRoutes() {
   return router()
+    // GET /motd/ - Get the message of the day.
     .get(
       '/',
       route(controller.getMotd),
     )
+    // PUT /motd/ - Set the message of the day.
     .put(
       '/',
       protect(ROLE_MANAGER),
