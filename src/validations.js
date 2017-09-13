@@ -35,7 +35,7 @@ export const register = joi.object({
 export const login = joi.object({
   body: joi.object({
     email: userEmail.required(),
-    password: userPassword.required(),
+    password: joi.string().required(),
   }),
 });
 
