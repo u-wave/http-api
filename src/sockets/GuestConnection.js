@@ -22,9 +22,13 @@ export default class GuestConnection extends EventEmitter {
     });
 
     this.events.on('message', (jwt) => {
-      this.attemptAuth(jwt).catch((error) => {
-        this.send('error', error.message);
-      });
+      this.attemptAuth(jwt)
+        .then(() => {
+          this.send('authenticated');
+        })
+        .catch((error) => {
+          this.send('error', error.message);
+        });
     });
   }
 
