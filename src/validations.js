@@ -56,7 +56,7 @@ export const passwordReset = joi.object({
 
 export const skipBooth = joi.object({
   body: joi.object({
-    reason: joi.string(),
+    reason: joi.string().allow(''),
     userID: objectID,
     remove: joi.bool(),
   }).and('userID', 'reason'),
