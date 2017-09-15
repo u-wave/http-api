@@ -96,6 +96,10 @@ export default class ApiV1 extends Router {
         'to "false".');
     }
 
+    if (options.onError != null && typeof options.onError !== 'function') {
+      throw new TypeError('"options.onError" must be a function.');
+    }
+
     const router = super(options);
 
     this.uw = uw;
@@ -134,7 +138,7 @@ export default class ApiV1 extends Router {
       .use('/users', users(this))
       .use('/waitlist', waitlist(this));
 
-    this.use(errorHandler(this));
+    this.use(errorHandler(options));
 
     return router;
   }

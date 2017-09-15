@@ -69,12 +69,18 @@ function serializeError(err) {
   }];
 }
 
-export default function errorHandler() {
+export default function errorHandler(options = {}) {
   return (errors, req, res, next) => {
     if (errors) {
-      const responseErrors = Array.isArray(errors)
-        ? serializeError(new CombinedError(errors))
-        : serializeError(errors);
+      const error = Array.isArray(errors)
+        ? new CombinedError(errors)
+        : errors;
+
+      if (options.onError) {
+        options.onError(req, errors);
+      }
+
+      const responseErrors = serializeError(error);
 
       res
         .status(responseErrors[0].status)
