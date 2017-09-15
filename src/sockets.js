@@ -6,7 +6,6 @@ import WebSocket from 'ws';
 import ms from 'ms';
 
 import { vote } from './controllers/booth';
-import { disconnectUser } from './controllers/users';
 
 import GuestConnection from './sockets/GuestConnection';
 import AuthedConnection from './sockets/AuthedConnection';
@@ -66,7 +65,7 @@ export default class SocketServer {
    */
   async initLostConnections() {
     const User = this.uw.model('User');
-    const userIDs = await this.uw.redis.lrange('users', 0, -1);
+    const userIDs = await this.uw.sessions.getOnlineUsers();
     const disconnectedIDs = userIDs.filter(userID => !this.connection(userID));
 
     const disconnectedUsers = await User.where('_id').in(disconnectedIDs);
@@ -107,7 +106,7 @@ export default class SocketServer {
         const previousConnection = this.getLostConnection(user);
         if (previousConnection) this.remove(previousConnection);
       } else {
-        this.uw.publish('user:join', { userID: user.id });
+        await this.uw.sessions.connect(user);
       }
 
       this.replace(connection, this.createAuthedConnection(socket, user));
@@ -141,11 +140,7 @@ export default class SocketServer {
     connection.on('close', () => {
       debug('left', user.id, user.username);
       this.remove(connection);
-      // Only register that the user left if they didn't have another connection
-      // still open.
-      if (!this.connection(user)) {
-        disconnectUser(this.uw, user);
-      }
+      this.uw.sessions.disconnect(user);
     });
     return connection;
   }
@@ -306,16 +301,13 @@ export default class SocketServer {
         });
       }
     },
-    'user:join': async ({ userID }) => { // eslint-disable-line arrow-parens
-      const User = this.uw.model('User');
-
-      await this.uw.redis.rpush('users', userID);
-      this.broadcast('join', await User.findById(userID).lean());
+    'user:connect': async ({ userID }) => {
+      this.broadcast('join', await this.uw.getUser(userID));
     },
     /**
      * Broadcast that a user left the server.
      */
-    'user:leave': ({ userID }) => {
+    'user:disconnect': ({ userID }) => {
       this.broadcast('leave', userID);
     },
     /**
