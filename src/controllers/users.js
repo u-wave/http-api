@@ -1,12 +1,12 @@
 import clamp from 'clamp';
 import { createCommand } from '../sockets';
-import { skipIfCurrentDJ } from './booth';
-import { leaveWaitlist } from './waitlist';
 import {
   HTTPError,
   PermissionError,
 } from '../errors';
 import { ROLE_MANAGER } from '../roles';
+import skipIfCurrentDJ from '../utils/skipIfCurrentDJ';
+import removeFromWaitlist from '../utils/removeFromWaitlist';
 import getOffsetPagination from '../utils/getOffsetPagination';
 import toItemResponse from '../utils/toItemResponse';
 import toPaginatedResponse from '../utils/toPaginatedResponse';
@@ -100,7 +100,7 @@ export async function disconnectUser(uw, user) {
   await skipIfCurrentDJ(uw, userID);
 
   try {
-    await leaveWaitlist(uw, userID);
+    await removeFromWaitlist(uw, userID);
   } catch (e) {
     // Ignore
   }

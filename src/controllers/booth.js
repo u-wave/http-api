@@ -62,13 +62,6 @@ async function doSkip(uw, moderatorID, userID, reason, opts = {}) {
   });
 }
 
-export async function skipIfCurrentDJ(uw, userID) {
-  const currentDJ = await getCurrentDJ(uw);
-  if (userID === currentDJ) {
-    await uw.advance({ remove: true });
-  }
-}
-
 export async function skipBooth(req) {
   const skippingSelf = (!req.body.userID && !req.body.reason) ||
     req.body.userID === req.user.id;
