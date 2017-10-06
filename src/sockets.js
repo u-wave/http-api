@@ -119,9 +119,15 @@ export default class SocketServer {
    */
   createAuthedConnection(socket, user) {
     const connection = new AuthedConnection(this.uw, socket, user);
-    connection.on('close', () => {
-      debug('lost connection', user.id, user.username);
-      this.replace(connection, this.createLostConnection(user));
+    connection.on('close', ({ banned }) => {
+      if (banned) {
+        debug('removing connection after ban', user.id, user.username);
+        this.remove(connection);
+        disconnectUser(this.uw, user);
+      } else {
+        debug('lost connection', user.id, user.username);
+        this.replace(connection, this.createLostConnection(user));
+      }
     });
     connection.on('command', (command, data) => {
       debug('command', user.id, user.username, command, data);
@@ -326,6 +332,14 @@ export default class SocketServer {
       this.broadcast('ban', {
         moderatorID, userID, permanent, duration, expiresAt,
       });
+
+      this.connections.forEach((connection) => {
+        if (connection instanceof AuthedConnection && connection.user.id === userID) {
+          connection.ban();
+        } else if (connection instanceof LostConnection && connection.user.id === userID) {
+          connection.close();
+        }
+      });
     },
     /**
      * Broadcast an unban event.
@@ -410,6 +424,7 @@ export default class SocketServer {
     debug('broadcast', command, data);
 
     this.connections.forEach((connection) => {
+      debug('  to', connection.toString());
       connection.send(command, data);
     });
   }

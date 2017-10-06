@@ -1,7 +1,10 @@
 import EventEmitter from 'events';
 import Ultron from 'ultron';
 import WebSocket from 'ws';
+import createDebug from 'debug';
 import { verify } from 'jsonwebtoken';
+
+const debug = createDebug('uwave:api:sockets:guest');
 
 type ConnectionOptions = { timeout: number };
 
@@ -70,6 +73,7 @@ export default class GuestConnection extends EventEmitter {
 
 
   close() {
+    debug('close');
     this.socket.close();
   }
 
