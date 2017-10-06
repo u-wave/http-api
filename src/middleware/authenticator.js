@@ -2,7 +2,6 @@ import bluebird from 'bluebird';
 import jwt from 'jsonwebtoken';
 
 import { PermissionError } from '../errors';
-import { isBanned as isUserBanned } from '../controllers/bans';
 
 const verify = bluebird.promisify(jwt.verify);
 
@@ -40,7 +39,7 @@ export default function authenticatorMiddleware({ uw }, options) {
       return;
     }
 
-    if (await isUserBanned(uw, userModel)) {
+    if (await userModel.isBanned()) {
       throw new PermissionError('You have been banned');
     }
 

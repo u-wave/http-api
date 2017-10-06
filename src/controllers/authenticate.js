@@ -12,7 +12,6 @@ import {
   TokenError,
 } from '../errors';
 import { ROLE_MANAGER } from '../roles';
-import { isBanned as isUserBanned } from './bans';
 import sendEmail from '../email';
 import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import toItemResponse from '../utils/toItemResponse';
@@ -44,7 +43,7 @@ export async function login(options, req) {
     throw new PasswordError('That password is incorrect.');
   }
 
-  if (await isUserBanned(uw, auth.user)) {
+  if (await auth.user.isBanned()) {
     throw new PermissionError('You have been banned.');
   }
 

@@ -2,7 +2,6 @@ import EventEmitter from 'events';
 import Ultron from 'ultron';
 import WebSocket from 'ws';
 import { verify } from 'jsonwebtoken';
-import { isBanned as isUserBanned } from '../controllers/bans';
 
 type ConnectionOptions = { timeout: number };
 
@@ -46,7 +45,7 @@ export default class GuestConnection extends EventEmitter {
     // Users who are banned can still join as guests, but cannot log in. So we
     // ignore their socket login attempts, and just keep their connections
     // around as guest connections.
-    if (await isUserBanned(this.uw, userModel)) {
+    if (await userModel.isBanned()) {
       throw new Error('You have been banned');
     }
 
