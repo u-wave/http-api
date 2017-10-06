@@ -1,12 +1,9 @@
-import escapeStringRegExp from 'escape-string-regexp';
-import { HTTPError, NotFoundError } from '../errors';
 import getOffsetPagination from '../utils/getOffsetPagination';
 import toItemResponse from '../utils/toItemResponse';
 import toPaginatedResponse from '../utils/toPaginatedResponse';
 
 export async function getBans(req) {
   const uw = req.uwave;
-  const User = uw.model('User');
 
   const { filter } = req.query;
   const pagination = getOffsetPagination(req.query);
@@ -23,7 +20,6 @@ export async function getBans(req) {
 
 export async function addBan(req) {
   const uw = req.uwave;
-  const User = uw.model('User');
 
   const {
     duration = 0,
@@ -46,7 +42,6 @@ export async function addBan(req) {
 
 export async function removeBan(req) {
   const uw = req.uwave;
-  const User = uw.model('User');
 
   const { userID } = req.params;
 
