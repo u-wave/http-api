@@ -1,108 +1,55 @@
-import escapeStringRegExp from 'escape-string-regexp';
+import getOffsetPagination from '../utils/getOffsetPagination';
+import toItemResponse from '../utils/toItemResponse';
+import toPaginatedResponse from '../utils/toPaginatedResponse';
 
-import { HTTPError, NotFoundError } from '../errors';
+export async function getBans(req) {
+  const uw = req.uwave;
 
-function isValidBan(user) {
-  return !!(user.banned && user.banned.expiresAt > Date.now());
-}
+  const { filter } = req.query;
+  const pagination = getOffsetPagination(req.query);
 
-export async function isBanned(uw, user) {
-  const User = uw.model('User');
+  const bans = await uw.bans.getBans(filter, pagination);
 
-  if (user instanceof User && 'banned' in user) {
-    return isValidBan(user);
-  }
-
-  const userID = typeof user === 'object' ? user._id : user;
-  const userModel = await User.findById(userID, { banned: true });
-
-  return isValidBan(userModel);
-}
-
-export async function getBans(uw, filter = null, pagination = {}) {
-  const User = uw.model('User');
-
-  const page = isFinite(pagination.page) ? pagination.page : 0;
-  const limit = isFinite(pagination.limit) ? pagination.limit : 50;
-
-  const query = User.find().where({
-    banned: { $ne: null },
-    expiresAt: { $gt: Date.now() },
-  })
-    .skip(page * limit)
-    .limit(limit)
-    .populate('banned.moderator')
-    .lean();
-
-  if (filter) {
-    query.where('username').regex(RegExp(escapeStringRegExp(filter), 'i'));
-  }
-
-  const bannedUsers = await query.exec();
-  return bannedUsers.map((user) => {
-    const ban = user.banned;
-    delete user.banned;
-    ban.user = user;
-    return ban;
+  return toPaginatedResponse(bans, {
+    included: {
+      user: ['user'],
+    },
+    baseUrl: req.fullUrl,
   });
 }
 
-export async function addBan(uw, user, { duration, moderatorID, permanent = false }) {
-  const User = uw.model('User');
+export async function addBan(req) {
+  const uw = req.uwave;
 
-  const userID = typeof user === 'object' ? user._id : user;
-  const userModel = await User.findById(userID);
+  const {
+    duration = 0,
+    userID,
+    permanent = false,
+    reason = '',
+  } = req.body;
 
-  if (!userModel) {
-    throw new NotFoundError('User not found.');
-  }
-  if (duration <= 0 && !permanent) {
-    throw new HTTPError(400, 'Ban duration should be at least 0ms.');
-  }
-
-  userModel.banned = {
-    duration: permanent ? -1 : duration,
-    expiresAt: permanent ? 0 : Date.now() + duration,
-    moderator: moderatorID,
-    reason: '',
-  };
-
-  await userModel.save();
-  await userModel.populate('banned.moderator').execPopulate();
-
-  uw.publish('user:ban', {
-    userID: userModel.id,
-    moderatorID: userModel.banned.moderator.id,
-    duration: userModel.banned.duration,
-    expiresAt: userModel.banned.expiresAt,
+  const ban = await uw.bans.ban(userID, {
+    moderator: req.user,
+    duration,
     permanent,
+    reason,
   });
 
-  return userModel.banned;
+  return toItemResponse(ban, {
+    url: req.fullUrl,
+  });
 }
 
-export async function removeBan(uw, user, { moderatorID }) {
-  const User = uw.model('User');
+export async function removeBan(req) {
+  const uw = req.uwave;
 
-  const userID = typeof user === 'object' ? user._id : user;
+  const { userID } = req.params;
 
-  const userModel = await User.findById(userID);
-
-  if (!userModel) {
-    throw new NotFoundError('User not found.');
-  }
-  if (!userModel.banned) {
-    throw new NotFoundError(`User "${user.username}" is not banned.`);
-  }
-
-  delete userModel.banned;
-
-  await userModel.save();
-
-  uw.publish('user:unban', {
-    userID: `${userModel.id}`,
-    moderatorID,
+  await uw.bans.unban(userID, {
+    moderator: req.user,
   });
 
-  return {};
+  return toItemResponse({}, {
+    url: req.fullUrl,
+  });
 }

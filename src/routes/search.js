@@ -1,21 +1,19 @@
 import router from 'router';
-
+import route from '../route';
 import protect from '../middleware/protect';
-import { searchAll, search } from '../controllers/search';
-import toListResponse from '../utils/toListResponse';
+import * as controller from '../controllers/search';
 
 export default function searchRoutes() {
   return router()
     .use(protect())
-    .get('/', (req, res, next) => {
-      searchAll(req.uwave, req.query.query)
-        .then(results => res.json(results))
-        .catch(next);
-    })
-    .get('/:source', (req, res, next) => {
-      search(req.uwave, req.params.source, req.query.query)
-        .then(results => toListResponse(results, { url: req.fullUrl }))
-        .then(list => res.json(list))
-        .catch(next);
-    });
+    // GET /search/ - Search for media across all sources.
+    .get(
+      '/',
+      route(controller.searchAll),
+    )
+    // GET /search/:source - Search for media in a single source.
+    .get(
+      '/:source',
+      route(controller.search),
+    );
 }

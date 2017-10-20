@@ -1,5 +1,4 @@
 import createRouter from 'router';
-
 import protect from '../middleware/protect';
 import checkFields from '../middleware/checkFields';
 import * as controller from '../controllers/staff';
@@ -16,30 +15,19 @@ export default function staffRoutes() {
       .catch(next);
   });
 
-  router.get('/media/:id', protect(ROLE_MANAGER), checkFields({
-    sourceType: 'string',
-    sourceID: 'string',
-  }), (req, res, next) => {
+  router.get('/media/:id', protect(ROLE_MANAGER), (req, res, next) => {
     controller.getMedia(req.uwave, req.body.sourceType, req.body.sourceID)
       .then(media => res.status(200).json(media))
       .catch(next);
   });
 
-  router.post('/media/:id', protect(ROLE_MANAGER), checkFields({
-    sourceType: 'string',
-    sourceID: 'string',
-  }), (req, res, next) => {
+  router.post('/media/:id', protect(ROLE_MANAGER), (req, res, next) => {
     controller.addMedia(req.uwave, req.body.sourceType, req.body.sourceID)
       .then(media => res.status(200).json(media))
       .catch(next);
   });
 
-  router.put('/media/:id', protect(ROLE_MANAGER), checkFields({
-    sourceType: 'string',
-    sourceID: 'string',
-    artist: 'string',
-    title: 'string',
-  }), (req, res, next) => {
+  router.put('/media/:id', protect(ROLE_MANAGER), (req, res, next) => {
     // TODO fix this thing again.
     // It's supposed to accept EITHER:
     //  - sourceType, sourceID, artist, title
@@ -62,7 +50,8 @@ export default function staffRoutes() {
         auto: 'boolean',
       })
     ) {
-      next(new HTTPError(422,
+      next(new HTTPError(
+        422,
         'expected sourceType to be a string, sourceID to be a string and auto to be boolean',
       ));
       return;
@@ -73,10 +62,7 @@ export default function staffRoutes() {
       .catch(next);
   });
 
-  router.delete('/media/:id', protect(ROLE_MANAGER), checkFields({
-    sourceType: 'string',
-    sourceID: 'string',
-  }), (req, res, next) => {
+  router.delete('/media/:id', protect(ROLE_MANAGER), (req, res, next) => {
     controller.removeMedia(req.uwave, req.body.sourceType, req.body.sourceID)
       .then(media => res.status(200).json(media))
       .catch(next);

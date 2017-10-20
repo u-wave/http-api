@@ -56,7 +56,7 @@ Alternatively, you can provide a port for the socket server to listen on:
 
 function defaultCreatePasswordResetEmail({ token, requestUrl }) {
   const parsed = url.parse(requestUrl);
-  const hostname = parsed.hostname;
+  const { hostname } = parsed;
   const webroot = url.format({
     ...parsed,
     pathname: '',
@@ -76,8 +76,7 @@ function defaultCreatePasswordResetEmail({ token, requestUrl }) {
 export default class ApiV1 extends Router {
   constructor(uw, options = {}) {
     if (!uw || !('mongo' in uw)) {
-      throw new TypeError(
-        'Expected a u-wave-core instance in the first parameter. If you are ' +
+      throw new TypeError('Expected a u-wave-core instance in the first parameter. If you are ' +
         'developing, you may have to upgrade your u-wave-* modules.');
     }
 
@@ -86,17 +85,19 @@ export default class ApiV1 extends Router {
     }
 
     if (!options.secret) {
-      throw new TypeError(
-        '"options.secret" is empty. This option is used to sign authentication ' +
+      throw new TypeError('"options.secret" is empty. This option is used to sign authentication ' +
         'keys, and is required for security reasons.');
     }
 
     if (options.recaptcha && !options.recaptcha.secret) {
-      throw new TypeError(
-        'ReCaptcha validation is enabled, but "options.recaptcha.secret" is ' +
+      throw new TypeError('ReCaptcha validation is enabled, but "options.recaptcha.secret" is ' +
         'not set. Please set "options.recaptcha.secret" to your ReCaptcha ' +
         'secret, or disable ReCaptcha validation by setting "options.recaptcha" ' +
         'to "false".');
+    }
+
+    if (options.onError != null && typeof options.onError !== 'function') {
+      throw new TypeError('"options.onError" must be a function.');
     }
 
     const router = super(options);
@@ -137,7 +138,7 @@ export default class ApiV1 extends Router {
       .use('/users', users(this))
       .use('/waitlist', waitlist(this));
 
-    this.use(errorHandler(this));
+    this.use(errorHandler(options));
 
     return router;
   }

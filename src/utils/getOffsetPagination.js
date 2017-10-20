@@ -1,6 +1,9 @@
 const parseNumber = (str, defaultN) => {
   const n = parseInt(str, 10);
-  return isFinite(n) ? n : defaultN;
+  if (Number.isFinite(n)) {
+    return n;
+  }
+  return defaultN;
 };
 
 export default function getOffsetPagination(

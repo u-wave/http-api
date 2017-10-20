@@ -1,9 +1,10 @@
 import EventEmitter from 'events';
 import Ultron from 'ultron';
 import WebSocket from 'ws';
+import createDebug from 'debug';
 import tryJsonParse from 'try-json-parse';
 
-const debug = require('debug')('uwave:api:sockets:authed');
+const debug = createDebug('uwave:api:sockets:authed');
 
 export default class AuthedConnection extends EventEmitter {
   lastMessage = Date.now();
@@ -16,7 +17,7 @@ export default class AuthedConnection extends EventEmitter {
     this.user = user;
 
     this.events.on('close', () => {
-      this.emit('close');
+      this.emit('close', { banned: this.banned });
     });
     this.events.on('message', this.onMessage.bind(this));
 
@@ -67,7 +68,15 @@ export default class AuthedConnection extends EventEmitter {
     }
   }
 
+  ban() {
+    debug('ban', this.toString());
+    this.banned = true;
+    this.send('error', 'You have been banned');
+    this.socket.close(4001, 'ban');
+  }
+
   close() {
+    debug('close', this.toString());
     this.socket.close();
   }
 

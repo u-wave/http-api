@@ -1,13 +1,12 @@
 import router from 'router';
-
+import route from '../route';
 import * as controller from '../controllers/server';
-import toItemResponse from '../utils/toItemResponse';
 
 export default function serverRoutes() {
   return router()
-    .get('/time', (req, res) => {
-      res.json(toItemResponse({
-        time: controller.getServerTime(),
-      }));
-    });
+    // GET /server/time - Show the current server time.
+    .get(
+      '/time',
+      route(controller.getServerTime),
+    );
 }

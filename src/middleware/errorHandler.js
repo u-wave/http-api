@@ -1,10 +1,11 @@
+import createDebug from 'debug';
 import {
   APIError,
-  EmailError,
+  CombinedError,
   RedisReplyError,
 } from '../errors';
 
-const debug = require('debug')('uwave:api:v1:error');
+const debug = createDebug('uwave:api:v1:error');
 
 function toErrorResponse(errors) {
   return {
@@ -14,55 +15,72 @@ function toErrorResponse(errors) {
   };
 }
 
-function array(obj) {
-  return Array.isArray(obj) ? obj : [obj];
+function serializeError(err) {
+  if (err instanceof CombinedError) {
+    return err.errors.reduce(
+      (errors, one) => errors.concat(serializeError(one)),
+      [],
+    );
+  }
+
+  debug(err);
+
+  if (err instanceof APIError) {
+    return [{
+      status: err.status || 500,
+      code: 'api-error',
+      title: err.message,
+    }];
+  }
+  if (err.isJoi) {
+    return err.details.map(error => ({
+      status: 400,
+      code: error.type,
+      title: error.message,
+      source: {
+        path: error.path,
+      },
+    }));
+  }
+  if (err.name === 'ValidationError') {
+    return Object.keys(err.errors).reduce(
+      (errors, key) => errors.concat(serializeError(err.errors[key])),
+      [],
+    );
+  }
+  if (err.name === 'ValidatorError') {
+    return [{
+      status: 400,
+      code: 'validator-error',
+      title: err.message,
+    }];
+  }
+  if (err instanceof RedisReplyError) {
+    return [{
+      status: 410,
+      code: 'redis-error',
+      title: 'Database error, please try again later.',
+    }];
+  }
+  return [{
+    status: 500,
+    code: 'unknown-error',
+    title: 'Internal Server Error',
+  }];
 }
 
-export default function errorHandler() {
+export default function errorHandler(options = {}) {
   return (errors, req, res, next) => {
     if (errors) {
-      const responseErrors = array(errors).reduce((acc, err) => {
-        debug(err);
-        if (err instanceof APIError) {
-          return [...acc, {
-            status: err.status || 500,
-            code: 'api-error',
-            title: err.message,
-          }];
-        } else if (err.name === 'ValidationError') {
-          return [
-            ...acc,
-            ...Object.keys(err.errors).map(key => ({
-              status: 400,
-              code: 'validator-error',
-              title: err.errors[key].message,
-            })),
-          ];
-        } else if (err.name === 'ValidatorError') {
-          return [...acc, {
-            status: 400,
-            code: 'validator-error',
-            title: err.message,
-          }];
-        } else if (err instanceof RedisReplyError) {
-          return [...acc, {
-            status: 410,
-            code: 'redis-error',
-            title: 'Database error, please try again later.',
-          }];
-        } else if (err instanceof EmailError) {
-          return [...acc, {
-            status: 500,
-            code: 'email-error',
-            title: 'Failed to send email.',
-          }];
-        }
-        return [...acc, {
-          status: 500,
-          code: 'unknown-error',
-          title: 'Internal Server Error',
-        }];
-      }, []);
+      const error = Array.isArray(errors)
+        ? new CombinedError(errors)
+        : errors;
+
+      if (options.onError) {
+        options.onError(req, errors);
+      }
+
+      const responseErrors = serializeError(error);
 
       res
         .status(responseErrors[0].status)

@@ -14,7 +14,8 @@ function extractIncluded(data, included) {
 
   const includeds = includedTypes.reduce(
     (map, typeName) => Object.assign(map, { [typeName]: [] }),
-    {});
+    {},
+  );
 
   const had = {};
 

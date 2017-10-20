@@ -39,6 +39,8 @@ parameter is a `u-wave-core` instance. Available options are:
    panel on your [ReCaptcha site admin page][recaptcha].
  - `mailTransport` - [nodemailer](https://nodemailer.com) SMTP options or a transport object,
    used to send password reset emails.
+ - `onError` - Error handler function, use for recording errors. First parameter
+   is the request object that caused the error, second is the error itself.
 
 ```js
 import express from 'express';
@@ -59,6 +61,7 @@ const api = createWebApi(uw, {
   server: server, // HTTP server
   recaptcha: { secret: 'AABBCC...' }, // Optional
   mailTransport: stubTransport(), // Optional
+  onError: (req, error) => {}, // Optional
 });
 
 app.use('/v1', api);

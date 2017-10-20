@@ -1,14 +1,28 @@
 import clamp from 'clamp';
 
-import {
-  getCurrentDJ,
-  isEmpty as boothIsEmpty,
-} from '../controllers/booth';
 import { createCommand } from '../sockets';
-import { APIError, HTTPError, NotFoundError, PermissionError } from '../errors';
+import {
+  APIError,
+  HTTPError,
+  NotFoundError,
+  PermissionError,
+} from '../errors';
+import {
+  ROLE_MODERATOR,
+} from '../roles';
+import toItemResponse from '../utils/toItemResponse';
+import toListResponse from '../utils/toListResponse';
 
 function isInWaitlist(waitlist, userID) {
   return waitlist.some(waitingID => waitingID === userID);
+}
+
+function getCurrentDJ(uw) {
+  return uw.redis.get('booth:currentDJ');
+}
+
+async function isBoothEmpty(uw) {
+  return !(await uw.redis.get('booth:historyID'));
 }
 
 async function isCurrentDJ(uw, userID) {
@@ -26,7 +40,7 @@ async function hasValidPlaylist(uw, userID) {
   return playlist && playlist.size > 0;
 }
 
-export function getWaitlist(uw) {
+function getWaitingUserIDs(uw) {
   return uw.redis.lrange('waitlist', 0, -1);
 }
 
@@ -34,117 +48,113 @@ function isWaitlistLocked(uw) {
   return uw.redis.get('waitlist:lock').then(Boolean);
 }
 
-export async function appendToWaitlist(uw, userID, forceJoin) {
-  const User = uw.model('User');
+export async function getWaitlist(req) {
+  const waitlist = await getWaitingUserIDs(req.uwave);
+  return toListResponse(waitlist, { url: req.fullUrl });
+}
 
-  const user = await User.findById(userID);
-
-  if (!user) throw new PermissionError('User not found.');
-
-  if (!forceJoin && await isWaitlistLocked(uw)) {
-    throw new PermissionError('The waitlist is locked. Only staff can join.');
-  }
-
-  let waitlist = await getWaitlist(uw);
-
-  if (isInWaitlist(waitlist, user.id)) {
-    throw new PermissionError('You are already in the waitlist.');
-  }
-
-  if (await isCurrentDJ(uw, user.id)) {
-    throw new PermissionError('You are already currently playing.');
-  }
-
-  if (!(await hasValidPlaylist(uw, user.id))) {
-    throw new HTTPError(400,
-      'You don\'t have anything to play. Please add some songs to your ' +
-      'playlist and try again.',
-    );
-  }
-
+// POST waitlist/ handler for joining the waitlist.
+async function doJoinWaitlist(uw, user) {
   await uw.redis.rpush('waitlist', user.id);
 
-  waitlist = await getWaitlist(uw);
+  const waitlist = await getWaitingUserIDs(uw);
 
   uw.redis.publish('v1', createCommand('waitlistJoin', {
     userID: user.id,
     waitlist,
   }));
 
-  if (await boothIsEmpty(uw)) {
-    uw.advance();
-  }
-
   return waitlist;
 }
 
-export async function insertWaitlist(uw, moderatorID, id, position, forceJoin) {
+// POST waitlist/ handler for adding a (different) user to the waitlist.
+async function doModerateAddToWaitlist(uw, user, { moderator, waitlist, position }) {
+  const clampedPosition = clamp(position, 0, waitlist.length);
+
+  if (clampedPosition < waitlist.length) {
+    await uw.redis.linsert('waitlist', 'BEFORE', waitlist[clampedPosition], user.id);
+  } else {
+    await uw.redis.rpush('waitlist', user.id);
+  }
+
+  const newWaitlist = await getWaitingUserIDs(uw);
+
+  uw.redis.publish('v1', createCommand('waitlistAdd', {
+    userID: user.id,
+    moderatorID: moderator.id,
+    position: clampedPosition,
+    waitlist: newWaitlist,
+  }));
+
+  return newWaitlist;
+}
+
+// POST waitlist/ entry point: used both for joining the waitlist,  and for
+// adding someone else to the waitlist.
+export async function addToWaitlist(req) {
+  const uw = req.uwave;
   const User = uw.model('User');
 
-  const user = await User.findById(id);
+  const moderator = req.user;
+  const { userID } = req.body;
 
-  if (!user) throw new NotFoundError('User not found.');
+  const user = await User.findById(userID);
+  if (!user) throw new PermissionError('User not found.');
 
-  if (!forceJoin && await isWaitlistLocked(uw)) {
+  const canForceJoin = moderator.role >= ROLE_MODERATOR;
+  if (!canForceJoin && await isWaitlistLocked(uw)) {
     throw new PermissionError('The waitlist is locked. Only staff can join.');
   }
 
-  let waitlist = await getWaitlist(uw);
-
-  const clampedPosition = clamp(position, 0, waitlist.length - 1);
-
-  if (isInWaitlist(waitlist, id)) {
+  let waitlist = await getWaitingUserIDs(uw);
+  if (isInWaitlist(waitlist, user.id)) {
     throw new PermissionError('You are already in the waitlist.');
   }
-
-  if (await isCurrentDJ(uw, id)) {
+  if (await isCurrentDJ(uw, user.id)) {
     throw new PermissionError('You are already currently playing.');
   }
-
-  if (!(await hasValidPlaylist(uw, id))) {
-    throw new HTTPError(400,
+  if (!(await hasValidPlaylist(uw, user.id))) {
+    throw new HTTPError(
+      400,
       'You don\'t have anything to play. Please add some songs to your ' +
       'playlist and try again.',
     );
   }
 
-  if (waitlist.length > clampedPosition) {
-    await uw.redis.linsert('waitlist', 'BEFORE', waitlist[clampedPosition], id);
+  if (user.id === moderator.id) {
+    waitlist = await doJoinWaitlist(uw, user);
   } else {
-    await uw.redis.lpush('waitlist', id);
+    waitlist = await doModerateAddToWaitlist(uw, user, {
+      moderator,
+      waitlist,
+      position: waitlist.length,
+    });
   }
 
-  waitlist = await getWaitlist(uw);
-
-  uw.redis.publish('v1', createCommand('waitlistAdd', {
-    userID: id,
-    moderatorID,
-    position: clampedPosition,
-    waitlist,
-  }));
-
-  if (await boothIsEmpty(uw)) {
-    uw.advance();
+  if (await isBoothEmpty(uw)) {
+    await uw.advance();
   }
 
-  return waitlist;
+  return toListResponse(waitlist, { url: req.fullUrl });
 }
 
-export async function moveWaitlist(uw, moderatorID, userID, position) {
+export async function moveWaitlist(req) {
+  const uw = req.uwave;
   const User = uw.model('User');
 
-  let waitlist = await getWaitlist(uw);
+  const moderator = req.user;
+  const { userID, position } = req.body;
+
+  let waitlist = await getWaitingUserIDs(uw);
 
   if (!isInWaitlist(waitlist, userID)) {
     throw new PermissionError('That user is not in the waitlist.');
   }
-
   if (await isCurrentDJ(uw, userID)) {
     throw new PermissionError('That user is currently playing.');
   }
-
   if (!(await hasValidPlaylist(uw, userID))) {
-    throw new HTTPError(400, 'That user does not have anything to play');
+    throw new HTTPError(400, 'That user does not have anything to play.');
   }
 
   const user = await User.findById(userID.toLowerCase());
@@ -157,7 +167,7 @@ export async function moveWaitlist(uw, moderatorID, userID, position) {
 
   if (beforeID === user.id) {
     // No change.
-    return waitlist;
+    return toListResponse(waitlist, { url: req.fullUrl });
   }
 
   await uw.redis.lrem('waitlist', 0, user.id);
@@ -167,64 +177,76 @@ export async function moveWaitlist(uw, moderatorID, userID, position) {
     await uw.redis.rpush('waitlist', user.id);
   }
 
-  waitlist = await getWaitlist(uw);
+  waitlist = await getWaitingUserIDs(uw);
 
   uw.redis.publish('v1', createCommand('waitlistMove', {
-    userID,
-    moderatorID,
+    userID: user.id,
+    moderatorID: moderator.id,
     position: clampedPosition,
     waitlist,
   }));
 
-  return waitlist;
+  return toListResponse(waitlist, { url: req.fullUrl });
 }
 
-async function removeUser(uw, userID) {
-  const waitlist = await getWaitlist(uw);
-  if (!isInWaitlist(waitlist, userID)) {
+export async function removeFromWaitlist(req) {
+  const uw = req.uwave;
+  const moderator = req.user;
+  const user = await uw.getUser(req.params.id);
+
+  const isRemoving = user.id !== moderator.id;
+  if (isRemoving && moderator.role < ROLE_MODERATOR) {
+    throw new PermissionError('You need to be a moderator to do this.');
+  }
+
+  let waitlist = await getWaitingUserIDs(uw);
+  if (!isInWaitlist(waitlist, user.id)) {
     throw new NotFoundError('That user is not in the waitlist.');
   }
 
-  await uw.redis.lrem('waitlist', 0, userID);
+  await uw.redis.lrem('waitlist', 0, user.id);
+
+  waitlist = await getWaitingUserIDs(uw);
+  if (isRemoving) {
+    uw.publish('waitlist:remove', {
+      userID: user.id,
+      moderatorID: moderator.id,
+      waitlist,
+    });
+  } else {
+    uw.publish('waitlist:leave', {
+      userID: user.id,
+      waitlist,
+    });
+  }
+
+  return toListResponse(waitlist, { url: req.fullUrl });
 }
 
-export async function leaveWaitlist(uw, user) {
-  const userID = typeof user === 'object' ? `${user._id}` : user;
+export async function clearWaitlist(req) {
+  const uw = req.uwave;
+  const moderator = req.user;
 
-  await removeUser(uw, userID);
-
-  const waitlist = await getWaitlist(uw);
-  uw.publish('waitlist:leave', { userID, waitlist });
-
-  return waitlist;
-}
-
-export async function removeFromWaitlist(uw, user, moderator) {
-  const userID = typeof user === 'object' ? `${user._id}` : user;
-  const moderatorID = typeof moderator === 'object' ? `${moderator._id}` : moderator;
-
-  await removeUser(uw, userID);
-
-  const waitlist = await getWaitlist(uw);
-  uw.publish('waitlist:remove', { userID, moderatorID, waitlist });
-
-  return waitlist;
-}
-
-export async function clearWaitlist(uw, moderatorID) {
   await uw.redis.del('waitlist');
-  const waitlist = await getWaitlist(uw);
 
+  const waitlist = await getWaitingUserIDs(uw);
   if (waitlist.length !== 0) {
     throw new APIError('Could not clear the waitlist. Please try again.');
   }
 
-  uw.redis.publish('v1', createCommand('waitlistClear', { moderatorID }));
+  uw.redis.publish('v1', createCommand('waitlistClear', {
+    moderatorID: moderator.id,
+  }));
 
-  return waitlist;
+  return toListResponse(waitlist, { url: req.fullUrl });
 }
 
-export async function lockWaitlist(uw, moderatorID, lock) {
+export async function lockWaitlist(req) {
+  const uw = req.uwave;
+  const moderator = req.user;
+
+  const { lock } = req.body;
+
   if (lock) {
     await uw.redis.set('waitlist:lock', lock);
   } else {
@@ -234,15 +256,15 @@ export async function lockWaitlist(uw, moderatorID, lock) {
   const isLocked = await isWaitlistLocked(uw);
 
   if (isLocked !== lock) {
-    throw new APIError(
-      `Could not ${lock ? 'lock' : 'unlock'} the waitlist. Please try again.`,
-    );
+    throw new APIError(`Could not ${lock ? 'lock' : 'unlock'} the waitlist. Please try again.`);
   }
 
   uw.redis.publish('v1', createCommand('waitlistLock', {
-    moderatorID,
+    moderatorID: moderator.id,
     locked: isLocked,
   }));
 
-  return { locked: lock };
+  return toItemResponse({
+    locked: lock,
+  }, { url: req.fullUrl });
 }

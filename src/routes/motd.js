@@ -1,21 +1,24 @@
 import router from 'router';
+
+import route from '../route';
+import * as validations from '../validations';
 import protect from '../middleware/protect';
-import toItemResponse from '../utils/toItemResponse';
+import checkFields from '../middleware/checkFields';
+import * as controller from '../controllers/motd';
 import { ROLE_MANAGER } from '../roles';
 
 export default function motdRoutes() {
   return router()
-    .get('/', (req, res, next) => {
-      req.uwave.getMotd()
-        .then(motd => toItemResponse({ motd }))
-        .then(item => res.json(item))
-        .catch(next);
-    })
-    .put('/', protect(ROLE_MANAGER), (req, res, next) => {
-      req.uwave.setMotd(String(req.body.motd))
-        .then(() => req.uwave.getMotd())
-        .then(motd => toItemResponse({ motd }))
-        .then(item => res.json(item))
-        .catch(next);
-    });
+    // GET /motd/ - Get the message of the day.
+    .get(
+      '/',
+      route(controller.getMotd),
+    )
+    // PUT /motd/ - Set the message of the day.
+    .put(
+      '/',
+      protect(ROLE_MANAGER),
+      checkFields(validations.setMotd),
+      route(controller.setMotd),
+    );
 }

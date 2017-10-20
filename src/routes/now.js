@@ -1,12 +1,12 @@
 import router from 'router';
-
+import route from '../route';
 import * as controller from '../controllers/now';
 
-export default function nowRoute(v1) {
+export default function nowRoute() {
   return router()
-    .get('/', (req, res, next) => {
-      controller.getState(v1, req.uwave, req.user)
-        .then(state => res.status(200).json(state))
-        .catch(next);
-    });
+    // GET /now/ - Get a combined view of the current state.
+    .get(
+      '/',
+      route(controller.getState),
+    );
 }

@@ -1,6 +1,7 @@
 import EventEmitter from 'events';
+import createDebug from 'debug';
 
-const debug = require('debug')('uwave:api:sockets:lost');
+const debug = createDebug('uwave:api:sockets:lost');
 
 export default class LostConnection extends EventEmitter {
   constructor(uw, user, timeout = 30) {
@@ -50,6 +51,7 @@ export default class LostConnection extends EventEmitter {
   }
 
   close() {
+    debug('close', this.toString());
     this.emit('close');
   }
 

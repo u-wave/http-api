@@ -1,177 +1,80 @@
-import createRouter from 'router';
-
+import router from 'router';
+import route from '../route';
+import * as validations from '../validations';
 import protect from '../middleware/protect';
+import checkFields from '../middleware/checkFields';
 import rateLimit from '../middleware/rateLimit';
 import * as controller from '../controllers/users';
-import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
-import { HTTPError, NotFoundError, PermissionError } from '../errors';
 import { ROLE_MANAGER, ROLE_MODERATOR } from '../roles';
-import getOffsetPagination from '../utils/getOffsetPagination';
-import toItemResponse from '../utils/toItemResponse';
-import toPaginatedResponse from '../utils/toPaginatedResponse';
 
 export default function userRoutes() {
-  const router = createRouter();
-
-  router.get('/', protect(ROLE_MANAGER), (req, res, next) => {
-    const pagination = getOffsetPagination(req.query, {
-      defaultSize: 50,
-    });
-
-    req.uwave.getUsers(pagination)
-      .then(users => toPaginatedResponse(users, { baseUrl: req.fullUrl }))
-      .then(page => res.json(page))
-      .catch(next);
-  });
-
-  router.get('/:id', (req, res, next) => {
-    req.uwave.getUser(req.params.id)
-      .then(user => toItemResponse(user, { url: req.fullUrl }))
-      .then(user => res.json(user))
-      .catch(next);
-  });
-
-  router.post('/:id/mute', protect(ROLE_MODERATOR), (req, res, next) => {
-    if (typeof req.body.time !== 'number' || !isFinite(req.body.time)) {
-      next(new HTTPError(400, 'Expected "time" to be a number.'));
-      return;
-    }
-    if (req.user.id === req.params.id) {
-      next(new PermissionError('You can\'t mute yourself.'));
-      return;
-    }
-
-    const duration = req.body.time;
-    req.uwave.getUser(req.params.id)
-      .then((user) => {
-        if (!user) throw new NotFoundError('User not found.');
-        return user.mute(duration, { moderator: req.user });
-      })
-      .then(() => toItemResponse({}))
-      .then(item => res.json(item))
-      .catch(next);
-  });
-
-  router.delete('/:id/mute', protect(ROLE_MODERATOR), (req, res, next) => {
-    if (req.user.id === req.params.id) {
-      next(new PermissionError('You can\'t unmute yourself.'));
-      return;
-    }
-
-    req.uwave.getUser(req.params.id)
-      .then((user) => {
-        if (!user) throw new NotFoundError('User not found.');
-        return user.unmute({ moderator: req.user });
-      })
-      .then(() => toItemResponse({}))
-      .then(item => res.json(item))
-      .catch(next);
-  });
-
-  router.put('/:id/role', protect(ROLE_MANAGER), (req, res, next) => {
-    if (typeof req.body.role !== 'number' || !isFinite(req.body.role)) {
-      next(new HTTPError(400, 'Expected "role" to be a number.'));
-      return;
-    }
-    if (req.user.role < req.body.role) {
-      next(new PermissionError('You can\'t promote users above your rank.'));
-      return;
-    }
-
-    req.uwave.updateUser(
-      req.params.id,
-      { role: req.body.role },
-      { moderator: req.user },
+  return router()
+    // GET /users/ - List user accounts.
+    .get(
+      '/',
+      protect(ROLE_MANAGER),
+      route(controller.getUsers),
     )
-      .then(user => toItemResponse(user))
-      .then(item => res.json(item))
-      .catch(next);
-  });
-
-  router.put('/:id/username',
-    rateLimit('change-username', {
-      max: 5,
-      duration: 60 * 60 * 1000,
-      error: (_, retryAfter) =>
-        `You can only change your username five times per hour. Try again in ${retryAfter}.`,
-    }),
-    (req, res, next) => {
-      if (typeof req.body.username !== 'string') {
-        next(new HTTPError(400, 'Expected "username" to be a string'));
-        return;
-      }
-
-      req.uwave.updateUser(
-        req.params.id,
-        { username: req.body.username },
-        { moderator: req.user },
-      )
-        .then(user => toItemResponse(user))
-        .then(item => res.json(item))
-        .catch(error => next(beautifyDuplicateKeyError(error)));
-    },
-  );
-
-  router.put('/:id/avatar', (req, res, next) => {
-    if (!req.body.avatar) {
-      res.status(422).json('avatar is not set');
-      return;
-    }
-
-    if (typeof req.body.avatar !== 'string') {
-      res.status(422).json('avatar has to be of type string');
-      return;
-    }
-
-    if (!req.user.id !== req.params.id && req.user.role < ROLE_MANAGER) {
-      res.status(403).json('you need to be a manager to do this');
-      return;
-    }
-
-    controller.setAvatar(req.uwave, req.user.id, req.params.id, req.body.avatar)
-      .then(user => toItemResponse(user))
-      .then(item => res.json(item))
-      .catch(next);
-  });
-
-  router.put('/:id/status', (req, res, next) => {
-    if (typeof req.body.status === 'undefined') {
-      res.status(422).json('status is not set');
-      return;
-    }
-
-    if (typeof req.body.status !== 'number' || !isFinite(req.body.status)) {
-      res.status(422).json('status has to be a number');
-      return;
-    }
-
-    if (req.user.id !== req.params.id) {
-      res.status(403).json('you can\'t change the status of another user');
-      return;
-    }
-
-    controller.setStatus(req.uwave, req.user.id, req.body.status)
-      .then(user => toItemResponse(user))
-      .then(item => res.json(item))
-      .catch(next);
-  });
-
-  router.get('/:id/history', (req, res, next) => {
-    const pagination = getOffsetPagination(req.query, {
-      defaultSize: 25,
-      maxSize: 100,
-    });
-    controller.getHistory(req.uwave, req.params.id, pagination)
-      .then(history => toPaginatedResponse(history, {
-        baseUrl: req.fullUrl,
-        included: {
-          media: ['media.media'],
-          user: ['user'],
-        },
-      }))
-      .then(page => res.json(page))
-      .catch(next);
-  });
-
-  return router;
+    // GET /users/:id - Show a single user.
+    .get(
+      '/:id',
+      checkFields(validations.getUser),
+      route(controller.getUser),
+    )
+    // POST /users/:id/mute - Mute a user in the chat.
+    // TODO move this to /mutes/ namespace.
+    .post(
+      '/:id/mute',
+      protect(ROLE_MODERATOR),
+      checkFields(validations.muteUser),
+      route(controller.muteUser),
+    )
+    // DELETE /users/:id/mute - Unmute a user in the chat.
+    // TODO move this to /mutes/ namespace.
+    .delete(
+      '/:id/mute',
+      protect(ROLE_MODERATOR),
+      checkFields(validations.unmuteUser),
+      route(controller.unmuteUser),
+    )
+    // PUT /users/:id/role - Change a user's role.
+    .put(
+      '/:id/role',
+      protect(ROLE_MANAGER),
+      checkFields(validations.setUserRole),
+      route(controller.changeRole),
+    )
+    // PUT /users/:id/username - Change a user's username.
+    .put(
+      '/:id/username',
+      checkFields(validations.setUserName),
+      rateLimit('change-username', {
+        max: 5,
+        duration: 60 * 60 * 1000,
+        error: (_, retryAfter) =>
+          `You can only change your username five times per hour. Try again in ${retryAfter}.`,
+      }),
+      route(controller.changeUsername),
+    )
+    // PUT /users/:id/avatar - Change a user's username.
+    .put(
+      '/:id/avatar',
+      protect(),
+      checkFields(validations.setUserAvatar),
+      route(controller.changeAvatar),
+    )
+    // PUT /users/:id/status - Change a user's online status.
+    // TODO Unused, maybe remove?
+    .put(
+      '/:id/status',
+      protect(),
+      checkFields(validations.setUserStatus),
+      route(controller.changeStatus),
+    )
+    // GET /users/:id/history - Show recent plays by a user.
+    .get(
+      '/:id/history',
+      checkFields(validations.getUserHistory),
+      route(controller.getHistory),
+    );
 }
