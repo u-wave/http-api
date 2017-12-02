@@ -3,17 +3,16 @@ module.exports = (api) => {
 
   return {
     presets: [
-      ['env', {
+      ['@babel/preset-env', {
         targets: {
           node: 6,
         },
       }],
     ],
     plugins: [
-      'transform-object-rest-spread',
-      'transform-class-properties',
-      'transform-export-extensions',
-      'transform-flow-comments',
+      '@babel/plugin-proposal-object-rest-spread',
+      '@babel/plugin-proposal-class-properties',
+      '@babel/plugin-transform-flow-comments',
     ],
   };
 };
