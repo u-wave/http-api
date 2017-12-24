@@ -1,5 +1,4 @@
 import { NotFoundError } from '../errors';
-import { fetchMedia } from './search';
 
 export function getAllMedia(uw, rawPage, rawLimit) {
   const Media = uw.model('Media');
@@ -24,15 +23,17 @@ export function getMedia(uw, sourceType, sourceID) {
 
 export function addMedia(uw, sourceType, sourceID) {
   const Media = uw.model('Media');
+  const source = uw.source(sourceType);
 
-  return fetchMedia(sourceType, sourceID, uw.keys)
+  return source.getOne(sourceID)
     .then(media => new Media(media).save());
 }
 
 export function editMedia(uw, props) {
   const Media = uw.model('Media');
+  const source = uw.source(props.sourceType);
   if (props.auto) {
-    return fetchMedia(props.sourceType, props.sourceID, uw.keys).then(updatedMedia =>
+    return source.getOne(props.sourceID).then(updatedMedia =>
       Media.findOneAndUpdate(
         { sourceType: props.sourceType, sourceID: props.sourceID },
         {
