@@ -1,5 +1,5 @@
-import * as url from 'url';
-import * as qs from 'qs';
+import url from 'url';
+import qs from 'qs';
 import toListResponse from './toListResponse';
 
 function appendQuery(base, query) {

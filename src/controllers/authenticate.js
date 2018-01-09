@@ -1,7 +1,7 @@
-import * as bcrypt from 'bcryptjs';
+import bcrypt from 'bcryptjs';
 import createDebug from 'debug';
 import Promise from 'bluebird';
-import { sign as jwtSignCallback } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import randomString from 'random-string';
 import got from 'got';
 import {
@@ -18,7 +18,7 @@ import toItemResponse from '../utils/toItemResponse';
 
 const log = createDebug('uwave:api:v1:auth');
 
-const jwtSign = Promise.promisify(jwtSignCallback);
+const jwtSign = Promise.promisify(jwt.sign);
 
 export function getCurrentUser(req) {
   return toItemResponse(req.user || {}, {

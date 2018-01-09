@@ -2,7 +2,7 @@ import EventEmitter from 'events';
 import Ultron from 'ultron';
 import WebSocket from 'ws';
 import createDebug from 'debug';
-import { verify } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 const debug = createDebug('uwave:api:sockets:guest');
 
@@ -36,7 +36,7 @@ export default class GuestConnection extends EventEmitter {
 
   async attemptAuth(token) {
     const User = this.uw.model('User');
-    const session = await verify(token, this.options.secret);
+    const session = await jwt.verify(token, this.options.secret);
     if (!session) {
       throw new Error('Invalid token');
     }
