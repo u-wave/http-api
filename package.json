@@ -11,7 +11,8 @@
     "Renée Kooi <renee@kooi.me>",
     "xBytez <me@xbytez.eu>"
   ],
-  "main": "lib/index.js",
+  "main": "dist/u-wave-api-v1.js",
+  "module": "dist/u-wave-api-v1.es.js",
   "engines": {
     "node": ">= 4",
     "npm": ">= 3"
