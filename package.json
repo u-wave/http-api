@@ -53,12 +53,19 @@
     "@babel/plugin-transform-flow-comments": "^7.0.0-beta.35",
     "@babel/plugin-transform-modules-commonjs": "^7.0.0-beta.35",
     "babel-eslint": "^8.0.0",
+    "concat-stream": "^1.6.0",
     "eslint": "^4.10.0",
     "eslint-config-airbnb-base": "^12.1.0",
     "eslint-plugin-import": "^2.8.0",
+    "explain-error": "^1.0.4",
+    "express": "^4.16.2",
     "is-builtin-module": "^2.0.0",
+    "minimist": "^1.2.0",
+    "recaptcha-test-keys": "^1.0.0",
     "rollup": "^0.55.0",
     "rollup-plugin-babel": "^4.0.0-beta.0",
-    "rollup-plugin-node-resolve": "^3.0.0"
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "u-wave-source-soundcloud": "^1.1.0",
+    "u-wave-source-youtube": "^1.1.1"
   }
 }
