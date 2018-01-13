@@ -1,5 +1,3 @@
-export { ReplyError as RedisReplyError } from 'ioredis';
-
 export class EmailError extends Error {
   constructor(message) {
     super();

@@ -2,7 +2,6 @@ import createDebug from 'debug';
 import {
   APIError,
   CombinedError,
-  RedisReplyError,
 } from '../errors';
 
 const debug = createDebug('uwave:api:v1:error');
@@ -55,7 +54,7 @@ function serializeError(err) {
       title: err.message,
     }];
   }
-  if (err instanceof RedisReplyError) {
+  if (err.name === 'ReplyError') {
     return [{
       status: 410,
       code: 'redis-error',

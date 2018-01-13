@@ -33,7 +33,6 @@
     "debug": "^3.1.0",
     "escape-string-regexp": "^1.0.5",
     "got": "^8.0.0",
-    "ioredis": "^3.2.1",
     "is-empty-object": "^1.1.1",
     "joi": "^13.0.2",
     "jsonwebtoken": "^8.1.0",
