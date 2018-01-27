@@ -4,6 +4,7 @@ import isEmpty from 'is-empty-object';
 import tryJsonParse from 'try-json-parse';
 import WebSocket from 'ws';
 import ms from 'ms';
+import createDebug from 'debug';
 
 import { vote } from './controllers/booth';
 import { disconnectUser } from './controllers/users';
@@ -12,7 +13,7 @@ import GuestConnection from './sockets/GuestConnection';
 import AuthedConnection from './sockets/AuthedConnection';
 import LostConnection from './sockets/LostConnection';
 
-const debug = require('debug')('uwave:api:sockets');
+const debug = createDebug('uwave:api:sockets');
 
 export function createCommand(command, data) {
   return JSON.stringify({ command, data });

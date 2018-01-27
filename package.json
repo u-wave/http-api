@@ -14,8 +14,7 @@
   "main": "dist/u-wave-api-v1.js",
   "module": "dist/u-wave-api-v1.es.js",
   "engines": {
-    "node": ">= 4",
-    "npm": ">= 3"
+    "node": ">= 8.9"
   },
   "scripts": {
     "test": "eslint --cache .",
