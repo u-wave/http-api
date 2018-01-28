@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const { Buffer } = require('buffer');
+const path = require('path');
 const argv = require('minimist')(process.argv.slice(2));
 const concat = require('concat-stream');
 const explain = require('explain-error');
@@ -21,16 +22,26 @@ function tryRequire(file, message) {
   }
 }
 
+function getCorePath() {
+  try {
+    return path.dirname(require.resolve('u-wave-core/package.json'));
+  } catch (err) {
+    throw explain(err, 'Could not find the u-wave core module. Did you run `npm link u-wave-core`?');
+  }
+}
+
 function loadDevModules() {
-  require('@babel/register');
+  const apiPath = path.join(__dirname, '../src');
+  const corePath = path.join(getCorePath(), './src');
+  require('@babel/register').default({
+    plugins: [require('@babel/plugin-transform-modules-commonjs')],
+    only: [ p => p.startsWith(apiPath) || p.startsWith(corePath) ],
+  });
   const uwave = tryRequire(
     'u-wave-core/src/index.js',
-    'Could not find the u-wave core module. Did you run `npm install u-wave-core`?'
+    'Could not find the u-wave core module. Did you run `npm link u-wave-core`?'
   );
-  const createWebApi = tryRequire(
-    '../src/index.js',
-    'Could not find the u-wave API module. Did you run `npm install u-wave-api-v1`?'
-  );
+  const createWebApi = require('../src').default;
 
   return { uwave, createWebApi };
 }
@@ -38,12 +49,9 @@ function loadDevModules() {
 function loadProdModules() {
   const uwave = tryRequire(
     'u-wave-core',
-    'Could not find the u-wave core module. Did you run `npm install u-wave-core`?'
+    'Could not find the u-wave core module. Did you run `npm link u-wave-core`?'
   );
-  const createWebApi = tryRequire(
-    '../',
-    'Could not find the u-wave API module. Did you run `npm install u-wave-api-v1`?'
-  );
+  const createWebApi = require('../').default;
 
   return { uwave, createWebApi };
 }
