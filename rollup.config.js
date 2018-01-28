@@ -1,6 +1,7 @@
 import babel from 'rollup-plugin-babel';
 import nodeResolve from 'rollup-plugin-node-resolve';
 import isBuiltinModule from 'is-builtin-module';
+import esModuleInterop from './build/es-module-interop';
 
 const pkg = require('./package.json');
 
@@ -22,6 +23,7 @@ export default {
   }],
   external: id => isBuiltinModule(id) || external.some(m => id.split('/')[0] === m),
   plugins: [
+    esModuleInterop(),
     babel(),
     nodeResolve(),
   ],
