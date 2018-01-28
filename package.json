@@ -20,6 +20,7 @@
     "test": "eslint --cache .",
     "build": "rollup -c",
     "watch": "rollup -c -w",
+    "start": "nodemon -- dev/u-wave-api-dev-server --watch",
     "prepublish": "npm run build"
   },
   "dependencies": {
@@ -62,6 +63,7 @@
     "express": "^4.16.2",
     "is-builtin-module": "^2.0.0",
     "minimist": "^1.2.0",
+    "nodemon": "^1.14.11",
     "recaptcha-test-keys": "^1.0.0",
     "rollup": "^0.55.0",
     "rollup-plugin-babel": "^4.0.0-beta.0",
