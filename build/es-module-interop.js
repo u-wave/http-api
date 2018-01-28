@@ -15,7 +15,7 @@ export default () => ({
     return {
       code: code.replace(
         /\nfunction _interopDefault (.*?)\n/,
-        () => `\n${interopDefault.replace(/\n */g, ' ')}\n`
+        () => `\n${interopDefault.replace(/\n */g, ' ')}\n`,
       ),
       map: null,
     };
