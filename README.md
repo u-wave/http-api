@@ -1,6 +1,6 @@
 # u-wave-api-v1
 
-REST API plugin for üWave, the collaborative listening platform.
+HTTP API plugin for üWave, the collaborative listening platform.
 
 [Getting Started](#getting-started) - [API](#api) - [Building](#contributing) -
 [License](#license)
@@ -20,7 +20,7 @@ handlers.
 
 ## API
 
-### api = createWebApi(uwave, options={})
+### api = createHttpApi(uwave, options={})
 
 Creates a middleware for use with [Express][] or another such library. The first
 parameter is a `u-wave-core` instance. Available options are:
@@ -46,7 +46,7 @@ parameter is a `u-wave-core` instance. Available options are:
 import express from 'express';
 import stubTransport from 'nodemailer-stub-transport';
 import uwave from 'u-wave-core';
-import createWebApi from 'u-wave-api-v1';
+import createHttpApi from 'u-wave-api-v1';
 
 const app = express();
 const server = app.listen();
@@ -56,7 +56,7 @@ const secret = fs.readFileSync('./secret.dat');
 const uw = uwave({
   secret: secret,
 });
-const api = createWebApi(uw, {
+const api = createHttpApi(uw, {
   secret: secret, // Encryption secret
   server: server, // HTTP server
   recaptcha: { secret: 'AABBCC...' }, // Optional
@@ -88,6 +88,27 @@ app.get('/profile/:user', api.attachUwaveToRequest(), (req, res) => {
 ```
 
 ## Contributing
+
+There is a development server included in this repository. To use it, first you have to clone and install u-wave-core.
+
+```bash
+git clone https://github.com/u-wave/core u-wave-core
+cd u-wave-core
+npm install
+npm link
+```
+
+Then you can clone and install the HTTP API:
+
+```bash
+git clone https://github.com/u-wave/api-v1 u-wave-api-v1
+cd u-wave-api-v1
+npm install
+# Add our local u-wave-core
+npm link u-wave-core
+# & run the server!
+npm start -- --port 6042
+```
 
 ### Building
 
