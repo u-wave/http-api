@@ -96,7 +96,7 @@ export const deleteChatMessage = joi.object({
 // Validations for MOTD routes:
 
 export const setMotd = joi.object({
-  params: joi.object({
+  body: joi.object({
     motd: joi.string().required(),
   }),
 });
