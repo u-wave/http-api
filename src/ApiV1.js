@@ -19,10 +19,10 @@ import imports from './routes/import';
 // middleware
 import addFullUrl from './middleware/addFullUrl';
 import attachUwaveMeta from './middleware/attachUwaveMeta';
-import authenticator from './middleware/authenticator';
 import errorHandler from './middleware/errorHandler';
 import rateLimit from './middleware/rateLimit';
 
+import createPassport from './passport';
 import WSServer from './sockets';
 
 function missingServerOption() {
@@ -109,14 +109,16 @@ export default class ApiV1 extends Router {
       secret: options.secret,
     });
 
+    this.passport = createPassport(uw, {
+      secret: options.secret,
+    });
+
     this
       .use(bodyParser.json())
+      .use(this.passport.initialize())
       .use(addFullUrl())
       .use(this.attachUwaveToRequest())
-      .use(authenticator(this, {
-        secret: options.secret,
-        recaptcha: options.recaptcha,
-      }))
+      .use(this.passport.authenticate('jwt'))
       .use(rateLimit('api-v1-http', { max: 500, duration: 60 * 1000 }));
 
     this
