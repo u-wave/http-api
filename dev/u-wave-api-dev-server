@@ -92,6 +92,7 @@ function start() {
     recaptcha: { secret: recaptchaTestKeys.secret },
     server,
     secret: Buffer.from('none', 'utf8'),
+    auth: config.auth,
     mailTransport: {
       name: 'test',
       version: '0.0.0',

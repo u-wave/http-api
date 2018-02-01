@@ -111,6 +111,7 @@ export default class ApiV1 extends Router {
 
     this.passport = createPassport(uw, {
       secret: options.secret,
+      auth: options.auth,
     });
 
     this

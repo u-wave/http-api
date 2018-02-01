@@ -40,5 +40,15 @@ export default function authenticateRoutes(v1, options) {
     .delete(
       '/session/:id',
       route(controller.removeSession),
+    )
+    .get(
+      '/service/google',
+      v1.passport.authenticate('google'),
+      route(controller.login.bind(null, options)),
+    )
+    .get(
+      '/service/google/callback',
+      v1.passport.authenticate('google'),
+      route(controller.login.bind(null, options)),
     );
 }
