@@ -33,8 +33,7 @@ export default function authenticatorMiddleware({ uw }, options) {
       return;
     }
 
-    const User = uw.model('User');
-    const userModel = await User.findById(user.id);
+    const userModel = await uw.getUser(user.id);
     if (!userModel) {
       return;
     }
