@@ -7,7 +7,6 @@ import got from 'got';
 import {
   HTTPError,
   NotFoundError,
-  PasswordError,
   PermissionError,
   TokenError,
 } from '../errors';
@@ -26,34 +25,24 @@ export function getCurrentUser(req) {
   });
 }
 
+/**
+ * The login controller is called once a user has logged in successfully using Passport;
+ * we only have to assign the JWT.
+ */
 export async function login(options, req) {
-  const uw = req.uwave;
-  const Authentication = uw.model('Authentication');
-  const { email, password } = req.body;
+  const { user } = req;
 
-  const auth = await Authentication.findOne({
-    email: email.toLowerCase(),
-  }).populate('user').exec();
-  if (!auth) {
-    throw new NotFoundError('No user was found with that email address.');
-  }
-
-  const correct = await bcrypt.compare(password, auth.hash);
-  if (!correct) {
-    throw new PasswordError('That password is incorrect.');
-  }
-
-  if (await auth.user.isBanned()) {
+  if (await user.isBanned()) {
     throw new PermissionError('You have been banned.');
   }
 
   const token = await jwtSign(
-    { id: auth.user.id },
+    { id: user.id },
     options.secret,
     { expiresIn: '31d' },
   );
 
-  return toItemResponse(auth.user, {
+  return toItemResponse(user, {
     meta: { jwt: token },
   });
 }

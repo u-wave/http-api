@@ -21,6 +21,7 @@ export default function authenticateRoutes(v1, options) {
     .post(
       '/login',
       checkFields(validations.login),
+      v1.passport.authenticate('local', { failWithError: true }),
       route(controller.login.bind(null, options)),
     )
     // POST /password/reset - Request a password reset.

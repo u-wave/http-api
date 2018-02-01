@@ -1,16 +1,9 @@
 import { Passport } from 'passport';
 import local from 'passport-local';
-import { callbackify, promisify } from 'util';
+import { callbackify } from 'util';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import JWTStrategy from './auth/JWTStrategy';
-import {
-  NotFoundError,
-  PasswordError,
-  PermissionError,
-} from './errors';
-
-const jwtSign = promisify(jwt.sign);
+import { NotFoundError, PasswordError } from './errors';
 
 export default function configurePassport(uw, { secret }) {
   const passport = new Passport();
@@ -30,20 +23,7 @@ export default function configurePassport(uw, { secret }) {
       throw new PasswordError('That password is incorrect.');
     }
 
-    if (await auth.user.isBanned()) {
-      throw new PermissionError('You have been banned.');
-    }
-
-    const token = await jwtSign(
-      { id: auth.user.id },
-      secret,
-      { expiresIn: '31d' },
-    );
-
-    return { user: auth.user, token };
-    /* return toItemResponse(auth.user, {
-      meta: { jwt: token },
-    }); */
+    return auth.user;
   }
 
   async function serializeUser(user) {
@@ -53,7 +33,11 @@ export default function configurePassport(uw, { secret }) {
     return uw.getUser(id);
   }
 
-  passport.use('local', new local.Strategy(callbackify(localLogin)));
+  passport.use('local', new local.Strategy({
+    usernameField: 'email',
+    passwordField: 'password',
+    session: false,
+  }, callbackify(localLogin)));
   passport.use('jwt', new JWTStrategy(secret, user => uw.getUser(user.id)));
   passport.serializeUser(callbackify(serializeUser));
   passport.deserializeUser(callbackify(deserializeUser));

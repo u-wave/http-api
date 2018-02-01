@@ -31,7 +31,7 @@ export default class JWTStrategy extends Strategy {
   async authenticateP(req) {
     const token = (req.query && req.query.token) || getHeaderToken(req.headers);
     if (!token) {
-      return this.fail({ message: 'No token' }, 400);
+      return this.pass();
     }
 
     let value;
