@@ -1,6 +1,7 @@
 import router from 'router';
 import route from '../route';
 import * as validations from '../validations';
+import protect from '../middleware/protect';
 import checkFields from '../middleware/checkFields';
 import * as controller from '../controllers/authenticate';
 
@@ -35,6 +36,12 @@ export default function authenticateRoutes(v1, options) {
       '/password/reset/:reset',
       checkFields(validations.passwordReset),
       route(controller.changePassword),
+    )
+    // GET /socket - Obtain an authentication token for the WebSocket server.
+    .get(
+      '/socket',
+      protect(),
+      route(controller.getSocketToken)
     )
     // DELETE /session/:id - Unused? Forcibly quit a user's session.
     .delete(

@@ -5,6 +5,8 @@ import tryJsonParse from 'try-json-parse';
 import WebSocket from 'ws';
 import ms from 'ms';
 import createDebug from 'debug';
+import { promisify } from 'util';
+import crypto from 'crypto';
 
 import { vote } from './controllers/booth';
 import { disconnectUser } from './controllers/users';
@@ -14,6 +16,7 @@ import AuthedConnection from './sockets/AuthedConnection';
 import LostConnection from './sockets/LostConnection';
 
 const debug = createDebug('uwave:api:sockets');
+const randomBytes = promisify(crypto.randomBytes);
 
 export function createCommand(command, data) {
   return JSON.stringify({ command, data });
@@ -76,10 +79,17 @@ export default class SocketServer {
     });
   }
 
-  onSocketConnected(socket) {
+  onSocketConnected(socket, req) {
     debug('new connection');
 
-    this.add(this.createGuestConnection(socket));
+    this.add(this.createGuestConnection(socket, req));
+  }
+
+  async createAuthToken(user) {
+    const { redis } = this.uw;
+    const token = (await randomBytes(64)).toString('hex');
+    await redis.set(`api-v1:socketAuth:${token}`, user.id, 'EX', 60);
+    return token;
   }
 
   /**
@@ -93,8 +103,8 @@ export default class SocketServer {
   /**
    * Create a connection instance for an unauthenticated user.
    */
-  createGuestConnection(socket) {
-    const connection = new GuestConnection(this.uw, socket, {
+  createGuestConnection(socket, req) {
+    const connection = new GuestConnection(this.uw, socket, req, {
       secret: this.options.secret,
     });
     connection.on('close', () => {
