@@ -41,7 +41,7 @@ export default function authenticateRoutes(v1, options) {
     .get(
       '/socket',
       protect(),
-      route(controller.getSocketToken)
+      route(controller.getSocketToken),
     )
     // DELETE /session/:id - Unused? Forcibly quit a user's session.
     .delete(

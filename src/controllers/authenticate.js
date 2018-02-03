@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
 import cookie from 'cookie';
 import createDebug from 'debug';
-import Promise from 'bluebird';
 import jwt from 'jsonwebtoken';
 import randomString from 'random-string';
 import got from 'got';
@@ -103,7 +102,7 @@ export async function socialLoginCallback(options, req, res) {
   `);
 }
 
-export async function getSocketToken(req, res) {
+export async function getSocketToken(req) {
   const { sockets } = req.uwaveApiV1;
   const socketToken = await sockets.createAuthToken(req.user);
   return toItemResponse({ socketToken }, {

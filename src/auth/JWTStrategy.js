@@ -6,9 +6,7 @@ import { PermissionError } from '../errors';
 const jwtVerify = promisify(jwt.verify);
 
 function getCookieToken(cookies) {
-  if (cookies.uwsession) {
-    return cookies.uwsession;
-  }
+  return cookies && cookies.uwsession;
 }
 
 function getQueryToken(query) {

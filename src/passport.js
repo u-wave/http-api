@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 import JWTStrategy from './auth/JWTStrategy';
 import { NotFoundError, PasswordError } from './errors';
 
-export default function configurePassport(uw, { secret, auth }) {
+export default function configurePassport(uw, options) {
   const passport = new Passport();
 
   async function localLogin(email, password) {
@@ -53,10 +53,10 @@ export default function configurePassport(uw, { secret, auth }) {
   passport.use('google', new GoogleStrategy({
     callbackURL: '/auth/service/google/callback',
     scope: ['profile'],
-    ...auth.google,
+    ...options.auth.google,
   }, callbackify(socialLogin)));
 
-  passport.use('jwt', new JWTStrategy(secret, user => uw.getUser(user.id)));
+  passport.use('jwt', new JWTStrategy(options.secret, user => uw.getUser(user.id)));
   passport.serializeUser(callbackify(serializeUser));
   passport.deserializeUser(callbackify(deserializeUser));
 
