@@ -11,7 +11,7 @@ type ConnectionOptions = { timeout: number };
 export default class GuestConnection extends EventEmitter {
   lastMessage = Date.now();
 
-  constructor(uw, socket: WebSocket, req, options: ConnectionOptions) {
+  constructor(uw, socket: WebSocket, req?, options: ConnectionOptions) {
     super();
     this.uw = uw;
     this.socket = socket;

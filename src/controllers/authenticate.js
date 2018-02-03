@@ -216,7 +216,27 @@ export async function changePassword(req) {
   });
 }
 
-export async function removeSession(req) {
+export async function logout(options, req, res) {
+  const uw = req.uwave;
+
+  uw.publish('user:logout', {
+    userID: req.user.id,
+  });
+
+  if (req.cookies && req.cookies.uwsession) {
+    const serialized = cookie.serialize('uwsession', '', {
+      httpOnly: true,
+      secure: !!options.cookieSecure,
+      path: options.cookiePath || '/',
+      maxAge: 0,
+    });
+    res.setHeader('Set-Cookie', serialized);
+  }
+
+  return toItemResponse({});
+}
+
+export async function removeSession(options, req) {
   const uw = req.uwave;
   const { id } = req.params;
   const Authentication = uw.model('Authentication');

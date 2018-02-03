@@ -103,14 +103,14 @@ export default class SocketServer {
   /**
    * Create a connection instance for an unauthenticated user.
    */
-  createGuestConnection(socket, req) {
+  createGuestConnection(socket, req?) {
     const connection = new GuestConnection(this.uw, socket, req, {
       secret: this.options.secret,
     });
     connection.on('close', () => {
       this.remove(connection);
     });
-    connection.on('authenticate', async (user) => { // eslint-disable-line arrow-parens
+    connection.on('authenticate', async (user, token) => {
       debug('connecting', user.id, user.username);
       if (await connection.isReconnect(user)) {
         debug('is reconnection');
@@ -120,7 +120,7 @@ export default class SocketServer {
         this.uw.publish('user:join', { userID: user.id });
       }
 
-      this.replace(connection, this.createAuthedConnection(socket, user));
+      this.replace(connection, this.createAuthedConnection(socket, user, token));
     });
     return connection;
   }
@@ -128,8 +128,8 @@ export default class SocketServer {
   /**
    * Create a connection instance for an authenticated user.
    */
-  createAuthedConnection(socket, user) {
-    const connection = new AuthedConnection(this.uw, socket, user);
+  createAuthedConnection(socket, user, token) {
+    const connection = new AuthedConnection(this.uw, socket, user, token);
     connection.on('close', ({ banned }) => {
       if (banned) {
         debug('removing connection after ban', user.id, user.username);
@@ -142,8 +142,9 @@ export default class SocketServer {
     });
     connection.on('command', (command, data) => {
       debug('command', user.id, user.username, command, data);
-      if (this.clientActions[command]) {
-        this.clientActions[command].call(this, user, data);
+      const action = this.clientActions[command];
+      if (action) {
+        action(user, data, connection);
       }
     });
     return connection;
@@ -202,12 +203,18 @@ export default class SocketServer {
    * Handlers for commands that come in from clients.
    */
   clientActions = {
-    sendChat(user, message) {
+    sendChat: (user, message) => {
       debug('sendChat', user, message);
-      return this.uw.sendChat(user, message);
+      this.uw.sendChat(user, message);
     },
-    vote(user, direction) {
-      return vote(this.uw, user.id, direction);
+    vote: (user, direction) => {
+      vote(this.uw, user.id, direction);
+    },
+    logout: (user, _, connection) => {
+      this.replace(connection, this.createGuestConnection(connection.socket, null));
+      if (!this.connection(user)) {
+        disconnectUser(this.uw, user);
+      }
     },
   };
 
@@ -381,8 +388,9 @@ export default class SocketServer {
     if (channel === 'v1') {
       this.broadcast(command, data);
     } else if (channel === 'uwave') {
-      if (command in this.serverActions) {
-        this.serverActions[command].call(this, data);
+      const action = this.serverActions[command];
+      if (action) {
+        action(data);
       }
     }
   }

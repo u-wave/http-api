@@ -25,36 +25,42 @@ export default function authenticateRoutes(v1, options) {
       v1.passport.authenticate('local', { failWithError: true }),
       route(controller.login.bind(null, options)),
     )
-    // POST /password/reset - Request a password reset.
-    .post(
-      '/password/reset',
-      checkFields(validations.requestPasswordReset),
-      route(controller.reset.bind(null, options)),
-    )
-    // POST /password/reset/:reset - Change the password using a reset token.
-    .post(
-      '/password/reset/:reset',
-      checkFields(validations.passwordReset),
-      route(controller.changePassword),
-    )
-    // GET /socket - Obtain an authentication token for the WebSocket server.
+    // GET /auth/socket - Obtain an authentication token for the WebSocket server.
     .get(
       '/socket',
       protect(),
       route(controller.getSocketToken),
     )
-    // DELETE /session/:id - Unused? Forcibly quit a user's session.
+    // DELETE /auth/ - Log out (delete the session).
+    .delete(
+      '/',
+      protect(),
+      route(controller.logout.bind(null, options)),
+    )
+    // POST /auth/password/reset - Request a password reset.
+    .post(
+      '/password/reset',
+      checkFields(validations.requestPasswordReset),
+      route(controller.reset.bind(null, options)),
+    )
+    // POST /auth/password/reset/:reset - Change the password using a reset token.
+    .post(
+      '/password/reset/:reset',
+      checkFields(validations.passwordReset),
+      route(controller.changePassword),
+    )
+    // DELETE /auth/session/:id - Unused? Forcibly quit a user's session.
     .delete(
       '/session/:id',
       route(controller.removeSession),
     )
-    // GET /service/google - Initiate a social login using Google.
+    // GET /auth/service/google - Initiate a social login using Google.
     .get(
       '/service/google',
       v1.passport.authenticate('google'),
       route(controller.login.bind(null, options)),
     )
-    // GET /service/google/callback - Finish a social login using Google.
+    // GET /auth/service/google/callback - Finish a social login using Google.
     .get(
       '/service/google/callback',
       v1.passport.authenticate('google'),
