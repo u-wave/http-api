@@ -108,20 +108,13 @@ export async function activatePlaylist(req) {
   return toItemResponse({});
 }
 
-function getSort(query, defaultSort) {
-  if (!query.sort) return null;
-  const sort = query.sort.replace(/^-/);
-  const direction = query.sort[0] === '-' ? 'desc' : 'asc';
-  return { sort, direction };
-}
 export async function getPlaylistItems(req) {
   const filter = req.query.filter || null;
 
   const pagination = getOffsetPagination(req.query);
-  const sort = getSort(req.query);
 
   const playlist = await req.user.getPlaylist(req.params.id);
-  const items = await playlist.getItems(filter, { ...pagination, ...sort });
+  const items = await playlist.getItems(filter, pagination);
 
   return toPaginatedResponse(items, {
     baseUrl: req.fullUrl,
