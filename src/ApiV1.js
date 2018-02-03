@@ -1,5 +1,6 @@
 import Router from 'router';
 import bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser';
 import url from 'url';
 
 // routes
@@ -116,6 +117,7 @@ export default class ApiV1 extends Router {
 
     this
       .use(bodyParser.json())
+      .use(cookieParser())
       .use(this.passport.initialize())
       .use(addFullUrl())
       .use(this.attachUwaveToRequest())

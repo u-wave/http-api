@@ -41,14 +41,16 @@ export default function authenticateRoutes(v1, options) {
       '/session/:id',
       route(controller.removeSession),
     )
+    // GET /service/google - Initiate a social login using Google.
     .get(
       '/service/google',
       v1.passport.authenticate('google'),
       route(controller.login.bind(null, options)),
     )
+    // GET /service/google/callback - Finish a social login using Google.
     .get(
       '/service/google/callback',
       v1.passport.authenticate('google'),
-      route(controller.login.bind(null, options)),
+      route(controller.socialLoginCallback.bind(null, options)),
     );
 }

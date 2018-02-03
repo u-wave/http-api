@@ -47,6 +47,35 @@ export async function login(options, req) {
   });
 }
 
+export async function socialLoginCallback(options, req, res) {
+  const { user } = req;
+
+  if (await user.isBanned()) {
+    throw new PermissionError('You have been banned.');
+  }
+
+  const token = await jwtSign(
+    { id: user.id },
+    options.secret,
+    { expiresIn: '31d' },
+  );
+
+  res.setHeader('set-cookie', `uwsession=${token}; Path=/; HttpOnly`);
+  res.end(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Success</title>
+      </head>
+      <body>
+        You can now close this window.
+        <script>close()</script>
+      </body>
+    </html>
+  `);
+}
+
 async function verifyCaptcha(responseString, options) {
   if (!options.recaptcha) {
     log('ReCaptcha validation is disabled');

@@ -5,6 +5,16 @@ import { PermissionError } from '../errors';
 
 const jwtVerify = promisify(jwt.verify);
 
+function getCookieToken(cookies) {
+  if (cookies.uwsession) {
+    return cookies.uwsession;
+  }
+}
+
+function getQueryToken(query) {
+  return query && query.token;
+}
+
 function getHeaderToken(headers) {
   if (headers.authorization) {
     const parts = headers.authorization.split(' ');
@@ -29,7 +39,10 @@ export default class JWTStrategy extends Strategy {
   }
 
   async authenticateP(req) {
-    const token = (req.query && req.query.token) || getHeaderToken(req.headers);
+    const token =
+      getQueryToken(req.query) ||
+      getHeaderToken(req.headers) ||
+      getCookieToken(req.cookies);
     if (!token) {
       return this.pass();
     }
