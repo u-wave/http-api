@@ -6,7 +6,9 @@ import checkFields from '../middleware/checkFields';
 import * as controller from '../controllers/authenticate';
 
 export default function authenticateRoutes(v1, options) {
-  return router()
+  const { passport } = v1;
+
+  const auth = router()
     // GET /auth/ - Show current user information.
     .get(
       '/',
@@ -22,7 +24,7 @@ export default function authenticateRoutes(v1, options) {
     .post(
       '/login',
       checkFields(validations.login),
-      v1.passport.authenticate('local', { failWithError: true }),
+      passport.authenticate('local', { failWithError: true }),
       route(controller.login.bind(null, options)),
     )
     // GET /auth/socket - Obtain an authentication token for the WebSocket server.
@@ -53,17 +55,23 @@ export default function authenticateRoutes(v1, options) {
     .delete(
       '/session/:id',
       route(controller.removeSession),
-    )
-    // GET /auth/service/google - Initiate a social login using Google.
-    .get(
-      '/service/google',
-      v1.passport.authenticate('google'),
-      route(controller.login.bind(null, options)),
-    )
-    // GET /auth/service/google/callback - Finish a social login using Google.
-    .get(
-      '/service/google/callback',
-      v1.passport.authenticate('google'),
-      route(controller.socialLoginCallback.bind(null, options)),
     );
+
+  if (passport.supports('google')) {
+    auth
+      // GET /auth/service/google - Initiate a social login using Google.
+      .get(
+        '/service/google',
+        passport.authenticate('google'),
+        route(controller.login.bind(null, options)),
+      )
+      // GET /auth/service/google/callback - Finish a social login using Google.
+      .get(
+        '/service/google/callback',
+        passport.authenticate('google'),
+        route(controller.socialLoginCallback.bind(null, options)),
+      );
+  }
+
+  return auth;
 }

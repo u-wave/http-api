@@ -50,15 +50,20 @@ export default function configurePassport(uw, options) {
     session: false,
   }, callbackify(localLogin)));
 
-  passport.use('google', new GoogleStrategy({
-    callbackURL: '/auth/service/google/callback',
-    scope: ['profile'],
-    ...options.auth.google,
-  }, callbackify(socialLogin)));
+  if (options.auth.google) {
+    passport.use('google', new GoogleStrategy({
+      callbackURL: '/auth/service/google/callback',
+      ...options.auth.google,
+      scope: ['profile'],
+    }, callbackify(socialLogin)));
+  }
 
   passport.use('jwt', new JWTStrategy(options.secret, user => uw.getUser(user.id)));
   passport.serializeUser(callbackify(serializeUser));
   passport.deserializeUser(callbackify(deserializeUser));
+
+  passport.supports = (strategy) =>
+    passport._strategy(strategy) !== undefined;
 
   return passport;
 }
