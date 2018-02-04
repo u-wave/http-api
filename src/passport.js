@@ -50,7 +50,7 @@ export default function configurePassport(uw, options) {
     session: false,
   }, callbackify(localLogin)));
 
-  if (options.auth.google) {
+  if (options.auth && options.auth.google) {
     passport.use('google', new GoogleStrategy({
       callbackURL: '/auth/service/google/callback',
       ...options.auth.google,
