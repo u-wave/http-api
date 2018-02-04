@@ -62,10 +62,10 @@ export default function configurePassport(uw, options) {
   passport.serializeUser(callbackify(serializeUser));
   passport.deserializeUser(callbackify(deserializeUser));
 
-  passport.supports = (strategy) =>
-    passport._strategy(strategy) !== undefined;
+  passport.supports = strategy =>
+    passport._strategy(strategy) !== undefined; // eslint-disable-line no-underscore-dangle
   passport.strategies = () =>
-    Object.keys(passport._strategies)
+    Object.keys(passport._strategies) // eslint-disable-line no-underscore-dangle
       .filter(strategy => strategy !== 'session' && strategy !== 'jwt');
 
   return passport;
