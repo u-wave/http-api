@@ -21,6 +21,7 @@ export async function getState(req) {
   const activePlaylist = user ? user.getActivePlaylistID() : null;
   const playlists = user ? user.getPlaylists() : null;
   const socketToken = user ? v1.sockets.createAuthToken(user) : null;
+  const authStrategies = v1.passport.strategies();
   const time = Date.now();
 
   const state = await Promise.props({
@@ -34,6 +35,7 @@ export async function getState(req) {
     activePlaylist,
     playlists,
     socketToken,
+    authStrategies,
     time,
   });
 

@@ -15,8 +15,13 @@ import { ROLE_MANAGER } from '../roles';
 import sendEmail from '../email';
 import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import toItemResponse from '../utils/toItemResponse';
+import toListResponse from '../utils/toListResponse';
 
 const log = createDebug('uwave:api:v1:auth');
+
+function seconds(str) {
+  return Math.floor(ms(str) / 1000);
+}
 
 export function getCurrentUser(req) {
   return toItemResponse(req.user || {}, {
@@ -24,8 +29,13 @@ export function getCurrentUser(req) {
   });
 }
 
-function seconds(str) {
-  return Math.floor(ms(str) / 1000);
+export function getAuthStrategies(req) {
+  const { passport } = req.uwaveApiV1;
+
+  return toListResponse(
+    passport.strategies(),
+    { url: req.fullUrl },
+  );
 }
 
 export async function refreshSession(res, v1, user, options) {

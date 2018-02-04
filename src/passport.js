@@ -64,6 +64,9 @@ export default function configurePassport(uw, options) {
 
   passport.supports = (strategy) =>
     passport._strategy(strategy) !== undefined;
+  passport.strategies = () =>
+    Object.keys(passport._strategies)
+      .filter(strategy => strategy !== 'session' && strategy !== 'jwt');
 
   return passport;
 }

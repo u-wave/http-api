@@ -14,6 +14,11 @@ export default function authenticateRoutes(v1, options) {
       '/',
       route(controller.getCurrentUser),
     )
+    // GET /auth/strategies - Show available authentication strategies.
+    .get(
+      '/strategies',
+      route(controller.getAuthStrategies),
+    )
     // POST /auth/register - Create a new user account.
     .post(
       '/register',
