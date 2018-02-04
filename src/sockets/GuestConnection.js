@@ -1,6 +1,5 @@
 import EventEmitter from 'events';
 import Ultron from 'ultron';
-import cookie from 'cookie';
 import WebSocket from 'ws';
 import createDebug from 'debug';
 
@@ -30,17 +29,6 @@ export default class GuestConnection extends EventEmitter {
         this.send('error', error.message);
       });
     });
-
-    if (req && req.headers && req.headers.cookie) {
-      const cookies = cookie.parse(req.headers.cookie);
-      if (cookies.uwsession) {
-        this.attemptAuth(cookies.uwsession).then(() => {
-          this.send('authenticated');
-        }).catch((error) => {
-          this.send('error', error.message);
-        });
-      }
-    }
   }
 
   async getTokenUser(token) {
