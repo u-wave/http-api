@@ -4,7 +4,7 @@ import {
   CombinedError,
 } from '../errors';
 
-const debug = createDebug('uwave:api:v1:error');
+const debug = createDebug('uwave:http:error');
 
 function toErrorResponse(errors) {
   return {

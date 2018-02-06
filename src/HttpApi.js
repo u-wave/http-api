@@ -34,21 +34,21 @@ options are used to attach the WebSocket server to the correct HTTP server.
 An example of how to attach the WebSocket server to an existing HTTP server
 using Express:
 
-    import webApi from 'u-wave-api-v1';
+    import httpApi from 'u-wave-http-api';
     const app = express();
     const server = app.listen(80);
 
-    app.use('/v1', webApi(uwave, {
+    app.use('/api', httpApi(uwave, {
       server: server,
       ...
     }));
 
 Alternatively, you can provide a port for the socket server to listen on:
 
-    import webApi from 'u-wave-api-v1';
+    import httpApi from 'u-wave-http-api';
     const app = express();
 
-    app.use('/v1', webApi(uwave, {
+    app.use('/api', httpApi(uwave, {
       socketPort: 6042,
       ...
     }));
@@ -74,7 +74,7 @@ function defaultCreatePasswordResetEmail({ token, requestUrl }) {
   };
 }
 
-export default class ApiV1 extends Router {
+export default class UwaveHttpApi extends Router {
   constructor(uw, options = {}) {
     if (!uw || !('mongo' in uw)) {
       throw new TypeError('Expected a u-wave-core instance in the first parameter. If you are ' +
@@ -122,7 +122,7 @@ export default class ApiV1 extends Router {
       .use(addFullUrl())
       .use(this.attachUwaveToRequest())
       .use(this.passport.authenticate('jwt'))
-      .use(rateLimit('api-v1-http', { max: 500, duration: 60 * 1000 }));
+      .use(rateLimit('api-http', { max: 500, duration: 60 * 1000 }));
 
     this
       .use('/auth', authenticate(this, {
@@ -149,10 +149,10 @@ export default class ApiV1 extends Router {
   }
 
   /**
-   * Create middleware to attach the u-wave-core instance and the u-wave-api-v1
+   * Create middleware to attach the u-wave-core instance and the u-wave-http-api
    * instance to incoming requests. This can be used to access eg. configuration
    * options or session information inside other routes (ones not added by
-   * u-wave-api-v1).
+   * u-wave-http-api).
    *
    * @return {Function} Middleware.
    */

@@ -6,12 +6,12 @@ import { serializePlaylist } from '../utils/serialize';
 // eslint-disable-next-line import/prefer-default-export
 export async function getState(req) {
   const uw = req.uwave;
-  const v1 = req.uwaveApiV1;
+  const api = req.uwaveHttp;
   const { user } = req;
 
   const User = uw.model('User');
 
-  const guests = v1.getGuestCount();
+  const guests = api.getGuestCount();
   const motd = uw.getMotd();
   const booth = getBoothData(uw);
   const users = uw.redis.lrange('users', 0, -1)
@@ -20,8 +20,8 @@ export async function getState(req) {
   const waitlistLocked = uw.redis.get('waitlist:lock').then(Boolean);
   const activePlaylist = user ? user.getActivePlaylistID() : null;
   const playlists = user ? user.getPlaylists() : null;
-  const socketToken = user ? v1.sockets.createAuthToken(user) : null;
-  const authStrategies = v1.passport.strategies();
+  const socketToken = user ? api.sockets.createAuthToken(user) : null;
+  const authStrategies = api.passport.strategies();
   const time = Date.now();
 
   const state = await Promise.props({

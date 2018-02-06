@@ -17,7 +17,7 @@ import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import toItemResponse from '../utils/toItemResponse';
 import toListResponse from '../utils/toListResponse';
 
-const log = createDebug('uwave:api:v1:auth');
+const log = createDebug('uwave:http:auth');
 
 function seconds(str) {
   return Math.floor(ms(str) / 1000);
@@ -30,7 +30,7 @@ export function getCurrentUser(req) {
 }
 
 export function getAuthStrategies(req) {
-  const { passport } = req.uwaveApiV1;
+  const { passport } = req.uwaveHttp;
 
   return toListResponse(
     passport.strategies(),
@@ -38,14 +38,14 @@ export function getAuthStrategies(req) {
   );
 }
 
-export async function refreshSession(res, v1, user, options) {
+export async function refreshSession(res, api, user, options) {
   const token = await jwt.sign(
     { id: user.id },
     options.secret,
     { expiresIn: '31d' },
   );
 
-  const socketToken = await v1.sockets.createAuthToken(user);
+  const socketToken = await api.sockets.createAuthToken(user);
 
   if (options.session === 'cookie') {
     const serialized = cookie.serialize('uwsession', token, {
@@ -72,7 +72,7 @@ export async function login(options, req, res) {
     throw new PermissionError('You have been banned.');
   }
 
-  const { token, socketToken } = await refreshSession(res, req.uwaveApiV1, user, {
+  const { token, socketToken } = await refreshSession(res, req.uwaveHttp, user, {
     ...options,
     session: sessionType,
   });
@@ -92,7 +92,7 @@ export async function socialLoginCallback(options, req, res) {
     throw new PermissionError('You have been banned.');
   }
 
-  await refreshSession(res, req.uwaveApiV1, user, {
+  await refreshSession(res, req.uwaveHttp, user, {
     ...options,
     session: 'cookie',
   });
@@ -113,7 +113,7 @@ export async function socialLoginCallback(options, req, res) {
 }
 
 export async function getSocketToken(req) {
-  const { sockets } = req.uwaveApiV1;
+  const { sockets } = req.uwaveHttp;
   const socketToken = await sockets.createAuthToken(req.user);
   return toItemResponse({ socketToken }, {
     url: req.fullUrl,

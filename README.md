@@ -1,4 +1,4 @@
-# u-wave-api-v1
+# u-wave-http-api
 
 HTTP API plugin for üWave, the collaborative listening platform.
 
@@ -6,13 +6,13 @@ HTTP API plugin for üWave, the collaborative listening platform.
 [License](#license)
 
 > Note: üWave is still under development. Particularly the `u-wave-core` and
-> `u-wave-api-v1` modules will change a lot before the "official" 1.0.0 release.
-> Make sure to always upgrade both of them at the same time.
+> `u-wave-http-api` modules will change a lot before the "official" 1.0.0
+> release. Make sure to always upgrade both of them at the same time.
 
 ## Getting Started
 
 ```
-npm install u-wave-api-v1
+npm install u-wave-http-api
 ```
 
 The module exports a middleware that can be used with express-style HTTP request
@@ -25,7 +25,7 @@ handlers.
 Creates a middleware for use with [Express][] or another such library. The first
 parameter is a `u-wave-core` instance. Available options are:
 
- - `server` - An HTTP server instance. `u-wave-api-v1` uses WebSockets, and it
+ - `server` - An HTTP server instance. `u-wave-http-api` uses WebSockets, and it
    needs an HTTP server to listen to for incoming WebSocket connections. An
    example for how to obtain this server from an Express app is shown below.
  - `socketPort` - The WebSocket server can also listen on its own port instead
@@ -37,8 +37,8 @@ parameter is a `u-wave-core` instance. Available options are:
    pass an object with ReCaptcha options. The only available option is `secret`,
    which is the ReCaptcha secret obtained from the "Server-side integration"
    panel on your [ReCaptcha site admin page][recaptcha].
- - `mailTransport` - [nodemailer](https://nodemailer.com) SMTP options or a transport object,
-   used to send password reset emails.
+ - `mailTransport` - [nodemailer](https://nodemailer.com) SMTP options or a
+   transport object, used to send password reset emails.
  - `onError` - Error handler function, use for recording errors. First parameter
    is the request object that caused the error, second is the error itself.
 
@@ -46,7 +46,7 @@ parameter is a `u-wave-core` instance. Available options are:
 import express from 'express';
 import stubTransport from 'nodemailer-stub-transport';
 import uwave from 'u-wave-core';
-import createHttpApi from 'u-wave-api-v1';
+import createHttpApi from 'u-wave-http-api';
 
 const app = express();
 const server = app.listen();
@@ -69,14 +69,14 @@ app.use('/v1', api);
 
 ### api.attachUwaveToRequest()
 
-Returns a middleware that attaches the üWave core object and the üWave api-v1
+Returns a middleware that attaches the üWave core object and the üWave http-api
 object to the request. The `u-wave-core` instance will be available as
-`req.uwave`, and the `u-wave-api-v1` instance will be available as
-`req.uwaveApiV1`. This is useful if you want to access these objects in custom
-routes, that are not in the `u-wave-api-v1` namespace. E.g.:
+`req.uwave`, and the `u-wave-http-api` instance will be available as
+`req.uwaveHttp`. This is useful if you want to access these objects in custom
+routes, that are not in the `u-wave-http-api` namespace. E.g.:
 
 ```js
-app.use('/v1', api);
+app.use('/api', api);
 
 // A custom profile page.
 app.get('/profile/:user', api.attachUwaveToRequest(), (req, res) => {
@@ -89,7 +89,8 @@ app.get('/profile/:user', api.attachUwaveToRequest(), (req, res) => {
 
 ## Contributing
 
-There is a development server included in this repository. To use it, first you have to clone and install u-wave-core.
+There is a development server included in this repository. To use it, first you
+have to clone and install u-wave-core.
 
 ```bash
 git clone https://github.com/u-wave/core u-wave-core
@@ -101,8 +102,8 @@ npm link
 Then you can clone and install the HTTP API:
 
 ```bash
-git clone https://github.com/u-wave/api-v1 u-wave-api-v1
-cd u-wave-api-v1
+git clone https://github.com/u-wave/http-api u-wave-http-api
+cd u-wave-http-api
 npm install
 # Add our local u-wave-core
 npm link u-wave-core

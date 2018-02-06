@@ -86,7 +86,7 @@ function start() {
     console.log(`Now listening on ${port}`);
   });
 
-  const apiUrl = '/v1';
+  const apiUrl = '/api';
 
   app.use(apiUrl, createWebApi(uw, {
     recaptcha: { secret: recaptchaTestKeys.secret },

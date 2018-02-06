@@ -5,8 +5,8 @@ import protect from '../middleware/protect';
 import checkFields from '../middleware/checkFields';
 import * as controller from '../controllers/authenticate';
 
-export default function authenticateRoutes(v1, options) {
-  const { passport } = v1;
+export default function authenticateRoutes(api, options) {
+  const { passport } = api;
 
   const auth = router()
     // GET /auth/ - Show current user information.

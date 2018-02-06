@@ -1,9 +1,9 @@
 {
-  "name": "u-wave-api-v1",
+  "name": "u-wave-http-api",
   "version": "0.3.0",
   "description": "HTTP API interface for üWave.",
   "license": "MIT",
-  "repository": "u-wave/api-v1",
+  "repository": "u-wave/http-api",
   "author": "Sooyou <souyoou@googlemail.com>",
   "contributors": [
     "Felix Wong <felix@fawong.com>",
@@ -11,8 +11,8 @@
     "Renée Kooi <renee@kooi.me>",
     "xBytez <me@xbytez.eu>"
   ],
-  "main": "dist/u-wave-api-v1.js",
-  "module": "dist/u-wave-api-v1.es.js",
+  "main": "dist/u-wave-http-api.js",
+  "module": "dist/u-wave-http-api.es.js",
   "engines": {
     "node": ">= 8.9"
   },

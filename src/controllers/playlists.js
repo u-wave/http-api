@@ -10,7 +10,7 @@ import toItemResponse from '../utils/toItemResponse';
 import toListResponse from '../utils/toListResponse';
 import toPaginatedResponse from '../utils/toPaginatedResponse';
 
-const debug = createDebug('uwave:api:v1:playlists');
+const debug = createDebug('uwave:http:playlists');
 
 export async function getPlaylists(req) {
   const playlists = await req.user.getPlaylists();

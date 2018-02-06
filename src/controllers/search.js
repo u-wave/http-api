@@ -3,7 +3,7 @@ import createDebug from 'debug';
 import { NotFoundError } from '../errors';
 import toListResponse from '../utils/toListResponse';
 
-const log = createDebug('uwave:api:v1:search');
+const log = createDebug('uwave:http:search');
 
 export function searchAll(req) {
   const uw = req.uwave;

@@ -1,8 +1,11 @@
-export default function attachUwaveMeta(apiV1, uw) {
+export default function attachUwaveMeta(httpApi, uw) {
   return (req, res, next) => {
     if (!req.uwave) {
-      req.uwaveApiV1 = apiV1;
+      req.uwaveHttp = httpApi;
       req.uwave = uw;
+
+      // Backwards compat?
+      req.uwaveApiV1 = httpApi;
     }
     next();
   };
