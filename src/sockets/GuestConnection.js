@@ -2,7 +2,6 @@ import EventEmitter from 'events';
 import Ultron from 'ultron';
 import WebSocket from 'ws';
 import createDebug from 'debug';
-import jwt from 'jsonwebtoken';
 
 const debug = createDebug('uwave:api:sockets:guest');
 
@@ -11,7 +10,7 @@ type ConnectionOptions = { timeout: number };
 export default class GuestConnection extends EventEmitter {
   lastMessage = Date.now();
 
-  constructor(uw, socket: WebSocket, options: ConnectionOptions) {
+  constructor(uw, socket: WebSocket, req?, options: ConnectionOptions) {
     super();
     this.uw = uw;
     this.socket = socket;
@@ -24,23 +23,34 @@ export default class GuestConnection extends EventEmitter {
     });
 
     this.events.on('message', (token) => {
-      this.attemptAuth(token)
-        .then(() => {
-          this.send('authenticated');
-        })
-        .catch((error) => {
-          this.send('error', error.message);
-        });
+      this.attemptAuth(token).then(() => {
+        this.send('authenticated');
+      }).catch((error) => {
+        this.send('error', error.message);
+      });
     });
+  }
+
+  async getTokenUser(token) {
+    if (token.length !== 128) {
+      throw new Error('Invalid token');
+    }
+    const [userID] = await this.uw.redis
+      .multi()
+      .get(`api-v1:socketAuth:${token}`)
+      .del(`api-v1:socketAuth:${token}`)
+      .exec();
+
+    return userID;
   }
 
   async attemptAuth(token) {
     const User = this.uw.model('User');
-    const session = await jwt.verify(token, this.options.secret);
-    if (!session) {
+    const userID = await this.getTokenUser(token);
+    if (!userID) {
       throw new Error('Invalid token');
     }
-    const userModel = await User.findById(session.id);
+    const userModel = await User.findById(userID);
     if (!userModel) {
       throw new Error('Invalid session');
     }
@@ -70,7 +80,6 @@ export default class GuestConnection extends EventEmitter {
       this.lastMessage = Date.now();
     }
   }
-
 
   close() {
     debug('close');

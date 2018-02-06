@@ -5,6 +5,8 @@ import tryJsonParse from 'try-json-parse';
 import WebSocket from 'ws';
 import ms from 'ms';
 import createDebug from 'debug';
+import { promisify } from 'util';
+import crypto from 'crypto';
 
 import { vote } from './controllers/booth';
 import { disconnectUser } from './controllers/users';
@@ -14,6 +16,7 @@ import AuthedConnection from './sockets/AuthedConnection';
 import LostConnection from './sockets/LostConnection';
 
 const debug = createDebug('uwave:api:sockets');
+const randomBytes = promisify(crypto.randomBytes);
 
 export function createCommand(command, data) {
   return JSON.stringify({ command, data });
@@ -76,10 +79,17 @@ export default class SocketServer {
     });
   }
 
-  onSocketConnected(socket) {
+  onSocketConnected(socket, req) {
     debug('new connection');
 
-    this.add(this.createGuestConnection(socket));
+    this.add(this.createGuestConnection(socket, req));
+  }
+
+  async createAuthToken(user) {
+    const { redis } = this.uw;
+    const token = (await randomBytes(64)).toString('hex');
+    await redis.set(`api-v1:socketAuth:${token}`, user.id, 'EX', 60);
+    return token;
   }
 
   /**
@@ -93,14 +103,14 @@ export default class SocketServer {
   /**
    * Create a connection instance for an unauthenticated user.
    */
-  createGuestConnection(socket) {
-    const connection = new GuestConnection(this.uw, socket, {
+  createGuestConnection(socket, req?) {
+    const connection = new GuestConnection(this.uw, socket, req, {
       secret: this.options.secret,
     });
     connection.on('close', () => {
       this.remove(connection);
     });
-    connection.on('authenticate', async (user) => { // eslint-disable-line arrow-parens
+    connection.on('authenticate', async (user, token) => {
       debug('connecting', user.id, user.username);
       if (await connection.isReconnect(user)) {
         debug('is reconnection');
@@ -110,7 +120,7 @@ export default class SocketServer {
         this.uw.publish('user:join', { userID: user.id });
       }
 
-      this.replace(connection, this.createAuthedConnection(socket, user));
+      this.replace(connection, this.createAuthedConnection(socket, user, token));
     });
     return connection;
   }
@@ -118,8 +128,8 @@ export default class SocketServer {
   /**
    * Create a connection instance for an authenticated user.
    */
-  createAuthedConnection(socket, user) {
-    const connection = new AuthedConnection(this.uw, socket, user);
+  createAuthedConnection(socket, user, token) {
+    const connection = new AuthedConnection(this.uw, socket, user, token);
     connection.on('close', ({ banned }) => {
       if (banned) {
         debug('removing connection after ban', user.id, user.username);
@@ -132,8 +142,9 @@ export default class SocketServer {
     });
     connection.on('command', (command, data) => {
       debug('command', user.id, user.username, command, data);
-      if (this.clientActions[command]) {
-        this.clientActions[command].call(this, user, data);
+      const action = this.clientActions[command];
+      if (action) {
+        action(user, data, connection);
       }
     });
     return connection;
@@ -192,12 +203,18 @@ export default class SocketServer {
    * Handlers for commands that come in from clients.
    */
   clientActions = {
-    sendChat(user, message) {
+    sendChat: (user, message) => {
       debug('sendChat', user, message);
-      return this.uw.sendChat(user, message);
+      this.uw.sendChat(user, message);
     },
-    vote(user, direction) {
-      return vote(this.uw, user.id, direction);
+    vote: (user, direction) => {
+      vote(this.uw, user.id, direction);
+    },
+    logout: (user, _, connection) => {
+      this.replace(connection, this.createGuestConnection(connection.socket, null));
+      if (!this.connection(user)) {
+        disconnectUser(this.uw, user);
+      }
     },
   };
 
@@ -371,8 +388,9 @@ export default class SocketServer {
     if (channel === 'v1') {
       this.broadcast(command, data);
     } else if (channel === 'uwave') {
-      if (command in this.serverActions) {
-        this.serverActions[command].call(this, data);
+      const action = this.serverActions[command];
+      if (action) {
+        action(data);
       }
     }
   }

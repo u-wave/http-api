@@ -1,13 +1,13 @@
 import bcrypt from 'bcryptjs';
+import cookie from 'cookie';
 import createDebug from 'debug';
-import Promise from 'bluebird';
 import jwt from 'jsonwebtoken';
 import randomString from 'random-string';
 import got from 'got';
+import ms from 'ms';
 import {
   HTTPError,
   NotFoundError,
-  PasswordError,
   PermissionError,
   TokenError,
 } from '../errors';
@@ -15,10 +15,13 @@ import { ROLE_MANAGER } from '../roles';
 import sendEmail from '../email';
 import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import toItemResponse from '../utils/toItemResponse';
+import toListResponse from '../utils/toListResponse';
 
 const log = createDebug('uwave:api:v1:auth');
 
-const jwtSign = Promise.promisify(jwt.sign);
+function seconds(str) {
+  return Math.floor(ms(str) / 1000);
+}
 
 export function getCurrentUser(req) {
   return toItemResponse(req.user || {}, {
@@ -26,35 +29,94 @@ export function getCurrentUser(req) {
   });
 }
 
-export async function login(options, req) {
-  const uw = req.uwave;
-  const Authentication = uw.model('Authentication');
-  const { email, password } = req.body;
+export function getAuthStrategies(req) {
+  const { passport } = req.uwaveApiV1;
 
-  const auth = await Authentication.findOne({
-    email: email.toLowerCase(),
-  }).populate('user').exec();
-  if (!auth) {
-    throw new NotFoundError('No user was found with that email address.');
-  }
+  return toListResponse(
+    passport.strategies(),
+    { url: req.fullUrl },
+  );
+}
 
-  const correct = await bcrypt.compare(password, auth.hash);
-  if (!correct) {
-    throw new PasswordError('That password is incorrect.');
-  }
-
-  if (await auth.user.isBanned()) {
-    throw new PermissionError('You have been banned.');
-  }
-
-  const token = await jwtSign(
-    { id: auth.user.id },
+export async function refreshSession(res, v1, user, options) {
+  const token = await jwt.sign(
+    { id: user.id },
     options.secret,
     { expiresIn: '31d' },
   );
 
-  return toItemResponse(auth.user, {
-    meta: { jwt: token },
+  const socketToken = await v1.sockets.createAuthToken(user);
+
+  if (options.session === 'cookie') {
+    const serialized = cookie.serialize('uwsession', token, {
+      httpOnly: true,
+      secure: !!options.cookieSecure,
+      path: options.cookiePath || '/',
+      maxAge: seconds('31 days'),
+    });
+    res.setHeader('Set-Cookie', serialized);
+  }
+
+  return { token, socketToken };
+}
+
+/**
+ * The login controller is called once a user has logged in successfully using Passport;
+ * we only have to assign the JWT.
+ */
+export async function login(options, req, res) {
+  const { user } = req;
+  const sessionType = req.query.session === 'cookie' ? 'cookie' : 'token';
+
+  if (await user.isBanned()) {
+    throw new PermissionError('You have been banned.');
+  }
+
+  const { token, socketToken } = await refreshSession(res, req.uwaveApiV1, user, {
+    ...options,
+    session: sessionType,
+  });
+
+  return toItemResponse(user, {
+    meta: {
+      jwt: sessionType === 'token' ? token : 'cookie',
+      socketToken,
+    },
+  });
+}
+
+export async function socialLoginCallback(options, req, res) {
+  const { user } = req;
+
+  if (await user.isBanned()) {
+    throw new PermissionError('You have been banned.');
+  }
+
+  await refreshSession(res, req.uwaveApiV1, user, {
+    ...options,
+    session: 'cookie',
+  });
+
+  res.end(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Success</title>
+      </head>
+      <body>
+        You can now close this window.
+        <script>close()</script>
+      </body>
+    </html>
+  `);
+}
+
+export async function getSocketToken(req) {
+  const { sockets } = req.uwaveApiV1;
+  const socketToken = await sockets.createAuthToken(req.user);
+  return toItemResponse({ socketToken }, {
+    url: req.fullUrl,
   });
 }
 
@@ -164,7 +226,27 @@ export async function changePassword(req) {
   });
 }
 
-export async function removeSession(req) {
+export async function logout(options, req, res) {
+  const uw = req.uwave;
+
+  uw.publish('user:logout', {
+    userID: req.user.id,
+  });
+
+  if (req.cookies && req.cookies.uwsession) {
+    const serialized = cookie.serialize('uwsession', '', {
+      httpOnly: true,
+      secure: !!options.cookieSecure,
+      path: options.cookiePath || '/',
+      maxAge: 0,
+    });
+    res.setHeader('Set-Cookie', serialized);
+  }
+
+  return toItemResponse({});
+}
+
+export async function removeSession(options, req) {
   const uw = req.uwave;
   const { id } = req.params;
   const Authentication = uw.model('Authentication');
@@ -176,7 +258,7 @@ export async function removeSession(req) {
   const auth = await Authentication.findById(id);
   if (!auth) throw new NotFoundError('Session not found.');
 
-  uw.publish('api-v1:socket:close', auth.id);
+  uw.publish('api-v1:sockets:close', auth.id);
 
   return toItemResponse({}, {
     meta: { message: 'logged out' },
