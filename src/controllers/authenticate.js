@@ -54,6 +54,7 @@ export async function refreshSession(res, api, user, options) {
       maxAge: seconds('31 days'),
     });
     res.setHeader('Set-Cookie', serialized);
+    return { token: 'cookie', socketToken };
   }
 
   return { token, socketToken };
