@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import cookie from 'cookie';
 import createDebug from 'debug';
 import jwt from 'jsonwebtoken';
@@ -209,13 +208,7 @@ export async function changePassword(req) {
       'token or request a new password reset.');
   }
 
-  const hash = await bcrypt.hash(password, 10);
-
-  const auth = await Authentication.findOneAndUpdate({ user: userId }, { hash });
-
-  if (!auth) {
-    throw new NotFoundError('No user was found with that email address.');
-  }
+  await uw.users.updatePassword(userId, password);
 
   await uw.redis.del(`reset:${resetToken}`);
 

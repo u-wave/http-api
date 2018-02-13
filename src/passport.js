@@ -2,39 +2,20 @@ import { Passport } from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { callbackify } from 'util';
-import bcrypt from 'bcryptjs';
 import JWTStrategy from './auth/JWTStrategy';
-import { NotFoundError, PasswordError } from './errors';
 
 export default function configurePassport(uw, options) {
   const passport = new Passport();
 
   async function localLogin(email, password) {
-    const Authentication = uw.model('Authentication');
-
-    const auth = await Authentication.findOne({
-      email: email.toLowerCase(),
-    }).populate('user').exec();
-    if (!auth) {
-      throw new NotFoundError('No user was found with that email address.');
-    }
-
-    const correct = await bcrypt.compare(password, auth.hash);
-    if (!correct) {
-      throw new PasswordError('That password is incorrect.');
-    }
-
-    return auth.user;
+    return uw.users.login({ type: 'local', email, password });
   }
 
   async function socialLogin(accessToken, refreshToken, profile) {
-    const user = {
+    return uw.users.login({
       type: profile.provider,
-      id: profile.id,
-      username: profile.displayName,
-      avatar: profile.photos.length > 0 ? profile.photos[0].value : null,
-    };
-    return uw.users.findOrCreateSocialUser(user);
+      profile,
+    });
   }
 
   async function serializeUser(user) {
