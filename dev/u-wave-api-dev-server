@@ -78,8 +78,8 @@ function start() {
     throw explain(err, 'Could not connect to the Redis server. Is it installed and running?');
   });
 
-  uw.source('youtube', ytSource, config.sources.youtube);
-  uw.source('soundcloud', scSource, config.sources.soundcloud);
+  uw.source(ytSource, config.sources.youtube);
+  uw.source(scSource, config.sources.soundcloud);
 
   const app = express();
   const server = app.listen(port, () => {
