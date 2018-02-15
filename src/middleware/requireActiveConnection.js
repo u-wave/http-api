@@ -1,4 +1,5 @@
 import { PermissionError } from '../errors';
+import wrapMiddleware from '../utils/wrapMiddleware';
 
 export default function requireActiveConnection() {
   async function isConnected(uwave, user) {
@@ -6,14 +7,10 @@ export default function requireActiveConnection() {
     return onlineIDs.indexOf(user.id) !== -1;
   }
 
-  return (req, res, next) => {
-    isConnected(req.uwave, req.user)
-      .then((connected) => {
-        if (!connected) {
-          throw new PermissionError('You need to be logged in and connected to do this.');
-        }
-      })
-      .then(() => next())
-      .catch(next);
-  };
+  return wrapMiddleware(async (req) => {
+    const connected = await isConnected(req.uwave, req.user);
+    if (!connected) {
+      throw new PermissionError('You need to be logged in and connected to do this.');
+    }
+  });
 }

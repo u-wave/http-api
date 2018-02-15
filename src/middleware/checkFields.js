@@ -1,47 +1,14 @@
 import joi from 'joi';
-import { HTTPError } from '../errors';
+import { promisify } from 'util';
+import wrapMiddleware from '../utils/wrapMiddleware';
 
-class InputError extends HTTPError {
-  constructor(message, props) {
-    super(422, message);
-
-    Object.assign(this, props);
-  }
-}
+const validate = promisify(joi.validate);
 
 export default function checkFields(types) {
-  if (typeof types.validate === 'function') {
-    return (req, res, next) => {
-      joi.validate(req, types, {
-        abortEarly: false,
-        allowUnknown: true,
-      }, (err) => {
-        if (err) {
-          next(err);
-        } else {
-          next();
-        }
-      });
-    };
-  }
-
-  return (req, res, next) => {
-    const errors = [];
-
-    Object.keys(types).forEach((field) => {
-      const type = types[field];
-      const value = req.body[field];
-      if (typeof value !== type) { // eslint-disable-line valid-typeof
-        errors.push(new InputError(`${field}: Expected a ${type}`, {
-          source: { field },
-        }));
-      }
+  return wrapMiddleware(async (req) => {
+    await validate(req, types, {
+      abortEarly: false,
+      allowUnknown: true,
     });
-
-    if (errors.length > 0) {
-      next(errors);
-    } else {
-      next();
-    }
-  };
+  });
 }
