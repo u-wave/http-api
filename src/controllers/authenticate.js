@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import cookie from 'cookie';
 import createDebug from 'debug';
 import jwt from 'jsonwebtoken';
@@ -55,6 +54,7 @@ export async function refreshSession(res, api, user, options) {
       maxAge: seconds('31 days'),
     });
     res.setHeader('Set-Cookie', serialized);
+    return { token: 'cookie', socketToken };
   }
 
   return { token, socketToken };
@@ -199,7 +199,6 @@ export async function reset(options, req) {
 
 export async function changePassword(req) {
   const uw = req.uwave;
-  const Authentication = uw.model('Authentication');
   const resetToken = req.params.reset;
   const { password } = req.body;
 
@@ -209,13 +208,7 @@ export async function changePassword(req) {
       'token or request a new password reset.');
   }
 
-  const hash = await bcrypt.hash(password, 10);
-
-  const auth = await Authentication.findOneAndUpdate({ user: userId }, { hash });
-
-  if (!auth) {
-    throw new NotFoundError('No user was found with that email address.');
-  }
+  await uw.users.updatePassword(userId, password);
 
   await uw.redis.del(`reset:${resetToken}`);
 

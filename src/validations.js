@@ -33,6 +33,9 @@ export const register = joi.object({
 });
 
 export const login = joi.object({
+  query: joi.object({
+    session: joi.string().valid('token', 'cookie').default('token'),
+  }),
   body: joi.object({
     email: userEmail.required(),
     password: joi.string().required(),
