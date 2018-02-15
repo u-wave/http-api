@@ -11,7 +11,6 @@ import waitlist from './routes/waitlist';
 import search from './routes/search';
 import booth from './routes/booth';
 import users from './routes/users';
-import staff from './routes/staff';
 import chat from './routes/chat';
 import motd from './routes/motd';
 import now from './routes/now';
@@ -139,7 +138,6 @@ export default class UwaveHttpApi extends Router {
       .use('/now', now(this))
       .use('/playlists', playlist(this))
       .use('/search', search(this))
-      .use('/staff', staff(this))
       .use('/users', users(this))
       .use('/waitlist', waitlist(this));
 
