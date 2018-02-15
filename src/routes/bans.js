@@ -1,26 +1,25 @@
 import router from 'router';
 import route from '../route';
 import protect from '../middleware/protect';
-import { ROLE_MODERATOR, ROLE_MANAGER } from '../roles';
 import * as controller from '../controllers/bans';
 
 export default function banRoutes() {
   return router()
     .get(
       '/',
-      protect(ROLE_MODERATOR),
+      protect('users.bans.list'),
       route(controller.getBans),
     )
 
     .post(
       '/',
-      protect(ROLE_MODERATOR),
+      protect('users.bans.add'),
       route(controller.addBan),
     )
 
     .delete(
       '/:userID',
-      protect(ROLE_MANAGER),
+      protect('users.bans.remove'),
       route(controller.removeBan),
     );
 }

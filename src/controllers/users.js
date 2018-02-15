@@ -4,7 +4,6 @@ import {
   HTTPError,
   PermissionError,
 } from '../errors';
-import { ROLE_MANAGER } from '../roles';
 import skipIfCurrentDJ from '../utils/skipIfCurrentDJ';
 import removeFromWaitlist from '../utils/removeFromWaitlist';
 import getOffsetPagination from '../utils/getOffsetPagination';
@@ -73,11 +72,7 @@ export async function changeUsername(req) {
   }
 }
 
-export async function changeAvatar(req) {
-  if (!req.user.id !== req.params.id && req.user.role < ROLE_MANAGER) {
-    throw new PermissionError('You need to be a manager to do this');
-  }
-
+export async function changeAvatar() {
   throw new HTTPError(500, 'Not implemented');
 }
 

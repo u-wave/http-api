@@ -10,7 +10,6 @@ import {
   PermissionError,
   TokenError,
 } from '../errors';
-import { ROLE_MANAGER } from '../roles';
 import sendEmail from '../email';
 import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import toItemResponse from '../utils/toItemResponse';
@@ -239,21 +238,6 @@ export async function logout(options, req, res) {
   return toItemResponse({});
 }
 
-export async function removeSession(options, req) {
-  const uw = req.uwave;
-  const { id } = req.params;
-  const Authentication = uw.model('Authentication');
-
-  if (req.user.id !== id && req.user.role < ROLE_MANAGER) {
-    throw new PermissionError('You need to be a manager to do this');
-  }
-
-  const auth = await Authentication.findById(id);
-  if (!auth) throw new NotFoundError('Session not found.');
-
-  uw.publish('api-v1:sockets:close', auth.id);
-
-  return toItemResponse({}, {
-    meta: { message: 'logged out' },
-  });
+export async function removeSession() {
+  throw new Error('Unimplemented');
 }

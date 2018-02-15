@@ -6,7 +6,6 @@ import {
   NotFoundError,
   PermissionError,
 } from '../errors';
-import { ROLE_MODERATOR } from '../roles';
 import getOffsetPagination from '../utils/getOffsetPagination';
 import toItemResponse from '../utils/toItemResponse';
 import toListResponse from '../utils/toListResponse';
@@ -77,7 +76,7 @@ export async function skipBooth(req) {
   }
 
   const errors = [];
-  if (req.user.role < ROLE_MODERATOR) {
+  if (!(await req.user.can('booth.skip.other'))) {
     errors.push(new PermissionError('You need to be a moderator to do this'));
   }
   if (typeof req.body.userID !== 'string') {

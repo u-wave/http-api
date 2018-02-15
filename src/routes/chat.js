@@ -3,7 +3,6 @@ import route from '../route';
 import * as validations from '../validations';
 import protect from '../middleware/protect';
 import checkFields from '../middleware/checkFields';
-import { ROLE_MODERATOR } from '../roles';
 import * as controller from '../controllers/chat';
 
 export default function chatRoutes() {
@@ -11,20 +10,20 @@ export default function chatRoutes() {
     // DELETE /chat/ - Clear the chat (delete all messages).
     .delete(
       '/',
-      protect(ROLE_MODERATOR),
+      protect('chat.delete'),
       route(controller.deleteAll),
     )
     // DELETE /chat/user/:id - Delete all messages by a user.
     .delete(
       '/user/:id',
-      protect(ROLE_MODERATOR),
+      protect('chat.delete'),
       checkFields(validations.deleteChatByUser),
       route(controller.deleteByUser),
     )
     // DELETE /chat/:id - Delete a chat message.
     .delete(
       '/:id',
-      protect(ROLE_MODERATOR),
+      protect('chat.delete'),
       checkFields(validations.deleteChatMessage),
       route(controller.deleteMessage),
     );

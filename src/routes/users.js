@@ -5,14 +5,13 @@ import protect from '../middleware/protect';
 import checkFields from '../middleware/checkFields';
 import rateLimit from '../middleware/rateLimit';
 import * as controller from '../controllers/users';
-import { ROLE_MANAGER, ROLE_MODERATOR } from '../roles';
 
 export default function userRoutes() {
   return router()
     // GET /users/ - List user accounts.
     .get(
       '/',
-      protect(ROLE_MANAGER),
+      protect('users.list'),
       route(controller.getUsers),
     )
     // GET /users/:id - Show a single user.
@@ -25,7 +24,7 @@ export default function userRoutes() {
     // TODO move this to /mutes/ namespace.
     .post(
       '/:id/mute',
-      protect(ROLE_MODERATOR),
+      protect('chat.mute'),
       checkFields(validations.muteUser),
       route(controller.muteUser),
     )
@@ -33,14 +32,14 @@ export default function userRoutes() {
     // TODO move this to /mutes/ namespace.
     .delete(
       '/:id/mute',
-      protect(ROLE_MODERATOR),
+      protect('chat.unmute'),
       checkFields(validations.unmuteUser),
       route(controller.unmuteUser),
     )
     // PUT /users/:id/role - Change a user's role.
     .put(
       '/:id/role',
-      protect(ROLE_MANAGER),
+      protect(),
       checkFields(validations.setUserRole),
       route(controller.changeRole),
     )
