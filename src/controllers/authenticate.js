@@ -199,7 +199,6 @@ export async function reset(options, req) {
 
 export async function changePassword(req) {
   const uw = req.uwave;
-  const Authentication = uw.model('Authentication');
   const resetToken = req.params.reset;
   const { password } = req.body;
 
