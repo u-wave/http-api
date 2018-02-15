@@ -13,11 +13,7 @@ import toListResponse from '../utils/toListResponse';
 import toPaginatedResponse from '../utils/toPaginatedResponse';
 
 export async function getBoothData(uw) {
-  const History = uw.model('History');
-
-  const historyID = await uw.redis.get('booth:historyID');
-  const historyEntry = await History.findById(historyID)
-    .populate('media.media');
+  const historyEntry = await uw.booth.getCurrentEntry();
 
   if (!historyEntry || !historyEntry.user) {
     return null;
@@ -30,7 +26,7 @@ export async function getBoothData(uw) {
   });
 
   return {
-    historyID,
+    historyID: historyEntry.id,
     playlistID: `${historyEntry.playlist}`,
     playedAt: Date.parse(historyEntry.playedAt),
     userID: `${historyEntry.user}`,
@@ -156,7 +152,6 @@ export async function vote(uw, userID, direction) {
 
 export async function favorite(req) {
   const uw = req.uwave;
-  const Playlist = uw.model('Playlist');
   const PlaylistItem = uw.model('PlaylistItem');
   const History = uw.model('History');
 
@@ -173,12 +168,9 @@ export async function favorite(req) {
     throw new PermissionError('You can\'t favorite your own plays.');
   }
 
-  const playlist = await Playlist.findById(playlistID);
+  const playlist = await req.user.getPlaylist(playlistID);
 
   if (!playlist) throw new NotFoundError('Playlist not found.');
-  if (`${playlist.author}` !== id) {
-    throw new PermissionError('You can\'t edit another user\'s playlist.');
-  }
 
   // `.media` has the same shape as `.item`, but is guaranteed to exist and have
   // the same properties as when the playlist item was actually played.
