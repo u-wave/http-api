@@ -45,12 +45,11 @@ export default class GuestConnection extends EventEmitter {
   }
 
   async attemptAuth(token) {
-    const User = this.uw.model('User');
     const userID = await this.getTokenUser(token);
     if (!userID) {
       throw new Error('Invalid token');
     }
-    const userModel = await User.findById(userID);
+    const userModel = await this.uw.getUser(userID);
     if (!userModel) {
       throw new Error('Invalid session');
     }
