@@ -329,11 +329,10 @@ export default class SocketServer {
         });
       }
     },
-    'user:join': async ({ userID }) => { // eslint-disable-line arrow-parens
-      const User = this.uw.model('User');
-
-      await this.uw.redis.rpush('users', userID);
-      this.broadcast('join', await User.findById(userID).lean());
+    'user:join': async ({ userID }) => {
+      const { uw } = this;
+      await uw.redis.rpush('users', userID);
+      this.broadcast('join', await uw.getUser(userID).toJSON());
     },
     /**
      * Broadcast that a user left the server.
