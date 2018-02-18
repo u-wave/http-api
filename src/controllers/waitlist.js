@@ -31,12 +31,8 @@ async function isCurrentDJ(uw, userID) {
 }
 
 async function hasValidPlaylist(uw, userID) {
-  const active = await uw.redis.get(`playlist:${userID}`);
-
-  if (!active) return false;
-
-  const Playlist = uw.model('Playlist');
-  const playlist = await Playlist.findById(active);
+  const user = await uw.getUser(userID);
+  const playlist = await user.getActivePlaylist();
   return playlist && playlist.size > 0;
 }
 
@@ -93,12 +89,11 @@ async function doModerateAddToWaitlist(uw, user, { moderator, waitlist, position
 // adding someone else to the waitlist.
 export async function addToWaitlist(req) {
   const uw = req.uwave;
-  const User = uw.model('User');
 
   const moderator = req.user;
   const { userID } = req.body;
 
-  const user = await User.findById(userID);
+  const user = await uw.getUser(userID);
   if (!user) throw new PermissionError('User not found.');
 
   const canForceJoin = moderator.role >= ROLE_MODERATOR;
@@ -113,7 +108,7 @@ export async function addToWaitlist(req) {
   if (await isCurrentDJ(uw, user.id)) {
     throw new PermissionError('You are already currently playing.');
   }
-  if (!(await hasValidPlaylist(uw, user.id))) {
+  if (!(await hasValidPlaylist(uw, user))) {
     throw new HTTPError(
       400,
       'You don\'t have anything to play. Please add some songs to your ' +
@@ -140,7 +135,6 @@ export async function addToWaitlist(req) {
 
 export async function moveWaitlist(req) {
   const uw = req.uwave;
-  const User = uw.model('User');
 
   const moderator = req.user;
   const { userID, position } = req.body;
@@ -157,7 +151,7 @@ export async function moveWaitlist(req) {
     throw new HTTPError(400, 'That user does not have anything to play.');
   }
 
-  const user = await User.findById(userID.toLowerCase());
+  const user = await uw.getUser(userID.toLowerCase());
   if (!user) {
     throw new NotFoundError('User not found.');
   }
