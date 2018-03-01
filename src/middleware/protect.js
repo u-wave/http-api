@@ -6,7 +6,7 @@ export default function protect(role) {
     if (!req.user) {
       throw new PermissionError('You must be logged in to do this');
     }
-    if (!(await req.user.can(role))) {
+    if (role && !(await req.user.can(role))) {
       throw new PermissionError(`You must have the '${role}' role to do this.`);
     }
   });
