@@ -177,9 +177,10 @@ export const movePlaylistItems = joi.object({
     items: joi.array().required(),
     after: [
       objectID, // Insert after ID
-      joi.number().valid(-1), // Prepend
+      joi.number().valid(-1), // Old-style prepend (use at=start instead)
     ],
-  }),
+    at: joi.string().valid('start', 'end'),
+  }).xor('after', 'at'),
 });
 
 export const shufflePlaylistItems = joi.object({

@@ -125,23 +125,32 @@ export async function getPlaylistItems(req) {
 }
 
 export async function addPlaylistItems(req) {
-  const { after, items } = req.body;
+  const { at, after, items } = req.body;
   if (!Array.isArray(items)) {
     throw new HTTPError(422, 'Expected "items" to be an array.');
   }
 
   const playlist = await req.user.getPlaylist(req.params.id);
+
+  let afterID = after;
+  if (at === 'start') {
+    afterID = -1;
+  } else if (at === 'end') {
+    const last = await playlist.getItemAt(playlist.size - 1);
+    afterID = last.id;
+  }
+
   const {
     added,
-    afterID,
+    afterID: finalAfterID,
     playlistSize,
-  } = await playlist.addItems(items, { after });
+  } = await playlist.addItems(items, { after: afterID });
 
   return toListResponse(added, {
     included: {
       media: ['media'],
     },
-    meta: { afterID, playlistSize },
+    meta: { afterID: finalAfterID, playlistSize },
   });
 }
 
@@ -163,14 +172,22 @@ export async function removePlaylistItems(req) {
 }
 
 export async function movePlaylistItems(req) {
-  const { after, items } = req.body;
+  const { at, after, items } = req.body;
   if (!Array.isArray(items)) {
     throw new HTTPError(422, 'Expected "items" to be an array');
   }
 
   const playlist = await req.user.getPlaylist(req.params.id);
 
-  const result = await playlist.moveItems(items, { afterID: after });
+  let afterID = after;
+  if (at === 'start') {
+    afterID = -1;
+  } else if (at === 'end') {
+    const last = await playlist.getItemAt(playlist.size - 1);
+    afterID = last.id;
+  }
+
+  const result = await playlist.moveItems(items, { afterID });
   return toItemResponse(result, { url: req.fullUrl });
 }
 
