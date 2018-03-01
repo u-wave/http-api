@@ -86,6 +86,8 @@ function start() {
     console.log(`Now listening on ${port}`);
   });
 
+  app.set('json spaces', 2);
+
   const apiUrl = '/api';
 
   app.use(apiUrl, createWebApi(uw, {
