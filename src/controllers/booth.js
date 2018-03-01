@@ -19,6 +19,8 @@ export async function getBoothData(uw) {
     return null;
   }
 
+  await historyEntry.populate('media.media').execPopulate();
+
   const stats = await Promise.props({
     upvotes: uw.redis.smembers('booth:upvotes'),
     downvotes: uw.redis.smembers('booth:downvotes'),
