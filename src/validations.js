@@ -226,10 +226,17 @@ export const unmuteUser = joi.object({
   params: userParams,
 });
 
-export const setUserRole = joi.object({
-  params: userParams,
-  body: joi.object({
-    role: joi.number().min(0).max(4).required(),
+export const addUserRole = joi.object({
+  params: joi.object({
+    id: objectID.required(),
+    role: joi.string().required(),
+  }),
+});
+
+export const removeUserRole = joi.object({
+  params: joi.object({
+    id: objectID.required(),
+    role: joi.string().required(),
   }),
 });
 

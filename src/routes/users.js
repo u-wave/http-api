@@ -36,12 +36,24 @@ export default function userRoutes() {
       checkFields(validations.unmuteUser),
       route(controller.unmuteUser),
     )
-    // PUT /users/:id/role - Change a user's role.
+    // GET /users/:id/roles - List the roles that a user has.
+    .get(
+      '/:id/roles',
+      route(controller.getUserRoles),
+    )
+    // PUT /users/:id/roles/:role - Grant a role to a user.
     .put(
-      '/:id/role',
+      '/:id/roles/:role',
       protect(),
-      checkFields(validations.setUserRole),
-      route(controller.changeRole),
+      checkFields(validations.addUserRole),
+      route(controller.addUserRole),
+    )
+    // DELETE /users/:id/roles/:role - Remove a role from a user.
+    .delete(
+      '/:id/roles/:role',
+      protect(),
+      checkFields(validations.removeUserRole),
+      route(controller.removeUserRole),
     )
     // PUT /users/:id/username - Change a user's username.
     .put(
