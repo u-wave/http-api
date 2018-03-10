@@ -4,7 +4,6 @@ import * as validations from '../validations';
 import protect from '../middleware/protect';
 import checkFields from '../middleware/checkFields';
 import * as controller from '../controllers/booth';
-import { ROLE_MODERATOR } from '../roles';
 
 export default function boothRoutes() {
   return router()
@@ -23,7 +22,7 @@ export default function boothRoutes() {
     // POST /booth/replace - Replace the current DJ with someone else.
     .post(
       '/replace',
-      protect(ROLE_MODERATOR),
+      protect('booth.replace'),
       checkFields(validations.replaceBooth),
       route(controller.replaceBooth),
     )

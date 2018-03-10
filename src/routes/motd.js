@@ -5,7 +5,6 @@ import * as validations from '../validations';
 import protect from '../middleware/protect';
 import checkFields from '../middleware/checkFields';
 import * as controller from '../controllers/motd';
-import { ROLE_MANAGER } from '../roles';
 
 export default function motdRoutes() {
   return router()
@@ -17,7 +16,7 @@ export default function motdRoutes() {
     // PUT /motd/ - Set the message of the day.
     .put(
       '/',
-      protect(ROLE_MANAGER),
+      protect('motd.set'),
       checkFields(validations.setMotd),
       route(controller.setMotd),
     );

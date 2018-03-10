@@ -7,9 +7,6 @@ import {
   NotFoundError,
   PermissionError,
 } from '../errors';
-import {
-  ROLE_MODERATOR,
-} from '../roles';
 import toItemResponse from '../utils/toItemResponse';
 import toListResponse from '../utils/toListResponse';
 
@@ -96,7 +93,7 @@ export async function addToWaitlist(req) {
   const user = await uw.getUser(userID);
   if (!user) throw new PermissionError('User not found.');
 
-  const canForceJoin = moderator.role >= ROLE_MODERATOR;
+  const canForceJoin = await user.can('waitlist.join.locked');
   if (!canForceJoin && await isWaitlistLocked(uw)) {
     throw new PermissionError('The waitlist is locked. Only staff can join.');
   }
@@ -119,6 +116,9 @@ export async function addToWaitlist(req) {
   if (user.id === moderator.id) {
     waitlist = await doJoinWaitlist(uw, user);
   } else {
+    if (!(await moderator.can('waitlist.add'))) {
+      throw new PermissionError('You cannot add someone else to the waitlist.');
+    }
     waitlist = await doModerateAddToWaitlist(uw, user, {
       moderator,
       waitlist,
@@ -189,7 +189,7 @@ export async function removeFromWaitlist(req) {
   const user = await uw.getUser(req.params.id);
 
   const isRemoving = user.id !== moderator.id;
-  if (isRemoving && moderator.role < ROLE_MODERATOR) {
+  if (isRemoving && !(await user.can('waitlist.remove'))) {
     throw new PermissionError('You need to be a moderator to do this.');
   }
 

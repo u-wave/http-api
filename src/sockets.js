@@ -313,7 +313,14 @@ export default class SocketServer {
     'waitlist:update': (waitlist) => {
       this.broadcast('waitlistUpdate', waitlist);
     },
+    'acl:allow': ({ userID, roles }) => {
+      this.broadcast('acl:allow', { userID, roles });
+    },
+    'acl:disallow': ({ userID, roles }) => {
+      this.broadcast('acl:disallow', { userID, roles });
+    },
     'user:update': ({ userID, moderatorID, new: update }) => {
+      // TODO Remove this remnant of the old roles system
       if ('role' in update) {
         this.broadcast('roleChange', {
           moderatorID,

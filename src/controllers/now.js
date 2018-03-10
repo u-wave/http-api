@@ -11,11 +11,12 @@ export async function getState(req) {
 
   const User = uw.model('User');
 
-  const guests = api.getGuestCount();
   const motd = uw.getMotd();
-  const booth = getBoothData(uw);
   const users = uw.redis.lrange('users', 0, -1)
     .then(userIDs => User.find({ _id: { $in: userIDs } }));
+  const guests = api.getGuestCount();
+  const roles = uw.acl.getAllRoles();
+  const booth = getBoothData(uw);
   const waitlist = uw.redis.lrange('waitlist', 0, -1);
   const waitlistLocked = uw.redis.get('waitlist:lock').then(Boolean);
   const activePlaylist = user ? user.getActivePlaylistID() : null;
@@ -26,10 +27,11 @@ export async function getState(req) {
 
   const state = await Promise.props({
     motd,
-    booth,
     user,
     users,
     guests,
+    roles,
+    booth,
     waitlist,
     waitlistLocked,
     activePlaylist,

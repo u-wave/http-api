@@ -4,11 +4,11 @@ import {
   HTTPError,
   PermissionError,
 } from '../errors';
-import { ROLE_MANAGER } from '../roles';
 import skipIfCurrentDJ from '../utils/skipIfCurrentDJ';
 import removeFromWaitlist from '../utils/removeFromWaitlist';
 import getOffsetPagination from '../utils/getOffsetPagination';
 import toItemResponse from '../utils/toItemResponse';
+import toListResponse from '../utils/toListResponse';
 import toPaginatedResponse from '../utils/toPaginatedResponse';
 import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 
@@ -38,21 +38,52 @@ export async function getUser(req) {
   });
 }
 
-export async function changeRole(req) {
+export async function getUserRoles(req) {
   const uw = req.uwave;
   const { id } = req.params;
-  const { role } = req.body;
-  if (req.user.role < req.body.role) {
-    throw new PermissionError('You can\'t promote users above your rank.');
+
+  const user = await uw.getUser(id);
+  const roles = await user.getPermissions();
+
+  return toListResponse(roles, {
+    url: req.fullUrl,
+  });
+}
+
+export async function addUserRole(req) {
+  const uw = req.uwave;
+  const { id, role } = req.params;
+
+  const selfHasRole = await req.user.can(role);
+  if (!selfHasRole) {
+    throw new PermissionError('You cannot assign roles you do not have');
   }
 
-  const user = await uw.updateUser(
-    id,
-    { role },
-    { moderator: req.user },
-  );
+  const user = await uw.getUser(id);
 
-  return toItemResponse(user);
+  await user.allow([role]);
+
+  return toItemResponse({}, {
+    url: req.fullUrl,
+  });
+}
+
+export async function removeUserRole(req) {
+  const uw = req.uwave;
+  const { id, role } = req.params;
+
+  const selfHasRole = await req.user.can(role);
+  if (!selfHasRole) {
+    throw new PermissionError('You cannot remove roles you do not have');
+  }
+
+  const user = await uw.getUser(id);
+
+  await user.disallow([role]);
+
+  return toItemResponse({}, {
+    url: req.fullUrl,
+  });
 }
 
 export async function changeUsername(req) {
@@ -73,11 +104,7 @@ export async function changeUsername(req) {
   }
 }
 
-export async function changeAvatar(req) {
-  if (!req.user.id !== req.params.id && req.user.role < ROLE_MANAGER) {
-    throw new PermissionError('You need to be a manager to do this');
-  }
-
+export async function changeAvatar() {
   throw new HTTPError(500, 'Not implemented');
 }
 
