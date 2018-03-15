@@ -74,14 +74,6 @@ export default function userRoutes() {
       checkFields(validations.setUserAvatar),
       route(controller.changeAvatar),
     )
-    // PUT /users/:id/status - Change a user's online status.
-    // TODO Unused, maybe remove?
-    .put(
-      '/:id/status',
-      protect(),
-      checkFields(validations.setUserStatus),
-      route(controller.changeStatus),
-    )
     // GET /users/:id/history - Show recent plays by a user.
     .get(
       '/:id/history',
