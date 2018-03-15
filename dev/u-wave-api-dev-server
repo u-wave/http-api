@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+require('trace');
+require('clarify');
+require('source-map-support');
 const { Buffer } = require('buffer');
 const path = require('path');
 const argv = require('minimist')(process.argv.slice(2));
