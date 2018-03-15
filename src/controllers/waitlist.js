@@ -1,6 +1,5 @@
 import clamp from 'clamp';
 
-import { createCommand } from '../sockets';
 import {
   APIError,
   HTTPError,
@@ -52,10 +51,10 @@ async function doJoinWaitlist(uw, user) {
 
   const waitlist = await getWaitingUserIDs(uw);
 
-  uw.redis.publish('v1', createCommand('waitlistJoin', {
+  uw.publish('waitlist:join', {
     userID: user.id,
     waitlist,
-  }));
+  });
 
   return waitlist;
 }
@@ -72,12 +71,12 @@ async function doModerateAddToWaitlist(uw, user, { moderator, waitlist, position
 
   const newWaitlist = await getWaitingUserIDs(uw);
 
-  uw.redis.publish('v1', createCommand('waitlistAdd', {
+  uw.publish('waitlist:add', {
     userID: user.id,
     moderatorID: moderator.id,
     position: clampedPosition,
     waitlist: newWaitlist,
-  }));
+  });
 
   return newWaitlist;
 }
@@ -173,12 +172,12 @@ export async function moveWaitlist(req) {
 
   waitlist = await getWaitingUserIDs(uw);
 
-  uw.redis.publish('v1', createCommand('waitlistMove', {
+  uw.publish('waitlist:move', {
     userID: user.id,
     moderatorID: moderator.id,
     position: clampedPosition,
     waitlist,
-  }));
+  });
 
   return toListResponse(waitlist, { url: req.fullUrl });
 }
@@ -228,9 +227,9 @@ export async function clearWaitlist(req) {
     throw new APIError('Could not clear the waitlist. Please try again.');
   }
 
-  uw.redis.publish('v1', createCommand('waitlistClear', {
+  uw.publish('waitlist:clear', {
     moderatorID: moderator.id,
-  }));
+  });
 
   return toListResponse(waitlist, { url: req.fullUrl });
 }
@@ -253,10 +252,10 @@ export async function lockWaitlist(req) {
     throw new APIError(`Could not ${lock ? 'lock' : 'unlock'} the waitlist. Please try again.`);
   }
 
-  uw.redis.publish('v1', createCommand('waitlistLock', {
+  uw.publish('waitlist:lock', {
     moderatorID: moderator.id,
     locked: isLocked,
-  }));
+  });
 
   return toItemResponse({
     locked: lock,

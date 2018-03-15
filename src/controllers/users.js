@@ -1,5 +1,3 @@
-import clamp from 'clamp';
-import { createCommand } from '../sockets';
 import {
   HTTPError,
   PermissionError,
@@ -106,19 +104,6 @@ export async function changeUsername(req) {
 
 export async function changeAvatar() {
   throw new HTTPError(500, 'Not implemented');
-}
-
-export function changeStatus(req) {
-  const uw = req.uwave;
-  const { status } = req.body;
-
-  // TODO implement this in core? Or remove?
-  uw.redis.publish('v1', createCommand('statusChange', {
-    userID: req.user.id,
-    status: clamp(status, 0, 3),
-  }));
-
-  return toItemResponse({});
 }
 
 export async function disconnectUser(uw, user) {
