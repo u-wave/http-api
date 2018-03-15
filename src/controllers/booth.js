@@ -1,5 +1,4 @@
 import Promise from 'bluebird';
-import { createCommand } from '../sockets';
 import {
   CombinedError,
   HTTPError,
@@ -48,11 +47,11 @@ function getCurrentDJ(uw) {
 }
 
 async function doSkip(uw, moderatorID, userID, reason, opts = {}) {
-  uw.redis.publish('v1', createCommand('skip', {
+  uw.publish('booth:skip', {
     moderatorID,
     userID,
     reason,
-  }));
+  });
 
   await uw.advance({
     remove: opts.remove === true,
@@ -108,10 +107,10 @@ export async function replaceBooth(req) {
     waitlist = await uw.redis.lrange('waitlist', 0, -1);
   }
 
-  uw.redis.publish('v1', createCommand('boothReplace', {
+  uw.publish('booth:replace', {
     moderatorID,
     userID,
-  }));
+  });
 
   await uw.advance();
 
@@ -182,10 +181,10 @@ export async function favorite(req) {
   playlist.media.push(playlistItem.id);
 
   await uw.redis.sadd('booth:favorites', id);
-  uw.redis.publish('v1', createCommand('favorite', {
+  uw.publish('booth:favorite', {
     userID: id,
     playlistID,
-  }));
+  });
 
   await playlist.save();
 

@@ -18,10 +18,6 @@ import LostConnection from './sockets/LostConnection';
 const debug = createDebug('uwave:api:sockets');
 const randomBytes = promisify(crypto.randomBytes);
 
-export function createCommand(command, data) {
-  return JSON.stringify({ command, data });
-}
-
 export default class SocketServer {
   connections = [];
   options = {
@@ -239,6 +235,12 @@ export default class SocketServer {
       }
     },
     /**
+     * Broadcast a skip notification.
+     */
+    'booth:skip': ({ moderatorID, userID, reason }) => {
+      this.broadcast('skip', { moderatorID, userID, reason });
+    },
+    /**
      * Broadcast a chat message.
      */
     'chat:message': (message) => {
@@ -290,10 +292,22 @@ export default class SocketServer {
       });
     },
     /**
+     * Broadcast a favorite for the current track.
+     */
+    'booth:favorite': ({ userID }) => {
+      this.broadcast('favorite', { userID });
+    },
+    /**
      * Cycle a single user's playlist.
      */
     'playlist:cycle': ({ userID, playlistID }) => {
       this.sendTo(userID, 'playlistCycle', { playlistID });
+    },
+    /**
+     * Broadcast that a user joined the waitlist.
+     */
+    'waitlist:join': ({ userID, waitlist }) => {
+      this.broadcast('waitlistJoin', { userID, waitlist });
     },
     /**
      * Broadcast that a user left the waitlist.
@@ -302,10 +316,30 @@ export default class SocketServer {
       this.broadcast('waitlistLeave', { userID, waitlist });
     },
     /**
+     * Broadcast that a user was added to the waitlist.
+     */
+    'waitlist:add': ({
+      userID, moderatorID, position, waitlist,
+    }) => {
+      this.broadcast('waitlistAdd', {
+        userID, moderatorID, position, waitlist,
+      });
+    },
+    /**
      * Broadcast that a user was removed from the waitlist.
      */
     'waitlist:remove': ({ userID, moderatorID, waitlist }) => {
       this.broadcast('waitlistRemove', { userID, moderatorID, waitlist });
+    },
+    /**
+     * Broadcast that a user was moved in the waitlist.
+     */
+    'waitlist:move': ({
+      userID, moderatorID, position, waitlist,
+    }) => {
+      this.broadcast('waitlistMove', {
+        userID, moderatorID, position, waitlist,
+      });
     },
     /**
      * Broadcast a waitlist update.
@@ -313,12 +347,26 @@ export default class SocketServer {
     'waitlist:update': (waitlist) => {
       this.broadcast('waitlistUpdate', waitlist);
     },
+    /**
+     * Broadcast that the waitlist was cleared.
+     */
+    'waitlist:clear': ({ moderatorID }) => {
+      this.broadcast('waitlistClear', { moderatorID });
+    },
+    /**
+     * Broadcast that the waitlist was locked.
+     */
+    'waitlist:lock': ({ moderatorID, locked }) => {
+      this.broadcast('waitlistLock', { moderatorID, locked });
+    },
+
     'acl:allow': ({ userID, roles }) => {
       this.broadcast('acl:allow', { userID, roles });
     },
     'acl:disallow': ({ userID, roles }) => {
       this.broadcast('acl:disallow', { userID, roles });
     },
+
     'user:update': ({ userID, moderatorID, new: update }) => {
       // TODO Remove this remnant of the old roles system
       if ('role' in update) {
