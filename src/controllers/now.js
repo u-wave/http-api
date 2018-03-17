@@ -1,4 +1,4 @@
-import Promise from 'bluebird';
+import props from 'p-props';
 import { getBoothData } from './booth';
 
 import { serializePlaylist } from '../utils/serialize';
@@ -25,7 +25,7 @@ export async function getState(req) {
   const authStrategies = api.passport.strategies();
   const time = Date.now();
 
-  const state = await Promise.props({
+  const state = await props({
     motd,
     user,
     users,
