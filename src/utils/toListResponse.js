@@ -1,7 +1,9 @@
-import isPlainObject from 'lodash/isPlainObject';
-import cloneDeep from 'lodash/cloneDeep';
-import getPath from 'lodash/get';
-import setPath from 'lodash/set';
+import {
+  isPlainObject,
+  cloneDeep,
+  get as getPath,
+  set as setPath,
+} from 'lodash';
 
 function extractIncluded(data, included) {
   const includedTypes = Object.keys(included);

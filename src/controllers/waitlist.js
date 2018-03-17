@@ -1,5 +1,4 @@
-import clamp from 'clamp';
-
+import { clamp } from 'lodash';
 import {
   APIError,
   HTTPError,
