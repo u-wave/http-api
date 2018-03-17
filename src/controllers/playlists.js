@@ -1,10 +1,6 @@
 import createDebug from 'debug';
-import {
-  HTTPError,
-} from '../errors';
-import {
-  serializePlaylist,
-} from '../utils/serialize';
+import { HTTPError } from '../errors';
+import { serializePlaylist } from '../utils/serialize';
 import getOffsetPagination from '../utils/getOffsetPagination';
 import toItemResponse from '../utils/toItemResponse';
 import toListResponse from '../utils/toListResponse';
