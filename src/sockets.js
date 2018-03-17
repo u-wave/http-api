@@ -1,6 +1,4 @@
-import debounce from 'debounce';
-import find from 'array-find';
-import isEmpty from 'is-empty-object';
+import { debounce, isEmpty } from 'lodash';
 import tryJsonParse from 'try-json-parse';
 import WebSocket from 'ws';
 import ms from 'ms';
@@ -92,7 +90,7 @@ export default class SocketServer {
    * Get a LostConnection for a user, if one exists.
    */
   getLostConnection(user) {
-    return find(this.connections, connection =>
+    return this.connections.find(connection =>
       connection instanceof LostConnection && connection.user.id === user.id);
   }
 
@@ -476,7 +474,7 @@ export default class SocketServer {
    */
   connection(user) {
     const userID = typeof user === 'object' ? user.id : user;
-    return find(this.connections, connection =>
+    return this.connections.find(connection =>
       connection.user && connection.user.id === userID);
   }
 

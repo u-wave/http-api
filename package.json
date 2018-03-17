@@ -24,17 +24,13 @@
     "prepublish": "npm run build"
   },
   "dependencies": {
-    "array-find": "^1.0.0",
     "bluebird": "^3.5.1",
     "body-parser": "^1.18.2",
-    "clamp": "^1.0.1",
     "cookie": "^0.3.1",
     "cookie-parser": "^1.4.3",
-    "debounce": "^1.1.0",
     "debug": "^3.1.0",
     "escape-string-regexp": "^1.0.5",
     "got": "^8.0.0",
-    "is-empty-object": "^1.1.1",
     "joi": "^13.0.2",
     "jsonwebtoken": "^8.1.0",
     "lodash": "^4.16.1",
