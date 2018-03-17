@@ -188,9 +188,12 @@ export async function favorite(req) {
 
   await playlist.save();
 
-  return toListResponse(playlistItem, {
+  return toListResponse([playlistItem], {
     meta: {
       playlistSize: playlist.media.length,
+    },
+    included: {
+      media: ['media'],
     },
   });
 }
