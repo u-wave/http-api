@@ -24,7 +24,6 @@
     "prepublish": "npm run build"
   },
   "dependencies": {
-    "bluebird": "^3.5.1",
     "body-parser": "^1.18.2",
     "cookie": "^0.3.1",
     "cookie-parser": "^1.4.3",
@@ -36,6 +35,7 @@
     "lodash": "^4.16.1",
     "ms": "^2.0.0",
     "nodemailer": "^4.3.1",
+    "p-props": "^1.1.0",
     "passport": "^0.4.0",
     "passport-google-oauth20": "^1.0.0",
     "passport-local": "^1.0.0",

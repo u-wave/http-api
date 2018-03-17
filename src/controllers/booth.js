@@ -1,4 +1,4 @@
-import Promise from 'bluebird';
+import props from 'p-props';
 import {
   CombinedError,
   HTTPError,
@@ -19,7 +19,7 @@ export async function getBoothData(uw) {
 
   await historyEntry.populate('media.media').execPopulate();
 
-  const stats = await Promise.props({
+  const stats = await props({
     upvotes: uw.redis.smembers('booth:upvotes'),
     downvotes: uw.redis.smembers('booth:downvotes'),
     favorites: uw.redis.smembers('booth:favorites'),

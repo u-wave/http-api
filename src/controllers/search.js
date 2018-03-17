@@ -1,4 +1,4 @@
-import Promise from 'bluebird';
+import props from 'p-props';
 import createDebug from 'debug';
 import { NotFoundError } from '../errors';
 import toListResponse from '../utils/toListResponse';
@@ -20,7 +20,7 @@ export function searchAll(req) {
       });
   });
 
-  return Promise.props(promises);
+  return props(promises);
 }
 
 export async function search(req) {
