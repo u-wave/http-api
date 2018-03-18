@@ -1,3 +1,28 @@
+# 0.4.0 / 18 Mar 2018
+
+Features:
+
+ * Use a Set to store votes. (#159)
+ * sockets: Send message acknowledging authentication success. (#164)
+ * Move all logic into controllers. (#120)
+ * Generate cjs and es modules builds. (#168)
+ * Add development server. (#171)
+ * Revamp authentication. (#173)
+ * Rename http-api. (d28145e4ea5066b274a361376282fa5012935d17)
+ * Move signin and password change code into core. (#176)
+ * Move items to end of playlist. (#178)
+ * Use u-wave-core acl for protecting routes. (#114)
+
+Bugfixes:
+
+ * Fix /booth/favorite response format. (#184)
+
+Internal:
+
+ * Remove direct model usage in favour of -core API calls. (#177)
+ * Remove direct websocket broadcasting from controllers. (#182)
+ * Enable long stack traces in the dev server. (#183)
+
 # 0.3.0 / 25 Aug 2017
 
 Features:
