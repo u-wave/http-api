@@ -1,3 +1,10 @@
+# 0.4.1 / 22 Mar 2018
+
+Bugfixes:
+
+ * Pass through public errors from core. (#189)
+ * Ignore incorrect JWT instead of rejecting the request. (#188)
+
 # 0.4.0 / 18 Mar 2018
 
 Features:
