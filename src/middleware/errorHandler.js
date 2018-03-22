@@ -61,6 +61,13 @@ function serializeError(err) {
       title: 'Database error, please try again later.',
     }];
   }
+  if (err.public) {
+    return [{
+      status: err.status || 400,
+      code: err.code,
+      title: err.message,
+    }];
+  }
   return [{
     status: 500,
     code: 'unknown-error',
