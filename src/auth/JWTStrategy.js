@@ -49,16 +49,16 @@ export default class JWTStrategy extends Strategy {
     try {
       value = await jwtVerify(token, this.secret);
     } catch (e) {
-      return this.fail({ message: 'Invalid token' }, 400);
+      return this.pass();
     }
 
     if (!value) {
-      return this.fail({ message: 'Empty token' }, 400);
+      return this.pass();
     }
 
     const user = await this.getUser(value);
     if (!user) {
-      return this.fail({ message: 'User not found' }, 400);
+      return this.pass();
     }
 
     if (await user.isBanned()) {
