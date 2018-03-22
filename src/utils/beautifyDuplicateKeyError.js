@@ -17,9 +17,9 @@ function isDuplicateKeyError(error) {
  */
 export default function beautifyDuplicateKeyError(error) {
   if (isDuplicateKeyError(error)) {
-    if (error.message.indexOf('$username') !== -1) {
+    if (error.message.indexOf('username') !== -1) {
       return new HTTPError(400, 'That username is in use.');
-    } else if (error.message.indexOf('$email') !== -1) {
+    } else if (error.message.indexOf('email') !== -1) {
       return new HTTPError(400, 'That email address is in use.');
     }
   }
