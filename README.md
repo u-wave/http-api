@@ -1,5 +1,7 @@
 # u-wave-http-api
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/u-wave/http-api.svg)](https://greenkeeper.io/)
+
 HTTP API plugin for üWave, the collaborative listening platform.
 
 [Getting Started](#getting-started) - [API](#api) - [Building](#contributing) -
