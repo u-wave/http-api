@@ -2,7 +2,6 @@ import {
   HTTPError,
   PermissionError,
 } from '../errors';
-import skipIfCurrentDJ from '../utils/skipIfCurrentDJ';
 import removeFromWaitlist from '../utils/removeFromWaitlist';
 import getOffsetPagination from '../utils/getOffsetPagination';
 import toItemResponse from '../utils/toItemResponse';
@@ -109,17 +108,11 @@ export async function changeAvatar() {
 export async function disconnectUser(uw, user) {
   const userID = typeof user === 'object' ? `${user._id}` : user;
 
-  await skipIfCurrentDJ(uw, userID);
-
   try {
     await removeFromWaitlist(uw, userID);
   } catch (e) {
     // Ignore
   }
-
-  await uw.redis.lrem('users', 0, userID);
-
-  uw.publish('user:leave', { userID });
 }
 
 export async function getHistory(req) {

@@ -31,25 +31,26 @@ export default class GuestConnection extends EventEmitter {
     });
   }
 
-  async getTokenUser(token) {
+  async getTokenSession(token) {
     if (token.length !== 128) {
       throw new Error('Invalid token');
     }
-    const [userID] = await this.uw.redis
+    const [sessionID] = await this.uw.redis
       .multi()
       .get(`api-v1:socketAuth:${token}`)
       .del(`api-v1:socketAuth:${token}`)
       .exec();
 
-    return userID;
+    return sessionID[1];
   }
 
   async attemptAuth(token) {
-    const userID = await this.getTokenUser(token);
-    if (!userID) {
+    const sessionToken = await this.getTokenSession(token);
+    if (!sessionToken) {
       throw new Error('Invalid token');
     }
-    const userModel = await this.uw.getUser(userID);
+    const tokenBuf = Buffer.from(sessionToken, 'hex');
+    const userModel = await this.uw.sessions.getSecureUser(tokenBuf);
     if (!userModel) {
       throw new Error('Invalid session');
     }
@@ -61,7 +62,7 @@ export default class GuestConnection extends EventEmitter {
       throw new Error('You have been banned');
     }
 
-    this.emit('authenticate', userModel);
+    this.emit('authenticate', userModel, tokenBuf);
   }
 
   isReconnect(user) {

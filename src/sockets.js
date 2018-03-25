@@ -79,10 +79,10 @@ export default class SocketServer {
     this.add(this.createGuestConnection(socket, req));
   }
 
-  async createAuthToken(user) {
+  async createAuthToken(session) {
     const { redis } = this.uw;
     const token = (await randomBytes(64)).toString('hex');
-    await redis.set(`api-v1:socketAuth:${token}`, user.id, 'EX', 60);
+    await redis.set(`api-v1:socketAuth:${token}`, session.token.toString('hex'), 'EX', 60);
     return token;
   }
 
@@ -98,20 +98,18 @@ export default class SocketServer {
    * Create a connection instance for an unauthenticated user.
    */
   createGuestConnection(socket, req?) {
-    const connection = new GuestConnection(this.uw, socket, req, {
-      secret: this.options.secret,
-    });
+    const connection = new GuestConnection(this.uw, socket, req);
     connection.on('close', () => {
       this.remove(connection);
     });
     connection.on('authenticate', async (user, token) => {
-      debug('connecting', user.id, user.username);
+      debug('connecting', user.id, user.username, token);
       if (await connection.isReconnect(user)) {
         debug('is reconnection');
         const previousConnection = this.getLostConnection(user);
         if (previousConnection) this.remove(previousConnection);
       } else {
-        this.uw.publish('user:join', { userID: user.id });
+        await this.uw.sessions.attachSession(token);
       }
 
       this.replace(connection, this.createAuthedConnection(socket, user, token));
@@ -128,10 +126,11 @@ export default class SocketServer {
       if (banned) {
         debug('removing connection after ban', user.id, user.username);
         this.remove(connection);
+        this.uw.sessions.detachSession(token);
         disconnectUser(this.uw, user);
       } else {
         debug('lost connection', user.id, user.username);
-        this.replace(connection, this.createLostConnection(user));
+        this.replace(connection, this.createLostConnection(user, token));
       }
     });
     connection.on('command', (command, data) => {
@@ -147,16 +146,14 @@ export default class SocketServer {
   /**
    * Create a connection instance for a user who disconnected.
    */
-  createLostConnection(user) {
+  createLostConnection(user, token) {
     const connection = new LostConnection(this.uw, user, this.options.timeout);
     connection.on('close', () => {
       debug('left', user.id, user.username);
       this.remove(connection);
       // Only register that the user left if they didn't have another connection
       // still open.
-      if (!this.connection(user)) {
-        disconnectUser(this.uw, user);
-      }
+      this.uw.sessions.detachSession(token);
     });
     return connection;
   }
@@ -385,13 +382,15 @@ export default class SocketServer {
     'user:join': async ({ userID }) => {
       const { uw } = this;
       const user = await uw.getUser(userID);
-      await uw.redis.rpush('users', user.id);
       this.broadcast('join', user.toJSON());
     },
     /**
      * Broadcast that a user left the server.
      */
     'user:leave': ({ userID }) => {
+      const { uw } = this;
+      const user = await uw.getUser(userID);
+      await disconnectUser(this.uw, user);
       this.broadcast('leave', userID);
     },
     /**

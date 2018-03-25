@@ -1,9 +1,5 @@
 import { Strategy } from 'passport';
-import { promisify } from 'util';
-import jwt from 'jsonwebtoken';
 import { PermissionError } from '../errors';
-
-const jwtVerify = promisify(jwt.verify);
 
 function getCookieToken(cookies) {
   return cookies && cookies.uwsession;
@@ -16,17 +12,16 @@ function getQueryToken(query) {
 function getHeaderToken(headers) {
   if (headers.authorization) {
     const parts = headers.authorization.split(' ');
-    if (parts[0].toLowerCase() === 'jwt') {
+    if (parts[0].toLowerCase() === 'bearer') {
       return parts[1];
     }
   }
   return null;
 }
 
-export default class JWTStrategy extends Strategy {
-  constructor(secret, getUser) {
+export default class SessionStrategy extends Strategy {
+  constructor(getUser) {
     super();
-    this.secret = secret;
     this.getUser = getUser;
   }
 
@@ -37,26 +32,17 @@ export default class JWTStrategy extends Strategy {
   }
 
   async authenticateP(req) {
-    const token =
+    const rawToken =
       getQueryToken(req.query) ||
       getHeaderToken(req.headers) ||
-      getCookieToken(req.cookies);
-    if (!token) {
+      getCookieToken(req.signedCookies);
+    if (!rawToken) {
       return this.pass();
     }
 
-    let value;
-    try {
-      value = await jwtVerify(token, this.secret);
-    } catch (e) {
-      return this.pass();
-    }
+    const token = Buffer.from(rawToken, 'base64');
 
-    if (!value) {
-      return this.pass();
-    }
-
-    const user = await this.getUser(value);
+    const user = await this.getUser(token).catch(() => null);
     if (!user) {
       return this.pass();
     }
@@ -65,7 +51,7 @@ export default class JWTStrategy extends Strategy {
       throw new PermissionError('You have been banned');
     }
 
-    return this.success(user);
+    return this.success(user, { token });
   }
 }
 

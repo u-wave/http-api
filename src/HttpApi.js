@@ -87,7 +87,7 @@ export default class UwaveHttpApi extends Router {
 
     if (!options.secret) {
       throw new TypeError('"options.secret" is empty. This option is used to sign authentication ' +
-        'keys, and is required for security reasons.');
+        'cookies, and is required for security reasons.');
     }
 
     if (options.recaptcha && !options.recaptcha.secret) {
@@ -102,31 +102,30 @@ export default class UwaveHttpApi extends Router {
     }
 
     const router = super(options);
+    const cookieSecret = options.secret.toString('hex');
 
     this.uw = uw;
     this.sockets = new WSServer(uw, {
       port: options.socketPort,
       server: options.server,
-      secret: options.secret,
     });
 
     this.passport = createPassport(uw, {
-      secret: options.secret,
       auth: options.auth || {},
     });
 
     this
       .use(bodyParser.json())
-      .use(cookieParser())
+      .use(cookieParser(cookieSecret))
       .use(this.passport.initialize())
       .use(addFullUrl())
       .use(this.attachUwaveToRequest())
-      .use(this.passport.authenticate('jwt'))
+      .use(this.passport.authenticate('session'))
       .use(rateLimit('api-http', { max: 500, duration: 60 * 1000 }));
 
     this
       .use('/auth', authenticate(this, {
-        secret: options.secret,
+        secret: cookieSecret,
         mailTransport: options.mailTransport,
         createPasswordResetEmail:
           options.createPasswordResetEmail || defaultCreatePasswordResetEmail,

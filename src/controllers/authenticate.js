@@ -1,6 +1,6 @@
 import cookie from 'cookie';
+import cookieSignature from 'cookie-signature';
 import createDebug from 'debug';
-import jwt from 'jsonwebtoken';
 import randomString from 'random-string';
 import got from 'got';
 import ms from 'ms';
@@ -36,17 +36,13 @@ export function getAuthStrategies(req) {
   );
 }
 
-export async function refreshSession(res, api, user, options) {
-  const token = await jwt.sign(
-    { id: user.id },
-    options.secret,
-    { expiresIn: '31d' },
-  );
+export async function refreshSession(res, api, sessionToken, options) {
+  const token = await cookieSignature.sign(sessionToken.toString('base64'), options.secret);
 
-  const socketToken = await api.sockets.createAuthToken(user);
+  const socketToken = await api.sockets.createAuthToken({ token: sessionToken });
 
   if (options.session === 'cookie') {
-    const serialized = cookie.serialize('uwsession', token, {
+    const serialized = cookie.serialize('uwsession', `s:${token}`, {
       httpOnly: true,
       secure: !!options.cookieSecure,
       path: options.cookiePath || '/',
@@ -61,17 +57,21 @@ export async function refreshSession(res, api, user, options) {
 
 /**
  * The login controller is called once a user has logged in successfully using Passport;
- * we only have to assign the JWT.
+ * we only have to assign the token.
  */
 export async function login(options, req, res) {
-  const { user } = req;
+  const { user, authInfo } = req;
   const sessionType = req.query.session === 'cookie' ? 'cookie' : 'token';
+
+  if (!authInfo) {
+    throw new PermissionError('Authentication info not found.');
+  }
 
   if (await user.isBanned()) {
     throw new PermissionError('You have been banned.');
   }
 
-  const { token, socketToken } = await refreshSession(res, req.uwaveHttp, user, {
+  const { token, socketToken } = await refreshSession(res, req.uwaveHttp, authInfo.token, {
     ...options,
     session: sessionType,
   });
@@ -85,13 +85,13 @@ export async function login(options, req, res) {
 }
 
 export async function socialLoginCallback(options, req, res) {
-  const { user } = req;
+  const { sessionToken, user } = req;
 
   if (await user.isBanned()) {
     throw new PermissionError('You have been banned.');
   }
 
-  await refreshSession(res, req.uwaveHttp, user, {
+  await refreshSession(res, req.uwaveHttp, sessionToken, {
     ...options,
     session: 'cookie',
   });
@@ -113,7 +113,7 @@ export async function socialLoginCallback(options, req, res) {
 
 export async function getSocketToken(req) {
   const { sockets } = req.uwaveHttp;
-  const socketToken = await sockets.createAuthToken(req.user);
+  const socketToken = await sockets.createAuthToken(req.authInfo);
   return toItemResponse({ socketToken }, {
     url: req.fullUrl,
   });

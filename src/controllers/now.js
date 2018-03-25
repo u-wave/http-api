@@ -9,11 +9,8 @@ export async function getState(req) {
   const api = req.uwaveHttp;
   const { user } = req;
 
-  const User = uw.model('User');
-
   const motd = uw.getMotd();
-  const users = uw.redis.lrange('users', 0, -1)
-    .then(userIDs => User.find({ _id: { $in: userIDs } }));
+  const users = uw.sessions.getActiveUsers();
   const guests = api.getGuestCount();
   const roles = uw.acl.getAllRoles();
   const booth = getBoothData(uw);
@@ -21,7 +18,7 @@ export async function getState(req) {
   const waitlistLocked = uw.redis.get('waitlist:lock').then(Boolean);
   const activePlaylist = user ? user.getActivePlaylistID() : null;
   const playlists = user ? user.getPlaylists() : null;
-  const socketToken = user ? api.sockets.createAuthToken(user) : null;
+  const socketToken = req.authInfo ? api.sockets.createAuthToken(req.authInfo) : null;
   const authStrategies = api.passport.strategies();
   const time = Date.now();
 
