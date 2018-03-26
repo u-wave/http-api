@@ -62,7 +62,7 @@ export default class AuthedConnection extends EventEmitter {
   }
 
   ping() {
-    if (Date.now() - this.lastMessage > 5000) {
+    if (Date.now() - this.lastMessage > 5000 && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send('-');
       this.lastMessage = Date.now();
     }
