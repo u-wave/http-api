@@ -1,3 +1,13 @@
+# 0.4.2 / 29 Mar 2018
+
+Bugfixes:
+
+ * Only send ping messages if socket connection is open. (#190)
+
+Internal:
+
+ * Rename leftover api-v1 references to http-api.
+
 # 0.4.1 / 22 Mar 2018
 
 Bugfixes:
