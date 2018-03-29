@@ -37,8 +37,8 @@ export default class GuestConnection extends EventEmitter {
     }
     const [userID] = await this.uw.redis
       .multi()
-      .get(`api-v1:socketAuth:${token}`)
-      .del(`api-v1:socketAuth:${token}`)
+      .get(`http-api:socketAuth:${token}`)
+      .del(`http-api:socketAuth:${token}`)
       .exec();
 
     return userID;
@@ -65,7 +65,7 @@ export default class GuestConnection extends EventEmitter {
   }
 
   isReconnect(user) {
-    return this.uw.redis.exists(`api-v1:disconnected:${user.id}`);
+    return this.uw.redis.exists(`http-api:disconnected:${user.id}`);
   }
 
   send(command: string, data: any) {

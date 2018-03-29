@@ -82,7 +82,7 @@ export default class SocketServer {
   async createAuthToken(user) {
     const { redis } = this.uw;
     const token = (await randomBytes(64)).toString('hex');
-    await redis.set(`api-v1:socketAuth:${token}`, user.id, 'EX', 60);
+    await redis.set(`http-api:socketAuth:${token}`, user.id, 'EX', 60);
     return token;
   }
 
@@ -421,7 +421,7 @@ export default class SocketServer {
     /**
      * Force-close a connection.
      */
-    'api-v1:socket:close': (userID) => {
+    'http-api:socket:close': (userID) => {
       this.connections.forEach((connection) => {
         if (connection.user && connection.user.id === userID) {
           connection.close();

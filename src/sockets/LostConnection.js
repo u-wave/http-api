@@ -15,10 +15,10 @@ export default class LostConnection extends EventEmitter {
   }
 
   get key() {
-    return `api-v1:disconnected:${this.user.id}`;
+    return `http-api:disconnected:${this.user.id}`;
   }
   get messagesKey() {
-    return `api-v1:disconnected:${this.user.id}:messages`;
+    return `http-api:disconnected:${this.user.id}:messages`;
   }
 
   initQueued() {
