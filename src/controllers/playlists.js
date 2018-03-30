@@ -1,12 +1,9 @@
-import createDebug from 'debug';
 import { HTTPError } from '../errors';
 import { serializePlaylist } from '../utils/serialize';
 import getOffsetPagination from '../utils/getOffsetPagination';
 import toItemResponse from '../utils/toItemResponse';
 import toListResponse from '../utils/toListResponse';
 import toPaginatedResponse from '../utils/toPaginatedResponse';
-
-const debug = createDebug('uwave:http:playlists');
 
 export async function getPlaylists(req) {
   const playlists = await req.user.getPlaylists();
@@ -30,17 +27,16 @@ export async function createPlaylist(req) {
     description: req.body.description,
     shared: req.body.shared,
   });
-
-  try {
-    await req.user.getActivePlaylist();
-  } catch (e) {
-    debug(`activating first playlist for ${req.user.id} ${req.user.username}`);
-    await req.user.setActivePlaylist(playlist);
-  }
+  const activeID = await req.user.getActivePlaylistID();
 
   return toItemResponse(
     serializePlaylist(playlist),
-    { url: req.fullUrl },
+    {
+      url: req.fullUrl,
+      meta: {
+        active: activeID === playlist.id,
+      },
+    },
   );
 }
 
