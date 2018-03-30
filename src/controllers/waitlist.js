@@ -187,7 +187,7 @@ export async function removeFromWaitlist(req) {
   const user = await uw.getUser(req.params.id);
 
   const isRemoving = user.id !== moderator.id;
-  if (isRemoving && !(await user.can('waitlist.remove'))) {
+  if (isRemoving && !(await moderator.can('waitlist.remove'))) {
     throw new PermissionError('You need to be a moderator to do this.');
   }
 
