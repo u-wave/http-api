@@ -21,7 +21,7 @@
     "build": "rollup -c",
     "watch": "rollup -c -w",
     "start": "nodemon -- dev/u-wave-api-dev-server --watch",
-    "prepublish": "npm run build"
+    "prepare": "npm run build"
   },
   "dependencies": {
     "body-parser": "^1.18.2",
