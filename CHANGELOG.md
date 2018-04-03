@@ -1,3 +1,9 @@
+# 0.4.3 / 03 Apr 2018
+
+Bugfixses:
+
+ * Fix access check when removing other users from the waitlist. (#192)
+
 # 0.4.2 / 29 Mar 2018
 
 Bugfixes:
