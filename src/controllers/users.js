@@ -1,3 +1,4 @@
+import createDebug from 'debug';
 import {
   HTTPError,
   PermissionError,
@@ -12,16 +13,22 @@ import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 
 export { muteUser, unmuteUser } from './chat';
 
+const debug = createDebug('uwave:http:users');
+
 export async function getUsers(req) {
   const uw = req.uwave;
+  const { filter } = req.query;
   const pagination = getOffsetPagination(req.query, {
     defaultSize: 50,
   });
 
-  const users = await uw.getUsers(pagination);
+  debug('getUsers', filter, pagination);
+
+  const users = await uw.getUsers(filter, pagination);
 
   return toPaginatedResponse(users, {
     baseUrl: req.fullUrl,
+    filter,
   });
 }
 
