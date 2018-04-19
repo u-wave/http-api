@@ -37,7 +37,7 @@ function loadDevModules() {
   const apiPath = path.join(__dirname, '../src');
   const corePath = path.join(getCorePath(), './src');
   require('@babel/register').default({
-    plugins: [require('@babel/plugin-transform-modules-commonjs')],
+    plugins: [require('@babel/plugin-transform-modules-commonjs').default],
     only: [ p => p.startsWith(apiPath) || p.startsWith(corePath) ],
   });
   const uwave = tryRequire(
