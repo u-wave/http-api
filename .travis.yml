@@ -6,8 +6,12 @@ node_js:
   - stable
   - 8.9
 
-after_success:
-  - 'if [[ "$TRAVIS_PULL_REQUEST" == false ]] && [[ "$TRAVIS_BRANCH" == now ]]; then npm i -g now && now demo -e SOUNDCLOUD_KEY -e YOUTUBE_KEY -e SECRET -e REDIS_URL -e MONGO_URL -e DEBUG --token $NOW_TOKEN --alias u-wave-demo.now.sh; fi'
+deploy:
+  skip_cleanup: true
+  provider: script
+  script: bin/travis-deploy
+  on:
+    branch: now
 
 env:
   global:
