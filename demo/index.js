@@ -6,6 +6,7 @@ const ytSource = require('u-wave-source-youtube');
 const scSource = require('u-wave-source-soundcloud');
 const recaptchaTestKeys = require('recaptcha-test-keys');
 const express = require('express');
+const cors = require('cors');
 const createWebApi = require('u-wave-http-api');
 const uwave = require('u-wave-core');
 
@@ -32,6 +33,7 @@ const server = app.listen(port, () => {
   console.log(`Now listening on ${port}`);
 });
 
+app.use(cors());
 app.set('json spaces', 2);
 
 const apiUrl = '/api';

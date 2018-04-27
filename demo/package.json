@@ -15,6 +15,7 @@
   },
   "homepage": "https://github.com/u-wave/http-api#readme",
   "dependencies": {
+    "cors": "^2.8.4",
     "express": "^4.16.3",
     "recaptcha-test-keys": "^1.0.0"
   }
