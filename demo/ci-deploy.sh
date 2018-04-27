@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [[ $TRAVIS_NODE_VERSION != "stable" ]]; then
+if [ x"$TRAVIS_NODE_VERSION" != x"stable" ]; then
   echo "not doing deploy!"
   exit 0
 fi
