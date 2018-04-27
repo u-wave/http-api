@@ -9,7 +9,7 @@ node_js:
 deploy:
   skip_cleanup: true
   provider: script
-  script: bin/travis-deploy
+  script: bin/ci-deploy.sh
   on:
     branch: now
 
