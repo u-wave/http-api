@@ -9,8 +9,7 @@ node_js:
 deploy:
   skip_cleanup: true
   provider: script
-  script:
-    - 'sh bin/ci-deploy.sh'
+  script: demo/ci-deploy.sh
   on:
     branch: now
 
