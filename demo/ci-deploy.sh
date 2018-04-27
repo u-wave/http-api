@@ -15,3 +15,4 @@ now \
   --token $NOW_TOKEN \
   -p \
   -n u-wave-demo
+now alias --token $NOW_TOKEN
