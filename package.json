@@ -19,6 +19,8 @@
   "scripts": {
     "test": "eslint --cache .",
     "build": "rollup -c",
+    "now-build": "npm run build && sh demo/build.sh",
+    "now-start": "node demo",
     "watch": "rollup -c -w",
     "start": "nodemon -- dev/u-wave-api-dev-server --watch",
     "prepare": "npm run build"

@@ -4,11 +4,6 @@
   "version": "0.0.0",
   "description": "The API for the üWave demo.",
   "main": "index.js",
-  "scripts": {
-    "now-build": "sh build.sh",
-    "now-start": "node index",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/u-wave/http-api.git"
