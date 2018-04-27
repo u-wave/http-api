@@ -1,1 +1,3 @@
 /dist
+/demo
+!/demo/index.js

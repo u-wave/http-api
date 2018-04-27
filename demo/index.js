@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
+/* eslint-disable import/no-extraneous-dependencies, import/no-unresolved */
 const { Buffer } = require('buffer');
-const ytSource = require('u-wave-source-youtube'); // eslint-disable-line import/no-extraneous-dependencies
-const scSource = require('u-wave-source-soundcloud'); // eslint-disable-line import/no-extraneous-dependencies
+const ytSource = require('u-wave-source-youtube');
+const scSource = require('u-wave-source-soundcloud');
 const recaptchaTestKeys = require('recaptcha-test-keys');
 const express = require('express');
-const createWebApi = require('u-wave-http-api'); // eslint-disable-line import/no-extraneous-dependencies
-const uwave = require('u-wave-core'); // eslint-disable-line import/no-extraneous-dependencies
+const createWebApi = require('u-wave-http-api');
+const uwave = require('u-wave-core');
 
 /**
  * üWave API demo server.
