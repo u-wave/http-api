@@ -21,6 +21,12 @@ export async function getState(req) {
   const waitlistLocked = uw.redis.get('waitlist:lock').then(Boolean);
   const activePlaylist = user ? user.getActivePlaylistID() : null;
   const playlists = user ? user.getPlaylists() : null;
+  const firstActivePlaylistItem = activePlaylist
+    ? activePlaylist
+        .then(id => user.getPlaylist(id))
+        .then(playlist => (playlist ? playlist.getItemAt(0) : null))
+        .catch(() => null)
+    : null;
   const socketToken = user ? api.sockets.createAuthToken(user) : null;
   const authStrategies = api.passport.strategies();
   const time = Date.now();
@@ -35,6 +41,7 @@ export async function getState(req) {
     waitlist,
     waitlistLocked,
     activePlaylist,
+    firstActivePlaylistItem,
     playlists,
     socketToken,
     authStrategies,
