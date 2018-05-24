@@ -1,10 +1,16 @@
-# 0.4.3 / 03 Apr 2018
+# u-wave-http-api change log
 
-Bugfixses:
+All notable changes to this project will be documented in this file.
+
+This project adheres to [Semantic Versioning](http://semver.org/).
+
+## 0.4.3 / 03 Apr 2018
+
+Bugfixes:
 
  * Fix access check when removing other users from the waitlist. (#192)
 
-# 0.4.2 / 29 Mar 2018
+## 0.4.2 / 29 Mar 2018
 
 Bugfixes:
 
@@ -14,14 +20,14 @@ Internal:
 
  * Rename leftover api-v1 references to http-api.
 
-# 0.4.1 / 22 Mar 2018
+## 0.4.1 / 22 Mar 2018
 
 Bugfixes:
 
  * Pass through public errors from core. (#189)
  * Ignore incorrect JWT instead of rejecting the request. (#188)
 
-# 0.4.0 / 18 Mar 2018
+## 0.4.0 / 18 Mar 2018
 
 Features:
 
@@ -46,7 +52,7 @@ Internal:
  * Remove direct websocket broadcasting from controllers. (#182)
  * Enable long stack traces in the dev server. (#183)
 
-# 0.3.0 / 25 Aug 2017
+## 0.3.0 / 25 Aug 2017
 
 Features:
 
@@ -56,7 +62,7 @@ Internal:
 
  * Dependency updates.
 
-# 0.2.2 / 09 Jul 2017
+## 0.2.2 / 09 Jul 2017
 
 Features:
 
@@ -67,7 +73,7 @@ Internal:
 
  * Add Node 7 and 8 to CI. (#148)
 
-# 0.2.1 / 21 Jun 2017
+## 0.2.1 / 21 Jun 2017
 
 Features:
 
@@ -78,7 +84,7 @@ Bugfixes:
  * Fix history pagination links. (#141)
  * Fix errors being hidden. (#140)
 
-# 0.2.0 / 15 Jun 2017
+## 0.2.0 / 15 Jun 2017
 
 Features:
 
@@ -89,6 +95,6 @@ Internal:
 
  * Switch to `bcryptjs` from `bcrypt`. (#128)
 
-# 0.1.0 / 30 Dec 2016
+## 0.1.0 / 30 Dec 2016
 
 Start tracking changes.
