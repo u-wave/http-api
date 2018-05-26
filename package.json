@@ -48,12 +48,12 @@
     "ws": "^5.0.0"
   },
   "devDependencies": {
-    "@babel/core": "7.0.0-beta.48",
-    "@babel/plugin-proposal-class-properties": "7.0.0-beta.48",
-    "@babel/plugin-syntax-object-rest-spread": "7.0.0-beta.48",
-    "@babel/plugin-transform-flow-comments": "7.0.0-beta.48",
-    "@babel/plugin-transform-modules-commonjs": "7.0.0-beta.48",
-    "@babel/register": "7.0.0-beta.48",
+    "@babel/core": "7.0.0-beta.49",
+    "@babel/plugin-proposal-class-properties": "7.0.0-beta.49",
+    "@babel/plugin-syntax-object-rest-spread": "7.0.0-beta.49",
+    "@babel/plugin-transform-flow-comments": "7.0.0-beta.49",
+    "@babel/plugin-transform-modules-commonjs": "7.0.0-beta.49",
+    "@babel/register": "7.0.0-beta.49",
     "babel-eslint": "^8.0.0",
     "clarify": "^2.1.0",
     "concat-stream": "^1.6.0",
