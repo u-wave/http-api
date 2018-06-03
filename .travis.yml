@@ -11,7 +11,8 @@ deploy:
   provider: script
   script: demo/ci-deploy.sh
   on:
-    branch: now
+    branch: master
+    node: stable
 
 env:
   global:
