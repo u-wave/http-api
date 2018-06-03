@@ -28,6 +28,10 @@ uw.source(scSource, {
   key: process.env.SOUNDCLOUD_KEY,
 });
 
+uw.on('ready', () => {
+  uw.motd.set('This is the demo server for üWave! Everything is much slower than on a real instance, because its databases run on free services across the world.');
+});
+
 const app = express();
 const server = app.listen(port, () => {
   console.log(`Now listening on ${port}`);
