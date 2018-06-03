@@ -33,7 +33,11 @@ const server = app.listen(port, () => {
   console.log(`Now listening on ${port}`);
 });
 
-app.use(cors());
+app.use(cors({
+  origin(origin, cb) {
+    cb(null, true);
+  },
+}));
 app.set('json spaces', 2);
 
 const apiUrl = '/api';
