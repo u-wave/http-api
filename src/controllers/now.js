@@ -1,7 +1,15 @@
 import props from 'p-props';
 import { getBoothData } from './booth';
-
 import { serializePlaylist } from '../utils/serialize';
+
+async function getFirstItem(user, activePlaylist) {
+  const id = await activePlaylist;
+  const playlist = await user.getPlaylist(id);
+  if (playlist) {
+    return playlist.getItemAt(0);
+  }
+  return null;
+}
 
 // eslint-disable-next-line import/prefer-default-export
 export async function getState(req) {
@@ -21,6 +29,7 @@ export async function getState(req) {
   const waitlistLocked = uw.redis.get('waitlist:lock').then(Boolean);
   const activePlaylist = user ? user.getActivePlaylistID() : null;
   const playlists = user ? user.getPlaylists() : null;
+  const firstActivePlaylistItem = activePlaylist ? getFirstItem(user, activePlaylist) : null;
   const socketToken = user ? api.sockets.createAuthToken(user) : null;
   const authStrategies = api.passport.strategies();
   const time = Date.now();
@@ -35,6 +44,7 @@ export async function getState(req) {
     waitlist,
     waitlistLocked,
     activePlaylist,
+    firstActivePlaylistItem,
     playlists,
     socketToken,
     authStrategies,
