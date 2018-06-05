@@ -12,6 +12,7 @@ now \
   -e REDIS_URL \
   -e MONGO_URL \
   -e DEBUG \
+  -e ANNOUNCE_SECRET \
   --token $NOW_TOKEN \
   -p \
   -n u-wave-demo

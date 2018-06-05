@@ -17,6 +17,7 @@
   "dependencies": {
     "cors": "^2.8.4",
     "express": "^4.16.3",
-    "recaptcha-test-keys": "^1.0.0"
+    "recaptcha-test-keys": "^1.0.0",
+    "u-wave-announce": "^0.2.2"
   }
 }

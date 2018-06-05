@@ -9,6 +9,7 @@ const express = require('express');
 const cors = require('cors');
 const createWebApi = require('u-wave-http-api');
 const uwave = require('u-wave-core');
+const announce = require('u-wave-announce');
 
 /**
  * üWave API demo server.
@@ -27,6 +28,15 @@ uw.source(ytSource, {
 uw.source(scSource, {
   key: process.env.SOUNDCLOUD_KEY,
 });
+
+uw.use(announce({
+  name: 'üWave Demo',
+  subtitle: '',
+  url: 'https://u-wave-web.netlify.com/',
+  apiUrl: 'https://u-wave-demo.now.sh/api',
+  socketUrl: 'https://u-wave-demo.now.sh',
+  seed: Buffer.from(process.env.ANNOUNCE_SECRET, 'hex'),
+}));
 
 uw.on('ready', () => {
   uw.motd.set('This is the demo server for üWave! Everything is much slower than on a real instance, because its databases run on free services across the world.');
