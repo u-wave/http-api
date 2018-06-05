@@ -49,7 +49,7 @@ export async function clearWaitlist(req) {
   const { waitlist } = req.uwave;
   const moderator = req.user;
 
-  await waitlist.clear();
+  await waitlist.clear({ moderator });
 
   const updated = await waitlist.getUserIDs();
   return toListResponse(updated, { url: req.fullUrl });
