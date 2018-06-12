@@ -70,11 +70,16 @@ export default function authenticateRoutes(api, options) {
         passport.authenticate('google'),
         route(controller.login.bind(null, options)),
       )
-      // GET /auth/service/google/callback - Finish a social login using Google.
+      // GET /auth/service/google/callback - Receive social login data from Google.
       .get(
         '/service/google/callback',
         passport.authenticate('google'),
-        route(controller.socialLoginCallback.bind(null, options)),
+        route(controller.socialLoginCallback.bind(null, options, 'google')),
+      )
+      // POST /auth/service/google/finish - Finish creating an account with Google.
+      .post(
+        '/service/google/finish',
+        route(controller.socialLoginFinish.bind(null, options, 'google')),
       );
   }
 
