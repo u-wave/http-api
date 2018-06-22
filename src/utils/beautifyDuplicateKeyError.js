@@ -4,8 +4,8 @@ const MONGO_DUPLICATE_KEY_ERROR = 11000;
 const MONGO_DUPLICATE_KEY_ERROR2 = 11001;
 
 function isDuplicateKeyError(error) {
-  return error.code === MONGO_DUPLICATE_KEY_ERROR ||
-    error.code === MONGO_DUPLICATE_KEY_ERROR2;
+  return error.code === MONGO_DUPLICATE_KEY_ERROR
+    || error.code === MONGO_DUPLICATE_KEY_ERROR2;
 }
 
 /**
@@ -19,7 +19,8 @@ export default function beautifyDuplicateKeyError(error) {
   if (isDuplicateKeyError(error)) {
     if (error.message.indexOf('username') !== -1) {
       return new HTTPError(400, 'That username is in use.');
-    } else if (error.message.indexOf('email') !== -1) {
+    }
+    if (error.message.indexOf('email') !== -1) {
       return new HTTPError(400, 'That email address is in use.');
     }
   }

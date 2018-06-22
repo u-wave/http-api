@@ -62,8 +62,7 @@ export default function userRoutes() {
       rateLimit('change-username', {
         max: 5,
         duration: 60 * 60 * 1000,
-        error: (_, retryAfter) =>
-          `You can only change your username five times per hour. Try again in ${retryAfter}.`,
+        error: (_, retryAfter) => `You can only change your username five times per hour. Try again in ${retryAfter}.`,
       }),
       route(controller.changeUsername),
     )

@@ -4,8 +4,7 @@ import RateLimiter from 'ratelimiter';
 import wrapMiddleware from '../utils/wrapMiddleware';
 import { RateLimitError } from '../errors';
 
-const defaultErrorMessage = (retryAfter, rendered) =>
-  `Rate limit exceeded, retry in ${rendered}`;
+const defaultErrorMessage = (retryAfter, rendered) => `Rate limit exceeded, retry in ${rendered}`;
 
 RateLimiter.prototype.getAsync = promisify(RateLimiter.prototype.get);
 

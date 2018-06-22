@@ -37,10 +37,9 @@ export default class JWTStrategy extends Strategy {
   }
 
   async authenticateP(req) {
-    const token =
-      getQueryToken(req.query) ||
-      getHeaderToken(req.headers) ||
-      getCookieToken(req.cookies);
+    const token = getQueryToken(req.query)
+      || getHeaderToken(req.headers)
+      || getCookieToken(req.cookies);
     if (!token) {
       return this.pass();
     }
@@ -68,4 +67,3 @@ export default class JWTStrategy extends Strategy {
     return this.success(user);
   }
 }
-
