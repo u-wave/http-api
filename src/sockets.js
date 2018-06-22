@@ -18,6 +18,7 @@ const randomBytes = promisify(crypto.randomBytes);
 
 export default class SocketServer {
   connections = [];
+
   options = {
     timeout: 30,
   };
@@ -90,8 +91,9 @@ export default class SocketServer {
    * Get a LostConnection for a user, if one exists.
    */
   getLostConnection(user) {
-    return this.connections.find(connection =>
-      connection instanceof LostConnection && connection.user.id === user.id);
+    return this.connections.find(connection => (
+      connection instanceof LostConnection && connection.user.id === user.id
+    ));
   }
 
   /**
@@ -474,8 +476,7 @@ export default class SocketServer {
    */
   connection(user) {
     const userID = typeof user === 'object' ? user.id : user;
-    return this.connections.find(connection =>
-      connection.user && connection.user.id === userID);
+    return this.connections.find(connection => connection.user && connection.user.id === userID);
   }
 
   ping() {

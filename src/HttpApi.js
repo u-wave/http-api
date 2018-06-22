@@ -77,8 +77,8 @@ function defaultCreatePasswordResetEmail({ token, requestUrl }) {
 export default class UwaveHttpApi extends Router {
   constructor(uw, options = {}) {
     if (!uw || !('mongo' in uw)) {
-      throw new TypeError('Expected a u-wave-core instance in the first parameter. If you are ' +
-        'developing, you may have to upgrade your u-wave-* modules.');
+      throw new TypeError('Expected a u-wave-core instance in the first parameter. If you are '
+        + 'developing, you may have to upgrade your u-wave-* modules.');
     }
 
     if (!options.server && !options.socketPort) {
@@ -86,15 +86,15 @@ export default class UwaveHttpApi extends Router {
     }
 
     if (!options.secret) {
-      throw new TypeError('"options.secret" is empty. This option is used to sign authentication ' +
-        'keys, and is required for security reasons.');
+      throw new TypeError('"options.secret" is empty. This option is used to sign authentication '
+        + 'keys, and is required for security reasons.');
     }
 
     if (options.recaptcha && !options.recaptcha.secret) {
-      throw new TypeError('ReCaptcha validation is enabled, but "options.recaptcha.secret" is ' +
-        'not set. Please set "options.recaptcha.secret" to your ReCaptcha ' +
-        'secret, or disable ReCaptcha validation by setting "options.recaptcha" ' +
-        'to "false".');
+      throw new TypeError('ReCaptcha validation is enabled, but "options.recaptcha.secret" is '
+        + 'not set. Please set "options.recaptcha.secret" to your ReCaptcha '
+        + 'secret, or disable ReCaptcha validation by setting "options.recaptcha" '
+        + 'to "false".');
     }
 
     if (options.onError != null && typeof options.onError !== 'function') {

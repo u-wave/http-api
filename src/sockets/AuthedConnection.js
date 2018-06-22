@@ -27,6 +27,7 @@ export default class AuthedConnection extends EventEmitter {
   get key() {
     return `http-api:disconnected:${this.user.id}`;
   }
+
   get messagesKey() {
     return `http-api:disconnected:${this.user.id}:messages`;
   }

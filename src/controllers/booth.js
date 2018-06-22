@@ -59,8 +59,8 @@ async function doSkip(uw, moderatorID, userID, reason, opts = {}) {
 }
 
 export async function skipBooth(req) {
-  const skippingSelf = (!req.body.userID && !req.body.reason) ||
-    req.body.userID === req.user.id;
+  const skippingSelf = (!req.body.userID && !req.body.reason)
+    || req.body.userID === req.user.id;
   const opts = { remove: !!req.body.remove };
 
   if (skippingSelf) {

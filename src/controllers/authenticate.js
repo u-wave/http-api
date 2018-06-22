@@ -123,7 +123,8 @@ async function verifyCaptcha(responseString, options) {
   if (!options.recaptcha) {
     log('ReCaptcha validation is disabled');
     return null;
-  } else if (!responseString) {
+  }
+  if (!responseString) {
     throw new Error('ReCaptcha validation failed. Please try again.');
   }
 
@@ -203,8 +204,8 @@ export async function changePassword(req) {
 
   const userId = await uw.redis.get(`reset:${resetToken}`);
   if (!userId) {
-    throw new TokenError('That reset token is invalid. Please double-check your reset ' +
-      'token or request a new password reset.');
+    throw new TokenError('That reset token is invalid. Please double-check your reset '
+      + 'token or request a new password reset.');
   }
 
   await uw.users.updatePassword(userId, password);
