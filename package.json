@@ -57,7 +57,7 @@
     "babel-eslint": "^8.0.0",
     "clarify": "^2.1.0",
     "concat-stream": "^1.6.0",
-    "eslint": "^4.10.0",
+    "eslint": "^5.0.0",
     "eslint-config-airbnb-base": "^13.0.0",
     "eslint-plugin-import": "^2.8.0",
     "explain-error": "^1.0.4",
