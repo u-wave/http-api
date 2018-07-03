@@ -18,6 +18,12 @@ async function getFirstItem(user, activePlaylist) {
   return null;
 }
 
+function toInt(str) {
+  if (typeof str !== 'string') return 0;
+  if (!/^\d+$/.test(str)) return 0;
+  return parseInt(str, 10);
+}
+
 // eslint-disable-next-line import/prefer-default-export
 export async function getState(req) {
   const uw = req.uwave;
@@ -63,10 +69,4 @@ export async function getState(req) {
   }
 
   return state;
-}
-
-function toInt(str) {
-  if (typeof str !== 'string') return 0;
-  if (!/^\d+$/.test(str)) return 0;
-  return parseInt(str, 10);
 }

@@ -566,7 +566,7 @@ export default class SocketServer {
 
     const lastGuestCount = await this.getGuestCount();
     if (guests !== lastGuestCount) {
-      await redis.set('http-api:guests', guests)
+      await redis.set('http-api:guests', guests);
       this.broadcast('guests', guests);
     }
   }, ms('2 seconds'));
