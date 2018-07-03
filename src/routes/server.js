@@ -1,5 +1,6 @@
 import router from 'router';
 import route from '../route';
+import protect from '../middleware/protect';
 import * as controller from '../controllers/server';
 
 export default function serverRoutes() {
@@ -8,5 +9,11 @@ export default function serverRoutes() {
     .get(
       '/time',
       route(controller.getServerTime),
+    )
+    // GET /server/config/schema - Show the schema describing server configuration. Superuser only atm!
+    .get(
+      '/config/schema',
+      protect('*'),
+      route(controller.getConfigSchema),
     );
 }

@@ -5,6 +5,7 @@ import url from 'url';
 
 // routes
 import authenticate from './routes/authenticate';
+import server from './routes/server';
 import acl from './routes/acl';
 import bans from './routes/bans';
 import playlist from './routes/playlists';
@@ -95,6 +96,7 @@ export default class UwaveHttpApi extends Router {
         createPasswordResetEmail:
           options.createPasswordResetEmail || defaultCreatePasswordResetEmail,
       }))
+      .use('/server', server(this))
       .use('/roles', acl(this))
       .use('/bans', bans(this))
       .use('/booth', booth(this))
