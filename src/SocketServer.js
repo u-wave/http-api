@@ -3,18 +3,43 @@ import tryJsonParse from 'try-json-parse';
 import WebSocket from 'ws';
 import ms from 'ms';
 import createDebug from 'debug';
-import { promisify } from 'util';
-import crypto from 'crypto';
-
 import { vote } from './controllers/booth';
 import { disconnectUser } from './controllers/users';
-
+import AuthRegistry from './AuthRegistry';
 import GuestConnection from './sockets/GuestConnection';
 import AuthedConnection from './sockets/AuthedConnection';
 import LostConnection from './sockets/LostConnection';
 
 const debug = createDebug('uwave:api:sockets');
-const randomBytes = promisify(crypto.randomBytes);
+
+function missingServerOption() {
+  throw new TypeError(`
+Exactly one of "options.server" and "options.port" is required. These
+options are used to attach the WebSocket server to the correct HTTP server.
+
+An example of how to attach the WebSocket server to an existing HTTP server
+using Express:
+
+    import { createSocketServer } from 'u-wave-http-api';
+    const app = express();
+    const server = app.listen(80);
+
+    createSocketServer(uwave, {
+      server: server,
+      /* ... */
+    });
+
+Alternatively, you can provide a port for the socket server to listen on:
+
+    import { createSocketServer } from 'u-wave-http-api';
+    const app = express();
+
+    createSocketServer(uwave, {
+      port: 6042,
+      /* ... */
+    });
+  `);
+}
 
 export default class SocketServer {
   connections = [];
@@ -23,8 +48,6 @@ export default class SocketServer {
     timeout: 30,
   };
 
-  lastGuestCount = 0;
-
   pinger = setInterval(() => {
     this.ping();
   }, ms('10 seconds'));
@@ -32,15 +55,32 @@ export default class SocketServer {
   /**
    * Create a socket server.
    *
-   * @param {UWaveServer} uw üWave Core instance.
+   * @param {Uwave} uw üWave Core instance.
    * @param {object} options Socket server options.
    * @param {number} options.timeout Time in seconds to wait for disconnected
    *     users to reconnect before removing them.
    */
   constructor(uw, options = {}) {
+    if (!uw || !('mongo' in uw)) {
+      throw new TypeError('Expected a u-wave-core instance in the first parameter. If you are '
+        + 'developing, you may have to upgrade your u-wave-* modules.');
+    }
+
+    if (!options.server && !options.port) {
+      missingServerOption(options);
+    }
+
+    if (!options.secret) {
+      throw new TypeError('"options.secret" is empty. This option is used to sign authentication '
+        + 'keys, and is required for security reasons.');
+    }
+
+
     this.uw = uw;
     this.sub = uw.subscription();
     Object.assign(this.options, options);
+
+    this.authRegistry = new AuthRegistry(uw.redis);
 
     this.wss = new WebSocket.Server({
       server: options.server,
@@ -80,13 +120,6 @@ export default class SocketServer {
     this.add(this.createGuestConnection(socket, req));
   }
 
-  async createAuthToken(user) {
-    const { redis } = this.uw;
-    const token = (await randomBytes(64)).toString('hex');
-    await redis.set(`http-api:socketAuth:${token}`, user.id, 'EX', 60);
-    return token;
-  }
-
   /**
    * Get a LostConnection for a user, if one exists.
    */
@@ -102,6 +135,7 @@ export default class SocketServer {
   createGuestConnection(socket, req?) {
     const connection = new GuestConnection(this.uw, socket, req, {
       secret: this.options.secret,
+      authRegistry: this.authRegistry,
     });
     connection.on('close', () => {
       this.remove(connection);
@@ -451,13 +485,6 @@ export default class SocketServer {
   }
 
   /**
-   * @return Number of active guest connections.
-   */
-  getGuestCount() {
-    return this.lastGuestCount;
-  }
-
-  /**
    * Stop the socket server.
    */
   destroy() {
@@ -519,17 +546,28 @@ export default class SocketServer {
     });
   }
 
+  async getGuestCount() {
+    const { redis } = this.uw;
+    const rawCount = await redis.get('http-api:guests');
+    if (typeof rawCount !== 'string' || !/^\d+$/.test(rawCount)) {
+      return 0;
+    }
+    return parseInt(rawCount, 10);
+  }
+
   /**
    * Update online guests count and broadcast an update if necessary.
    */
-  recountGuests = debounce(() => {
+  recountGuests = debounce(async () => {
+    const { redis } = this.uw;
     const guests = this.connections
       .filter(connection => connection instanceof GuestConnection)
       .length;
 
-    if (guests !== this.lastGuestCount) {
+    const lastGuestCount = await this.getGuestCount();
+    if (guests !== lastGuestCount) {
+      await redis.set('http-api:guests', guests)
       this.broadcast('guests', guests);
-      this.lastGuestCount = guests;
     }
   }, ms('2 seconds'));
 }
