@@ -10,7 +10,7 @@ async function getFirstItem(user, activePlaylist) {
       if (playlist) {
         return playlist.getItemAt(0);
       }
-    } catch {}
+    } catch (e) {}
   }
   return null;
 }
