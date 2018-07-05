@@ -4,6 +4,7 @@ module.exports = (api) => {
   return {
     plugins: [
       '@babel/plugin-syntax-object-rest-spread',
+      '@babel/plugin-proposal-optional-catch-binding',
       '@babel/plugin-proposal-class-properties',
       '@babel/plugin-transform-flow-comments',
     ],
