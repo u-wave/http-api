@@ -8,7 +8,8 @@ async function getFirstItem(user, activePlaylist) {
     try {
       const playlist = await user.getPlaylist(id);
       if (playlist) {
-        return playlist.getItemAt(0);
+        const item = await playlist.getItemAt(0);
+        return item;
       }
     } catch (e) {}
   }
