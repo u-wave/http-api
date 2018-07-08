@@ -13,7 +13,19 @@ export default function serverRoutes() {
     // GET /server/config/schema - Show the schema describing server configuration. Superuser only atm!
     .get(
       '/config/schema',
-      protect('*'),
+      protect('admin'),
       route(controller.getConfigSchema),
+    )
+    // GET /server/config
+    .get(
+      '/config',
+      protect('admin'),
+      route(controller.getAllConfig),
+    )
+    // PUT /server/config/:key - Update server configuration.
+    .put(
+      '/config/:key',
+      protect('admin'),
+      route(controller.updateConfig)
     );
 }
