@@ -3,8 +3,11 @@ import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { callbackify } from 'util';
 import JWTStrategy from './auth/JWTStrategy';
+import schema from './auth/schema';
 
 export default function configurePassport(uw, options) {
+  uw.config.register('http-api:auth', schema);
+
   const passport = new Passport();
 
   async function localLogin(email, password) {
