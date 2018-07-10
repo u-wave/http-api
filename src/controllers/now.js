@@ -4,9 +4,16 @@ import { serializePlaylist } from '../utils/serialize';
 
 async function getFirstItem(user, activePlaylist) {
   const id = await activePlaylist;
-  const playlist = await user.getPlaylist(id);
-  if (playlist) {
-    return playlist.getItemAt(0);
+  if (id) {
+    try {
+      const playlist = await user.getPlaylist(id);
+      if (playlist) {
+        const item = await playlist.getItemAt(0);
+        return item;
+      }
+    } catch (e) {
+      // Nothing
+    }
   }
   return null;
 }
