@@ -11,7 +11,9 @@ async function getFirstItem(user, activePlaylist) {
         const item = await playlist.getItemAt(0);
         return item;
       }
-    } catch (e) {}
+    } catch (e) {
+      // Nothing
+    }
   }
   return null;
 }
