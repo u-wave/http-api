@@ -49,8 +49,10 @@ export const requestPasswordReset = joi.object({
 });
 
 export const passwordReset = joi.object({
+  params: joi.object({
+    reset: joi.string().required(),
+  }),
   body: joi.object({
-    email: userEmail.required(),
     password: userPassword.required(),
   }),
 });
