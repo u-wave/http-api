@@ -1,11 +1,12 @@
 import ms from 'ms';
 import { promisify } from 'util';
-import RateLimiter from 'ratelimiter';
+import RateLimiterBase from 'ratelimiter';
 import wrapMiddleware from '../utils/wrapMiddleware';
 import { RateLimitError } from '../errors';
 
 const defaultErrorMessage = (retryAfter, rendered) => `Rate limit exceeded, retry in ${rendered}`;
 
+class RateLimiter extends RateLimiterBase {}
 RateLimiter.prototype.getAsync = promisify(RateLimiter.prototype.get);
 
 export default function rateLimit(prefix, opts) {
