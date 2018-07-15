@@ -2,10 +2,14 @@ import EventEmitter from 'events';
 import Ultron from 'ultron';
 import WebSocket from 'ws';
 import createDebug from 'debug';
+import AuthRegistry from '../AuthRegistry';
 
 const debug = createDebug('uwave:api:sockets:guest');
 
-type ConnectionOptions = { timeout: number };
+type ConnectionOptions = {
+  timeout: number,
+  authRegistry: AuthRegistry,
+};
 
 export default class GuestConnection extends EventEmitter {
   lastMessage = Date.now();
@@ -31,25 +35,15 @@ export default class GuestConnection extends EventEmitter {
     });
   }
 
-  async getTokenUser(token) {
-    if (token.length !== 128) {
-      throw new Error('Invalid token');
-    }
-    const [userID] = await this.uw.redis
-      .multi()
-      .get(`http-api:socketAuth:${token}`)
-      .del(`http-api:socketAuth:${token}`)
-      .exec();
-
-    return userID;
-  }
-
   async attemptAuth(token) {
-    const userID = await this.getTokenUser(token);
+    const { users } = this.uw;
+    const { authRegistry } = this.options;
+
+    const userID = await authRegistry.getTokenUser(token);
     if (!userID) {
       throw new Error('Invalid token');
     }
-    const userModel = await this.uw.getUser(userID);
+    const userModel = await users.getUser(userID);
     if (!userModel) {
       throw new Error('Invalid session');
     }

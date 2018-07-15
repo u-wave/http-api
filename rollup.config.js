@@ -13,7 +13,7 @@ export default {
   input: 'src/index.js',
   output: [{
     file: pkg.main,
-    exports: 'default',
+    exports: 'named',
     format: 'cjs',
     sourcemap: true,
   }, {

@@ -24,36 +24,7 @@ import errorHandler from './middleware/errorHandler';
 import rateLimit from './middleware/rateLimit';
 
 import createPassport from './passport';
-import WSServer from './sockets';
-
-function missingServerOption() {
-  throw new TypeError(`
-Exactly one of "options.server" and "options.socketPort" is required. These
-options are used to attach the WebSocket server to the correct HTTP server.
-
-An example of how to attach the WebSocket server to an existing HTTP server
-using Express:
-
-    import httpApi from 'u-wave-http-api';
-    const app = express();
-    const server = app.listen(80);
-
-    app.use('/api', httpApi(uwave, {
-      server: server,
-      ...
-    }));
-
-Alternatively, you can provide a port for the socket server to listen on:
-
-    import httpApi from 'u-wave-http-api';
-    const app = express();
-
-    app.use('/api', httpApi(uwave, {
-      socketPort: 6042,
-      ...
-    }));
-  `);
-}
+import AuthRegistry from './AuthRegistry';
 
 function defaultCreatePasswordResetEmail({ token, requestUrl }) {
   const parsed = url.parse(requestUrl);
@@ -81,10 +52,6 @@ export default class UwaveHttpApi extends Router {
         + 'developing, you may have to upgrade your u-wave-* modules.');
     }
 
-    if (!options.server && !options.socketPort) {
-      missingServerOption(options);
-    }
-
     if (!options.secret) {
       throw new TypeError('"options.secret" is empty. This option is used to sign authentication '
         + 'keys, and is required for security reasons.');
@@ -104,11 +71,8 @@ export default class UwaveHttpApi extends Router {
     const router = super(options);
 
     this.uw = uw;
-    this.sockets = new WSServer(uw, {
-      port: options.socketPort,
-      server: options.server,
-      secret: options.secret,
-    });
+
+    this.authRegistry = new AuthRegistry(uw.redis);
 
     this.passport = createPassport(uw, {
       secret: options.secret,
@@ -158,17 +122,5 @@ export default class UwaveHttpApi extends Router {
    */
   attachUwaveToRequest() {
     return attachUwaveMeta(this, this.uw);
-  }
-
-  /**
-   * @return Number of open guest connections.
-   */
-  getGuestCount() {
-    return this.sockets.getGuestCount();
-  }
-
-  destroy() {
-    this.sockets.destroy();
-    this.sockets = null;
   }
 }

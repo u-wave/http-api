@@ -43,7 +43,7 @@ export async function refreshSession(res, api, user, options) {
     { expiresIn: '31d' },
   );
 
-  const socketToken = await api.sockets.createAuthToken(user);
+  const socketToken = await api.authRegistry.createAuthToken(user);
 
   if (options.session === 'cookie') {
     const serialized = cookie.serialize('uwsession', token, {
@@ -112,8 +112,9 @@ export async function socialLoginCallback(options, req, res) {
 }
 
 export async function getSocketToken(req) {
-  const { sockets } = req.uwaveHttp;
-  const socketToken = await sockets.createAuthToken(req.user);
+  const { authRegistry } = req.uwaveHttp;
+
+  const socketToken = await authRegistry.createAuthToken(req.user);
   return toItemResponse({ socketToken }, {
     url: req.fullUrl,
   });
