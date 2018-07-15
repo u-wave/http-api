@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+## 0.5.0 / 15 Jul 2018
+
+Features:
+ * Pass through filter query parameter to getUsers(). (#195)
+ * Add first item from the active playlist to /now response. (#205)
+ * Move waitlist to u-wave-core. (#227)
+ * Separate socket server from the HTTP API. (#241)
+
+Bugfixes:
+ * Fix crash in /now if user has no playlists. (#242)
+ * Fix password reset validation. (#256)
+
+Internal:
+ * Use joi's builtin Promise API. (#229)
+ * Do not transform object rest spread. (#197)
+ * Dependency updates.
+
 ## 0.4.3 / 03 Apr 2018
 
 Bugfixes:
