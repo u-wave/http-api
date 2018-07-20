@@ -117,6 +117,17 @@ const playlistItemParams = joi.object({
   itemID: objectID.required(),
 });
 
+const playlistItem = joi.object({
+  sourceType: joi.string().required(),
+  sourceID: joi.string().required(),
+  artist: joi.string(),
+  title: joi.string(),
+  start: joi.number().min(0),
+  end: joi.number().min(0),
+});
+const playlistItemIDs = joi.array().items(objectID);
+const playlistItems = joi.array().items(playlistItem);
+
 export const createPlaylist = joi.object({
   body: joi.object({
     name: joi.string().required(),
@@ -162,21 +173,21 @@ export const getPlaylistItems = joi.object({
 export const addPlaylistItems = joi.object({
   params: playlistParams,
   body: joi.object({
-    items: joi.array().required(),
+    items: playlistItems.required(),
   }),
 });
 
 export const removePlaylistItems = joi.object({
   params: playlistParams,
   body: joi.object({
-    items: joi.array().required(),
+    items: playlistItemIDs.required(),
   }),
 });
 
 export const movePlaylistItems = joi.object({
   params: playlistParams,
   body: joi.object({
-    items: joi.array().required(),
+    items: playlistItemIDs.required(),
     after: [
       objectID, // Insert after ID
       joi.number().valid(-1), // Old-style prepend (use at=start instead)
