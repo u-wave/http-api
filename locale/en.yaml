@@ -1,0 +1,5 @@
+uwave:
+  errors:
+    userNotFound: 'User not found.'
+    playlistNotFound: 'Playlist not found.'
+    playlistItemNotFound: 'Playlist item not found.'

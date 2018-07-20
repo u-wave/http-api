@@ -26,7 +26,7 @@ export default {
   plugins: [
     del({ targets: 'dist' }),
     esModuleInterop(),
-    babel(),
+    babel({ include: 'src/**/*.js' }),
     nodeResolve(),
   ],
 };

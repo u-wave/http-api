@@ -1,5 +1,9 @@
 import createDebug from 'debug';
-import { HTTPError, NotFoundError } from '../errors';
+import {
+  HTTPError,
+  PlaylistNotFoundError,
+  PlaylistItemNotFoundError,
+} from '../errors';
 import { serializePlaylist } from '../utils/serialize';
 import getOffsetPagination from '../utils/getOffsetPagination';
 import toItemResponse from '../utils/toItemResponse';
@@ -26,7 +30,7 @@ export async function getPlaylist(req) {
   const playlist = await user.getPlaylist(id);
 
   if (!playlist) {
-    throw new NotFoundError('Playlist not found.');
+    throw new PlaylistNotFoundError({ id });
   }
 
   return toItemResponse(
@@ -65,7 +69,7 @@ export async function deletePlaylist(req) {
 
   const playlist = await user.getPlaylist(id);
   if (!playlist) {
-    throw new NotFoundError('Playlist not found.');
+    throw new PlaylistNotFoundError({ id });
   }
 
   const result = await playlists.deletePlaylist(playlist);
@@ -89,7 +93,7 @@ export async function updatePlaylist(req) {
 
   const playlist = await user.getPlaylist(id);
   if (!playlist) {
-    throw new NotFoundError('Playlist not found.');
+    throw new PlaylistNotFoundError({ id });
   }
 
   await playlists.updatePlaylist(playlist, patch);
@@ -108,7 +112,7 @@ export async function renamePlaylist(req) {
 
   const playlist = await user.getPlaylist(id);
   if (!playlist) {
-    throw new NotFoundError('Playlist not found.');
+    throw new PlaylistNotFoundError({ id });
   }
 
   await playlists.updatePlaylist(playlist, { name });
@@ -127,7 +131,7 @@ export async function sharePlaylist(req) {
 
   const playlist = await user.getPlaylist(id);
   if (!playlist) {
-    throw new NotFoundError('Playlist not found.');
+    throw new PlaylistNotFoundError({ id });
   }
 
   await playlists.updatePlaylist(playlist, { shared });
@@ -145,7 +149,7 @@ export async function activatePlaylist(req) {
 
   const playlist = await user.getPlaylist(id);
   if (!playlist) {
-    throw new NotFoundError('Playlist not found.');
+    throw new PlaylistNotFoundError({ id });
   }
 
   await user.setActivePlaylist(playlist.id);
@@ -161,7 +165,7 @@ export async function getPlaylistItems(req) {
 
   const playlist = await user.getPlaylist(id);
   if (!playlist) {
-    throw new NotFoundError('Playlist not found.');
+    throw new PlaylistNotFoundError({ id });
   }
 
   const items = await playlist.getItems(filter, pagination);
@@ -185,7 +189,7 @@ export async function addPlaylistItems(req) {
 
   const playlist = await user.getPlaylist(id);
   if (!playlist) {
-    throw new NotFoundError('Playlist not found.');
+    throw new PlaylistNotFoundError({ id });
   }
 
   let afterID = after;
@@ -221,7 +225,7 @@ export async function removePlaylistItems(req) {
 
   const playlist = await user.getPlaylist(id);
   if (!playlist) {
-    throw new NotFoundError('Playlist not found.');
+    throw new PlaylistNotFoundError({ id });
   }
 
   await playlist.removeItems(items);
@@ -244,7 +248,7 @@ export async function movePlaylistItems(req) {
 
   const playlist = await user.getPlaylist(id);
   if (!playlist) {
-    throw new NotFoundError('Playlist not found.');
+    throw new PlaylistNotFoundError({ id });
   }
 
   let afterID = after;
@@ -266,7 +270,7 @@ export async function shufflePlaylistItems(req) {
 
   const playlist = await user.getPlaylist(id);
   if (!playlist) {
-    throw new NotFoundError('Playlist not found.');
+    throw new PlaylistNotFoundError({ id });
   }
 
   await playlist.shuffle();
@@ -280,12 +284,12 @@ export async function getPlaylistItem(req) {
 
   const playlist = await user.getPlaylist(id);
   if (!playlist) {
-    throw new NotFoundError('Playlist not found.');
+    throw new PlaylistNotFoundError({ id });
   }
 
   const item = await playlist.getItem(itemID);
   if (!item) {
-    throw new NotFoundError('Playlist item not found.');
+    throw new PlaylistItemNotFoundError({ playlist, id: itemID });
   }
 
   return toItemResponse(item, { url: req.fullUrl });
@@ -305,7 +309,7 @@ export async function updatePlaylistItem(req) {
 
   const playlist = await user.getPlaylist(id);
   if (!playlist) {
-    throw new NotFoundError('Playlist not found.');
+    throw new PlaylistNotFoundError({ id });
   }
 
   const item = await playlist.updateItem(itemID, patch);
@@ -319,7 +323,7 @@ export async function removePlaylistItem(req) {
 
   const playlist = await user.getPlaylist(id);
   if (!playlist) {
-    throw new NotFoundError('Playlist not found.');
+    throw new PlaylistNotFoundError('Playlist not found.');
   }
 
   const result = await playlist.removeItem(itemID);
