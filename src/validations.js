@@ -38,6 +38,10 @@ export const login = joi.object({
   }),
   body: joi.object({
     email: userEmail.required(),
+    // This is less strict than the password validation used in `register`,
+    // because we check this against the DB anyway, and an error message
+    // about mismatching passwords makes more sense when logging in than an
+    // error message about the password being too short.
     password: joi.string().required(),
   }),
 });
