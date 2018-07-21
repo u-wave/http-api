@@ -1,14 +1,14 @@
 import props from 'p-props';
 import createDebug from 'debug';
-import { NotFoundError } from '../errors';
+import { SourceNotFoundError } from '../errors';
 import toListResponse from '../utils/toListResponse';
 
 const log = createDebug('uwave:http:search');
 
 export function searchAll(req) {
-  const uw = req.uwave;
   const { user } = req;
   const { query } = req.query;
+  const uw = req.uwave;
   const promises = {};
 
   uw.sources.forEach((source) => {
@@ -24,17 +24,19 @@ export function searchAll(req) {
 }
 
 export async function search(req) {
-  const uw = req.uwave;
   const { user } = req;
-  const sourceName = req.params.source;
+  const { source: sourceName } = req.params;
   const { query } = req.query;
+  const uw = req.uwave;
 
   const source = uw.source(sourceName);
   if (!source) {
-    throw new NotFoundError('Source not found.');
+    throw new SourceNotFoundError({ name: sourceName });
   }
 
   const results = await source.search(user, query);
 
-  return toListResponse(results, { url: req.fullUrl });
+  return toListResponse(results, {
+    url: req.fullUrl,
+  });
 }
