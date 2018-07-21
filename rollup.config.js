@@ -1,3 +1,4 @@
+import del from 'rollup-plugin-delete';
 import babel from 'rollup-plugin-babel';
 import nodeResolve from 'rollup-plugin-node-resolve';
 import esModuleInterop from 'rollup-plugin-es-module-interop';
@@ -23,6 +24,7 @@ export default {
   }],
   external: id => isBuiltinModule(id) || external.some(m => id.split('/')[0] === m),
   plugins: [
+    del({ targets: 'dist' }),
     esModuleInterop(),
     babel(),
     nodeResolve(),
