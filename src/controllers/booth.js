@@ -4,6 +4,9 @@ import {
   HTTPError,
   NotFoundError,
   PermissionError,
+  HistoryEntryNotFoundError,
+  PlaylistNotFoundError,
+  CannotSelfFavoriteError,
 } from '../errors';
 import getOffsetPagination from '../utils/getOffsetPagination';
 import toItemResponse from '../utils/toItemResponse';
@@ -11,7 +14,9 @@ import toListResponse from '../utils/toListResponse';
 import toPaginatedResponse from '../utils/toPaginatedResponse';
 
 export async function getBoothData(uw) {
-  const historyEntry = await uw.booth.getCurrentEntry();
+  const { booth, redis } = uw;
+
+  const historyEntry = await booth.getCurrentEntry();
 
   if (!historyEntry || !historyEntry.user) {
     return null;
@@ -20,9 +25,9 @@ export async function getBoothData(uw) {
   await historyEntry.populate('media.media').execPopulate();
 
   const stats = await props({
-    upvotes: uw.redis.smembers('booth:upvotes'),
-    downvotes: uw.redis.smembers('booth:downvotes'),
-    favorites: uw.redis.smembers('booth:favorites'),
+    upvotes: redis.smembers('booth:upvotes'),
+    downvotes: redis.smembers('booth:downvotes'),
+    favorites: redis.smembers('booth:favorites'),
   });
 
   return {
@@ -59,9 +64,12 @@ async function doSkip(uw, moderatorID, userID, reason, opts = {}) {
 }
 
 export async function skipBooth(req) {
-  const skippingSelf = (!req.body.userID && !req.body.reason)
-    || req.body.userID === req.user.id;
-  const opts = { remove: !!req.body.remove };
+  const { user } = req;
+  const { userID, reason, remove } = req.body;
+
+  const skippingSelf = (!userID && !reason)
+    || userID === user.id;
+  const opts = { remove: !!remove };
 
   if (skippingSelf) {
     const currentDJ = await getCurrentDJ(req.uwave);
@@ -75,20 +83,20 @@ export async function skipBooth(req) {
   }
 
   const errors = [];
-  if (!(await req.user.can('booth.skip.other'))) {
+  if (!await user.can('booth.skip.other')) {
     errors.push(new PermissionError('You need to be a moderator to do this'));
   }
-  if (typeof req.body.userID !== 'string') {
+  if (typeof userID !== 'string') {
     errors.push(new HTTPError(422, 'userID: Expected a string'));
   }
-  if (typeof req.body.reason !== 'string') {
+  if (typeof reason !== 'string') {
     errors.push(new HTTPError(422, 'reason: Expected a string'));
   }
   if (errors.length > 0) {
     throw new CombinedError(errors);
   }
 
-  await doSkip(req.uwave, req.user.id, req.body.userID, req.body.reason, opts);
+  await doSkip(req.uwave, user.id, userID, reason, opts);
 
   return toItemResponse({});
 }
@@ -99,9 +107,11 @@ export async function replaceBooth(req) {
   const { userID } = req.body;
   let waitlist = await uw.redis.lrange('waitlist', 0, -1);
 
-  if (!waitlist.length) throw new NotFoundError('Waitlist is empty.');
+  if (!waitlist.length) {
+    throw new NotFoundError('Waitlist is empty.');
+  }
 
-  if (waitlist.some(wlID => wlID === userID)) {
+  if (waitlist.includes(userID)) {
     uw.redis.lrem('waitlist', 1, userID);
     await uw.redis.lpush('waitlist', userID);
     waitlist = await uw.redis.lrange('waitlist', 0, -1);
@@ -151,26 +161,25 @@ export async function vote(uw, userID, direction) {
 }
 
 export async function favorite(req) {
-  const uw = req.uwave;
-  const PlaylistItem = uw.model('PlaylistItem');
-  const History = uw.model('History');
-
-  const { id } = req.user;
+  const { user } = req;
   const { playlistID, historyID } = req.body;
+  const uw = req.uwave;
+  const { PlaylistItem, HistoryEntry } = uw.models;
 
-  const historyEntry = await History.findById(historyID)
+  const historyEntry = await HistoryEntry.findById(historyID)
     .populate('media.media');
 
   if (!historyEntry) {
-    throw new NotFoundError('History entry not found.');
+    throw new HistoryEntryNotFoundError({ id: historyID });
   }
-  if (`${historyEntry.user}` === id) {
-    throw new PermissionError('You can\'t favorite your own plays.');
+  if (`${historyEntry.user}` === user.id) {
+    throw new CannotSelfFavoriteError();
   }
 
-  const playlist = await req.user.getPlaylist(playlistID);
-
-  if (!playlist) throw new NotFoundError('Playlist not found.');
+  const playlist = await user.getPlaylist(playlistID);
+  if (!playlist) {
+    throw new PlaylistNotFoundError({ id: playlistID });
+  }
 
   // `.media` has the same shape as `.item`, but is guaranteed to exist and have
   // the same properties as when the playlist item was actually played.
@@ -180,9 +189,9 @@ export async function favorite(req) {
 
   playlist.media.push(playlistItem.id);
 
-  await uw.redis.sadd('booth:favorites', id);
+  await uw.redis.sadd('booth:favorites', user.id);
   uw.publish('booth:favorite', {
-    userID: id,
+    userID: user.id,
     playlistID,
   });
 
@@ -199,15 +208,15 @@ export async function favorite(req) {
 }
 
 export async function getHistory(req) {
-  const uw = req.uwave;
   const pagination = getOffsetPagination(req.query, {
     defaultSize: 25,
     maxSize: 100,
   });
+  const { history } = req.uwave;
 
-  const history = await uw.getHistory(pagination);
+  const roomHistory = await history.getRoomHistory(pagination);
 
-  return toPaginatedResponse(history, {
+  return toPaginatedResponse(roomHistory, {
     baseUrl: req.fullUrl,
     included: {
       media: ['media.media'],

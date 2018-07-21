@@ -9,6 +9,7 @@ const en = YAML.parse(source);
 const i18n = i18next.createInstance();
 i18n.init({
   fallbackLng: 'en',
+  lng: 'en',
   defaultNS: 'uwave',
   interpolation: {
     escapeValue: false,
@@ -17,8 +18,5 @@ i18n.init({
 
 i18n.addResourceBundle('en', 'uwave', en.uwave);
 
-export const t = i18n.getFixedT({
-  lng: 'en',
-  ns: 'uwave',
-});
+export const t = i18n.getFixedT('en', 'uwave');
 export default i18n;

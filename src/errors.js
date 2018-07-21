@@ -92,23 +92,35 @@ function createErrorClass(name, {
     getMessage(translate = t) {
       return translate(string);
     }
-  }
+  };
 }
 
 export const UserNotFoundError = createErrorClass('UserNotFoundError', {
   status: 404,
   code: 'user-not-found',
-  string: 'userNotFound'
+  string: 'errors.userNotFound',
 });
 
 export const PlaylistNotFoundError = createErrorClass('PlaylistNotFoundError', {
   status: 404,
   code: 'playlist-not-found',
-  string: 'playlistNotFound'
+  string: 'errors.playlistNotFound',
 });
 
 export const PlaylistItemNotFoundError = createErrorClass('PlaylistItemNotFoundError', {
   status: 404,
   code: 'playlist-item-not-found',
-  string: 'playlistItemNotFound'
+  string: 'errors.playlistItemNotFound',
+});
+
+export const HistoryEntryNotFoundError = createErrorClass('HistoryEntryNotFoundError', {
+  status: 404,
+  code: 'history-entry-not-found',
+  string: 'errors.historyEntryNotFound',
+});
+
+export const CannotSelfFavoriteError = createErrorClass('CannotSelfFavoriteError', {
+  status: 403,
+  code: 'no-self-favorite',
+  string: 'errors.noSelfFavorite',
 });

@@ -1,5 +1,7 @@
 uwave:
   errors:
-    userNotFound: 'User not found.'
-    playlistNotFound: 'Playlist not found.'
-    playlistItemNotFound: 'Playlist item not found.'
+    userNotFound: User not found.
+    playlistNotFound: Playlist not found.
+    playlistItemNotFound: Playlist item not found.
+    historyEntryNotFound: History entry not found.
+    noSelfFavorite: "You can't favorite your own plays."
