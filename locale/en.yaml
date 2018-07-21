@@ -5,3 +5,7 @@ uwave:
     playlistItemNotFound: Playlist item not found.
     historyEntryNotFound: History entry not found.
     noSelfFavorite: "You can't favorite your own plays."
+    noSelfMute: "You can't mute yourself."
+    noSelfUnmute: "You can't unmute yourself."
+    sourceNotFound: 'Source "{{name}}" not found.'
+    sourceNoImport: 'Source "{{name}}" does not support importing.'

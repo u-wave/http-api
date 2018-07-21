@@ -1,4 +1,4 @@
-import { NotFoundError } from '../errors';
+import { UserNotFoundError } from '../errors';
 import getOffsetPagination from '../utils/getOffsetPagination';
 import toItemResponse from '../utils/toItemResponse';
 import toPaginatedResponse from '../utils/toPaginatedResponse';
@@ -30,7 +30,7 @@ export async function addBan(req) {
 
   const user = await users.getUser(userID);
   if (!user) {
-    throw new NotFoundError('User not found.');
+    throw new UserNotFoundError({ id: userID });
   }
 
   const ban = await bans.ban(user, {

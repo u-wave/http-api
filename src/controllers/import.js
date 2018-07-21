@@ -1,13 +1,21 @@
-import { NotFoundError, APIError } from '../errors';
+import {
+  SourceNotFoundError,
+  SourceNoImportError,
+  APIError,
+} from '../errors';
 
 const getImportableSource = (req) => {
-  const source = req.uwave.source(req.params.source);
+  const uw = req.uwave;
+  const { source: sourceName } = req.params;
+
+  const source = uw.source(sourceName);
   if (!source) {
-    throw new NotFoundError(`Source "${req.params.source}" not found.`);
+    throw new SourceNotFoundError({ name: sourceName });
   }
   if (!source.import) {
-    throw new NotFoundError(`Source "${req.params.source}" does not support importing.`);
+    throw new SourceNoImportError({ name: sourceName });
   }
+
   return source;
 };
 

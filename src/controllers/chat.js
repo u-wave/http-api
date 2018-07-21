@@ -1,61 +1,69 @@
 import {
-  NotFoundError,
-  PermissionError,
+  UserNotFoundError,
+  CannotSelfMuteError,
 } from '../errors';
 import toItemResponse from '../utils/toItemResponse';
 
 export async function muteUser(req) {
-  const uw = req.uwave;
+  const { user: moderator } = req;
   const { id } = req.params;
   const duration = req.body.time;
+  const { users } = req.uwave;
 
-  if (req.user.id === id) {
-    throw new PermissionError('You can\'t mute yourself.');
+  if (moderator.id === id) {
+    throw new CannotSelfMuteError({ unmute: false });
   }
 
-  const user = await uw.getUser(id);
-  if (!user) throw new NotFoundError('User not found.');
+  const user = await users.getUser(id);
+  if (!user) throw new UserNotFoundError({ id });
 
-  await user.mute(duration, { moderator: req.user });
+  await user.mute(duration, { moderator });
 
   return toItemResponse({});
 }
 
 export async function unmuteUser(req) {
-  const uw = req.uwave;
+  const { user: moderator } = req;
   const { id } = req.params;
-  if (req.user.id === id) {
-    throw new PermissionError('You can\'t unmute yourself.');
+  const { users } = req.uwave;
+
+  if (moderator.id === id) {
+    throw new CannotSelfMuteError({ unmute: true });
   }
 
-  const user = await uw.getUser(id);
-  if (!user) throw new NotFoundError('User not found.');
+  const user = await users.getUser(id);
+  if (!user) throw new UserNotFoundError({ id });
 
-  await user.unmute({ moderator: req.user });
+  await user.unmute({ moderator });
 
   return toItemResponse({});
 }
 
 export function deleteAll(req) {
-  req.uwave.deleteChat(
-    {},
-    { moderator: req.user },
-  );
+  const { user: moderator } = req;
+  const { chat } = req.uwave;
+
+  chat.delete({}, { moderator });
+
   return toItemResponse({});
 }
 
 export function deleteByUser(req) {
-  req.uwave.deleteChat(
-    { userID: req.params.id },
-    { moderator: req.user },
-  );
+  const { user: moderator } = req;
+  const { chat } = req.uwave;
+  const { id } = req.params;
+
+  chat.delete({ userID: id }, { moderator });
+
   return toItemResponse({});
 }
 
 export function deleteMessage(req) {
-  req.uwave.deleteChat(
-    { id: req.params.id },
-    { moderator: req.user },
-  );
+  const { user: moderator } = req;
+  const { chat } = req.uwave;
+  const { id } = req.params;
+
+  chat.delete({ id }, { moderator });
+
   return toItemResponse({});
 }

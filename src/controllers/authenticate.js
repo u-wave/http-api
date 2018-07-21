@@ -6,9 +6,9 @@ import got from 'got';
 import ms from 'ms';
 import {
   HTTPError,
-  NotFoundError,
   PermissionError,
   TokenError,
+  UserNotFoundError,
 } from '../errors';
 import sendEmail from '../email';
 import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
@@ -178,7 +178,7 @@ export async function register(options, req) {
 
 export async function reset(options, req) {
   const uw = req.uwave;
-  const Authentication = uw.model('Authentication');
+  const { Authentication } = uw.models;
   const { email } = req.body;
   const { mailTransport, createPasswordResetEmail } = options;
 
@@ -186,7 +186,7 @@ export async function reset(options, req) {
     email: email.toLowerCase(),
   });
   if (!auth) {
-    throw new NotFoundError('User not found.');
+    throw new UserNotFoundError({ email });
   }
 
   const token = randomString({ length: 35, special: false });
@@ -218,7 +218,7 @@ export async function changePassword(req) {
 
   const user = await users.getUser(userId);
   if (!user) {
-    throw new NotFoundError('User not found.');
+    throw new UserNotFoundError({ id: userId });
   }
 
   await users.updatePassword(user.id, password);

@@ -77,20 +77,24 @@ function createErrorClass(name, {
   code = 'unknown-error',
   string,
 }) {
+  const getString = typeof string !== 'function'
+    ? (() => string)
+    : string;
+
   return class extends HTTPError {
     name = name;
 
     code = code;
 
     constructor(data) {
-      super(status, t(string, data));
+      super(status, t(getString(data), data));
 
-      this.string = string;
+      this.string = getString(data);
       this.data = data;
     }
 
     getMessage(translate = t) {
-      return translate(string);
+      return translate(this.string);
     }
   };
 }
@@ -123,4 +127,22 @@ export const CannotSelfFavoriteError = createErrorClass('CannotSelfFavoriteError
   status: 403,
   code: 'no-self-favorite',
   string: 'errors.noSelfFavorite',
+});
+
+export const CannotSelfMuteError = createErrorClass('CannotSelfMuteError', {
+  status: 403,
+  code: 'no-self-mute',
+  string: ({ unmute }) => (unmute ? 'errors.noSelfUnmute' : 'errors.noSelfMute'),
+});
+
+export const SourceNotFoundError = createErrorClass('SourceNotFoundError', {
+  status: 404,
+  code: 'source-not-found',
+  string: 'errors.sourceNotFound',
+});
+
+export const SourceNoImportError = createErrorClass('SourceNoImportError', {
+  status: 404,
+  code: 'source-no-import',
+  string: 'errors.sourceNoImport',
 });
