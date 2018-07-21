@@ -194,12 +194,14 @@ export async function reset(options, req) {
   await uw.redis.set(`reset:${token}`, auth.user.toString());
   await uw.redis.expire(`reset:${token}`, 24 * 60 * 60);
 
+  const message = await createPasswordResetEmail({
+    token,
+    requestUrl: req.fullUrl,
+  });
+
   await sendEmail(email, {
     mailTransport,
-    email: createPasswordResetEmail({
-      token,
-      requestUrl: req.fullUrl,
-    }),
+    email: message,
   });
 
   return toItemResponse({});

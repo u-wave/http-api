@@ -104,7 +104,7 @@ export default class SocketServer {
    * is not currently connected to the socket server.
    */
   async initLostConnections() {
-    const User = this.uw.model('User');
+    const { User } = this.uw.models;
     const userIDs = await this.uw.redis.lrange('users', 0, -1);
     const disconnectedIDs = userIDs.filter(userID => !this.connection(userID));
 

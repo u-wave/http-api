@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 
-export default function sendEmail(emailAddress, options) {
+export default async function sendEmail(emailAddress, options) {
   const smtpOptions = {
     host: 'localhost',
     port: 25,
@@ -10,15 +10,11 @@ export default function sendEmail(emailAddress, options) {
     },
   };
 
-  // create reusable transporter object using the default SMTP transport
   const transporter = nodemailer.createTransport(options.mailTransport || smtpOptions);
 
-  // setup e-mail data with unicode symbols
   const mailOptions = Object.assign({
     to: emailAddress,
   }, options.email);
 
-  // send mail with defined transport object
-  return transporter.sendMail(mailOptions)
-    .then(() => ({}));
+  await transporter.sendMail(mailOptions)
 }
