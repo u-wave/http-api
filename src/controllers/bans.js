@@ -20,7 +20,7 @@ export async function getBans(req) {
 
 export async function addBan(req) {
   const { user: moderator } = req;
-  const { bans } = req.uwave;
+  const { users, bans } = req.uwave;
   const {
     duration = 0,
     userID,

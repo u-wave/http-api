@@ -145,7 +145,6 @@ export async function sharePlaylist(req) {
 export async function activatePlaylist(req) {
   const { user } = req;
   const { id } = req.params;
-  const { playlists } = req.uwave;
 
   const playlist = await user.getPlaylist(id);
   if (!playlist) {
@@ -298,7 +297,9 @@ export async function getPlaylistItem(req) {
 export async function updatePlaylistItem(req) {
   const { user } = req;
   const { id, itemID } = req.params;
-  const { artist, title, start, end } = req.body;
+  const {
+    artist, title, start, end,
+  } = req.body;
 
   const patch = {
     artist,
