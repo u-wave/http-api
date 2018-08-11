@@ -1,8 +1,9 @@
+import { URLSearchParams } from 'url';
 import cookie from 'cookie';
 import createDebug from 'debug';
 import jwt from 'jsonwebtoken';
 import randomString from 'random-string';
-import got from 'got';
+import fetch from 'node-fetch';
 import ms from 'ms';
 import {
   HTTPError,
@@ -135,17 +136,21 @@ async function verifyCaptcha(responseString, options) {
     throw new Error('ReCaptcha validation failed. Please try again.');
   }
 
-  const response = await got.post('https://www.google.com/recaptcha/api/siteverify', {
-    json: true,
-    form: true,
-    body: {
+  const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+    method: 'post',
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      accept: 'application/json',
+    },
+    body: new URLSearchParams({
       response: responseString,
       secret: options.recaptcha.secret,
-    },
+    }),
   });
+  const body = await response.json();
 
-  if (!response.body.success) {
-    log('recaptcha validation failure', response.body);
+  if (!body.success) {
+    log('recaptcha validation failure', body);
     throw new Error('ReCaptcha validation failed. Please try again.');
   }
   return null;
