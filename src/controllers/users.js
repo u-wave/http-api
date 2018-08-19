@@ -109,8 +109,54 @@ export async function changeUsername(req) {
   }
 }
 
-export async function changeAvatar() {
-  throw new HTTPError(500, 'Not implemented');
+export async function getAvailableAvatars(req, res) {
+  const { user } = req;
+  const { avatars } = req.uwave;
+  const { id } = req.params;
+
+  if (user.id !== id) {
+    throw new PermissionError('You can\'t change someone else\'s avatar.');
+  }
+
+  const list = await avatars.getAvailableAvatars(user);
+
+  return toListResponse(list, {
+    url: req.fullUrl,
+  });
+}
+
+export async function setTypeAvatar(req, res) {
+  const { user } = req;
+  const { avatars } = req.uwave;
+  const { id } = req.params;
+  const avatar = req.body;
+
+  if (user.id !== id) {
+    throw new PermissionError('You can\'t change someone else\'s avatar.');
+  }
+
+  await avatars.setAvatar(user, avatar);
+
+  return toItemResponse({}, {
+    url: req.fullUrl,
+  });
+}
+
+export async function setCustomAvatar(req, res) {
+  const { user } = req;
+  const { avatars } = req.uwave;
+  const { id } = req.params;
+  const stream = req;
+
+  if (user.id !== id) {
+    throw new PermissionError('You can\'t change someone else\'s avatar.');
+  }
+
+  await avatars.setCustomAvatar(user, stream);
+
+  return toItemResponse({}, {
+    url: req.fullUrl,
+  });
 }
 
 export async function disconnectUser(uw, user) {

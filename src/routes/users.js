@@ -66,12 +66,25 @@ export default function userRoutes() {
       }),
       route(controller.changeUsername),
     )
-    // PUT /users/:id/avatar - Change a user's username.
+    // GET /users/:id/avatars - List available avatars.
+    .get(
+      '/:id/avatars',
+      protect(),
+      checkFields(validations.getAvailableAvatars),
+      route(controller.getAvailableAvatars),
+    )
+    // PUT /users/:id/avatar - Change a user's avatar.
     .put(
       '/:id/avatar',
       protect(),
       checkFields(validations.setUserAvatar),
-      route(controller.changeAvatar),
+      route(controller.setTypeAvatar),
+    )
+    // PUT /users/:id/avatar/upload - Change a user's avatar.
+    .put(
+      '/:id/avatar/upload',
+      protect(),
+      route(controller.setCustomAvatar),
     )
     // GET /users/:id/history - Show recent plays by a user.
     .get(

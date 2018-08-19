@@ -249,6 +249,10 @@ export const setUserName = joi.object({
   }),
 });
 
+export const getAvailableAvatars = joi.object({
+  params: userParams,
+});
+
 export const setUserAvatar = joi.object({
   params: userParams,
   body: joi.object({
