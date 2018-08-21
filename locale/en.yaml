@@ -1,5 +1,6 @@
 uwave:
   errors:
+    tooManyRequests: 'Rate limit exceeded, retry in {{retryAfter}}.'
     userNotFound: User not found.
     playlistNotFound: Playlist not found.
     playlistItemNotFound: Playlist item not found.
@@ -9,3 +10,4 @@ uwave:
     noSelfUnmute: "You can't unmute yourself."
     sourceNotFound: 'Source "{{name}}" not found.'
     sourceNoImport: 'Source "{{name}}" does not support importing.'
+    tooManyNameChanges: 'You can only change your username five times per hour. Try again in {{retryAfter}}.'

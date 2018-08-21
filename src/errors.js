@@ -64,24 +64,17 @@ export class PermissionError extends HTTPError {
   }
 }
 
-export class RateLimitError extends HTTPError {
-  name = 'RateLimitError';
-
-  constructor(message) {
-    super(429, message);
-  }
-}
-
 function createErrorClass(name, {
   status = 500,
   code = 'unknown-error',
   string,
+  base = HTTPError,
 }) {
   const getString = typeof string !== 'function'
     ? (() => string)
     : string;
 
-  return class extends HTTPError {
+  return class extends BaseError {
     name = name;
 
     code = code;
@@ -98,6 +91,19 @@ function createErrorClass(name, {
     }
   };
 }
+
+export const RateLimitError = createErrorClass('RateLimitError', {
+  status: 429,
+  code: 'too-many-requests',
+  string: 'errors.tooManyRequests',
+});
+
+export const NameChangeRateLimitError = createErrorClass('NameChangeRateLimitError', {
+  status: 429,
+  code: 'too-many-requests',
+  string: 'errors.tooManyNameChanges',
+  base: RateLimitError,
+});
 
 export const UserNotFoundError = createErrorClass('UserNotFoundError', {
   status: 404,
