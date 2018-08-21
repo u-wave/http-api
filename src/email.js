@@ -16,5 +16,5 @@ export default async function sendEmail(emailAddress, options) {
     to: emailAddress,
   }, options.email);
 
-  await transporter.sendMail(mailOptions)
+  await transporter.sendMail(mailOptions);
 }
