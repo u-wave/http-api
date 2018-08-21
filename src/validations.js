@@ -61,6 +61,23 @@ export const passwordReset = joi.object({
   }),
 });
 
+// Validations for ACL routes:
+
+export const createAclRole = joi.object({
+  params: joi.object({
+    name: joi.string().required(),
+  }),
+  body: joi.object({
+    permissions: joi.array().items(joi.string()).required(),
+  }),
+});
+
+export const deleteAclRole = joi.object({
+  params: joi.object({
+    name: joi.string().required(),
+  }),
+});
+
 // Validations for booth routes:
 
 export const skipBooth = joi.object({
