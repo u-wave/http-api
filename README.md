@@ -102,6 +102,10 @@ notifications and chat messages.
  - `secret` - A string or Buffer containing a secret used to encrypt
    authentication tokens. It's important that this is the same as the `secret`
    option passed to the core library and the `createHttpApi` function.
+ - `onError` - Error handler function, use for recording errors. First parameter
+   is the WebSocket instance that caused the error, second is the error itself.
+   The WebSocket instance may be `null` if the error occurred in the server
+   itself, unrelated to a connection.
 
 **Example**
 
@@ -117,6 +121,7 @@ const secret = fs.readFileSync('./secret.dat');
 const sockets = createSocketServer(uw, {
   server, // The HTTP server
   secret: secret, // Encryption secret
+  onError: (socket, err) => {}, // Optional
 });
 // ALTERNATIVELY:
 const sockets = createSocketServer(uw, {

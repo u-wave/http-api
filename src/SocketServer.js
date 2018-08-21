@@ -45,6 +45,9 @@ export default class SocketServer {
   connections = [];
 
   options = {
+    onError: (socket, err) => {
+      throw err;
+    },
     timeout: 30,
   };
 
@@ -94,7 +97,12 @@ export default class SocketServer {
         .catch((e) => { throw e; });
     });
 
-    this.wss.on('connection', this.onSocketConnected.bind(this));
+    this.wss.on('error', (error) => {
+      this.onError(error);
+    });
+    this.wss.on('connection', (socket, req) => {
+      this.onSocketConnected(socket, req);
+    });
 
     this.initLostConnections();
   }
@@ -117,7 +125,22 @@ export default class SocketServer {
   onSocketConnected(socket, req) {
     debug('new connection');
 
+    socket.on('error', (error) => {
+      this.onSocketError(socket, error);
+    });
     this.add(this.createGuestConnection(socket, req));
+  }
+
+  onSocketError(socket, error) {
+    debug('socket error:', err);
+
+    this.options.onError(socket, err);
+  }
+
+  onError(err) {
+    debug('server error:', err);
+
+    this.options.onError(null, err);
   }
 
   /**
@@ -558,7 +581,13 @@ export default class SocketServer {
   /**
    * Update online guests count and broadcast an update if necessary.
    */
-  recountGuests = debounce(async () => {
+  recountGuests = debounce(() => {
+    this.recountGuestsInternal().catch((error) => {
+      debug('counting guests failed:', error);
+    });
+  }, ms('2 seconds'));
+
+  async recountGuestsInternal() {
     const { redis } = this.uw;
     const guests = this.connections
       .filter(connection => connection instanceof GuestConnection)
@@ -569,5 +598,5 @@ export default class SocketServer {
       await redis.set('http-api:guests', guests);
       this.broadcast('guests', guests);
     }
-  }, ms('2 seconds'));
+  }
 }
