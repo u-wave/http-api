@@ -45,6 +45,9 @@ export default class SocketServer {
   connections = [];
 
   options = {
+    onError: (socket, err) => {
+      throw err;
+    },
     timeout: 30,
   };
 
@@ -94,7 +97,12 @@ export default class SocketServer {
         .catch((e) => { throw e; });
     });
 
-    this.wss.on('connection', this.onSocketConnected.bind(this));
+    this.wss.on('error', (error) => {
+      this.onError(error);
+    });
+    this.wss.on('connection', (socket, req) => {
+      this.onSocketConnected(socket, req);
+    });
 
     this.initLostConnections();
   }
@@ -104,7 +112,7 @@ export default class SocketServer {
    * is not currently connected to the socket server.
    */
   async initLostConnections() {
-    const User = this.uw.model('User');
+    const { User } = this.uw.models;
     const userIDs = await this.uw.redis.lrange('users', 0, -1);
     const disconnectedIDs = userIDs.filter(userID => !this.connection(userID));
 
@@ -117,7 +125,22 @@ export default class SocketServer {
   onSocketConnected(socket, req) {
     debug('new connection');
 
+    socket.on('error', (error) => {
+      this.onSocketError(socket, error);
+    });
     this.add(this.createGuestConnection(socket, req));
+  }
+
+  onSocketError(socket, error) {
+    debug('socket error:', error);
+
+    this.options.onError(socket, error);
+  }
+
+  onError(error) {
+    debug('server error:', error);
+
+    this.options.onError(null, error);
   }
 
   /**
@@ -558,7 +581,13 @@ export default class SocketServer {
   /**
    * Update online guests count and broadcast an update if necessary.
    */
-  recountGuests = debounce(async () => {
+  recountGuests = debounce(() => {
+    this.recountGuestsInternal().catch((error) => {
+      debug('counting guests failed:', error);
+    });
+  }, ms('2 seconds'));
+
+  async recountGuestsInternal() {
     const { redis } = this.uw;
     const guests = this.connections
       .filter(connection => connection instanceof GuestConnection)
@@ -569,5 +598,5 @@ export default class SocketServer {
       await redis.set('http-api:guests', guests);
       this.broadcast('guests', guests);
     }
-  }, ms('2 seconds'));
+  }
 }

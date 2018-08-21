@@ -1,5 +1,9 @@
 import createDebug from 'debug';
-import { HTTPError } from '../errors';
+import {
+  HTTPError,
+  PlaylistNotFoundError,
+  PlaylistItemNotFoundError,
+} from '../errors';
 import { serializePlaylist } from '../utils/serialize';
 import getOffsetPagination from '../utils/getOffsetPagination';
 import toItemResponse from '../utils/toItemResponse';
@@ -9,7 +13,10 @@ import toPaginatedResponse from '../utils/toPaginatedResponse';
 const debug = createDebug('uwave:http:playlists');
 
 export async function getPlaylists(req) {
-  const playlists = await req.user.getPlaylists();
+  const { user } = req;
+
+  const playlists = await user.getPlaylists();
+
   return toListResponse(
     playlists.map(serializePlaylist),
     { url: req.fullUrl },
@@ -17,7 +24,15 @@ export async function getPlaylists(req) {
 }
 
 export async function getPlaylist(req) {
-  const playlist = await req.user.getPlaylist(req.params.id);
+  const { user } = req;
+  const { id } = req.params;
+
+  const playlist = await user.getPlaylist(id);
+
+  if (!playlist) {
+    throw new PlaylistNotFoundError({ id });
+  }
+
   return toItemResponse(
     serializePlaylist(playlist),
     { url: req.fullUrl },
@@ -25,17 +40,20 @@ export async function getPlaylist(req) {
 }
 
 export async function createPlaylist(req) {
-  const playlist = await req.user.createPlaylist({
-    name: req.body.name,
-    description: req.body.description,
-    shared: req.body.shared,
+  const { user } = req;
+  const { name, description, shared } = req.body;
+
+  const playlist = await user.createPlaylist({
+    name,
+    description,
+    shared,
   });
 
   try {
-    await req.user.getActivePlaylist();
+    await user.getActivePlaylist();
   } catch (e) {
-    debug(`activating first playlist for ${req.user.id} ${req.user.username}`);
-    await req.user.setActivePlaylist(playlist);
+    debug(`activating first playlist for ${user.id} ${user.username}`);
+    await user.setActivePlaylist(playlist);
   }
 
   return toItemResponse(
@@ -45,28 +63,40 @@ export async function createPlaylist(req) {
 }
 
 export async function deletePlaylist(req) {
-  const uw = req.uwave;
-  const playlist = await req.user.getPlaylist(req.params.id);
+  const { user } = req;
+  const { id } = req.params;
+  const { playlists } = req.uwave;
 
-  const result = await uw.playlists.deletePlaylist(playlist);
+  const playlist = await user.getPlaylist(id);
+  if (!playlist) {
+    throw new PlaylistNotFoundError({ id });
+  }
+
+  const result = await playlists.deletePlaylist(playlist);
 
   return toItemResponse(result, { url: req.fullUrl });
 }
 
 const patchableKeys = ['name', 'shared', 'description'];
 export async function updatePlaylist(req) {
-  const uw = req.uwave;
+  const { user } = req;
+  const { id } = req.params;
+  const patch = req.body;
+  const { playlists } = req.uwave;
 
-  const patches = Object.keys(req.body);
+  const patches = Object.keys(patch);
   patches.forEach((patchKey) => {
     if (!patchableKeys.includes(patchKey)) {
       throw new HTTPError(400, `Key "${patchKey}" cannot be updated.`);
     }
   });
 
-  const playlist = await req.user.getPlaylist(req.params.id);
+  const playlist = await user.getPlaylist(id);
+  if (!playlist) {
+    throw new PlaylistNotFoundError({ id });
+  }
 
-  await uw.playlists.updatePlaylist(playlist, req.body);
+  await playlists.updatePlaylist(playlist, patch);
 
   return toItemResponse(
     serializePlaylist(playlist),
@@ -75,10 +105,17 @@ export async function updatePlaylist(req) {
 }
 
 export async function renamePlaylist(req) {
-  const uw = req.uwave;
-  const playlist = await req.user.getPlaylist(req.params.id);
+  const { user } = req;
+  const { id } = req.params;
+  const { name } = req.body;
+  const { playlists } = req.uwave;
 
-  await uw.playlists.updatePlaylist(playlist, { name: req.body.name });
+  const playlist = await user.getPlaylist(id);
+  if (!playlist) {
+    throw new PlaylistNotFoundError({ id });
+  }
+
+  await playlists.updatePlaylist(playlist, { name });
 
   return toItemResponse(
     serializePlaylist(playlist),
@@ -87,10 +124,17 @@ export async function renamePlaylist(req) {
 }
 
 export async function sharePlaylist(req) {
-  const uw = req.uwave;
-  const playlist = await req.user.getPlaylist(req.params.id);
+  const { user } = req;
+  const { id } = req.params;
+  const { shared } = req.body;
+  const { playlists } = req.uwave;
 
-  await uw.playlists.updatePlaylist(playlist, { shared: req.body.shared });
+  const playlist = await user.getPlaylist(id);
+  if (!playlist) {
+    throw new PlaylistNotFoundError({ id });
+  }
+
+  await playlists.updatePlaylist(playlist, { shared });
 
   return toItemResponse(
     serializePlaylist(playlist),
@@ -99,17 +143,30 @@ export async function sharePlaylist(req) {
 }
 
 export async function activatePlaylist(req) {
-  await req.user.setActivePlaylist(req.params.id);
+  const { user } = req;
+  const { id } = req.params;
+
+  const playlist = await user.getPlaylist(id);
+  if (!playlist) {
+    throw new PlaylistNotFoundError({ id });
+  }
+
+  await user.setActivePlaylist(playlist.id);
 
   return toItemResponse({});
 }
 
 export async function getPlaylistItems(req) {
+  const { user } = req;
+  const { id } = req.params;
   const filter = req.query.filter || null;
-
   const pagination = getOffsetPagination(req.query);
 
-  const playlist = await req.user.getPlaylist(req.params.id);
+  const playlist = await user.getPlaylist(id);
+  if (!playlist) {
+    throw new PlaylistNotFoundError({ id });
+  }
+
   const items = await playlist.getItems(filter, pagination);
 
   return toPaginatedResponse(items, {
@@ -121,12 +178,18 @@ export async function getPlaylistItems(req) {
 }
 
 export async function addPlaylistItems(req) {
+  const { user } = req;
+  const { id } = req.params;
   const { at, after, items } = req.body;
+
   if (!Array.isArray(items)) {
     throw new HTTPError(422, 'Expected "items" to be an array.');
   }
 
-  const playlist = await req.user.getPlaylist(req.params.id);
+  const playlist = await user.getPlaylist(id);
+  if (!playlist) {
+    throw new PlaylistNotFoundError({ id });
+  }
 
   let afterID = after;
   if (at === 'start') {
@@ -151,12 +214,18 @@ export async function addPlaylistItems(req) {
 }
 
 export async function removePlaylistItems(req) {
+  const { user } = req;
+  const { id } = req.params;
   const items = req.query.items || req.body.items;
+
   if (!Array.isArray(items)) {
     throw new HTTPError(422, 'Expected "items" to be an array');
   }
 
-  const playlist = await req.user.getPlaylist(req.params.id);
+  const playlist = await user.getPlaylist(id);
+  if (!playlist) {
+    throw new PlaylistNotFoundError({ id });
+  }
 
   await playlist.removeItems(items);
 
@@ -168,12 +237,18 @@ export async function removePlaylistItems(req) {
 }
 
 export async function movePlaylistItems(req) {
+  const { user } = req;
+  const { id } = req.params;
   const { at, after, items } = req.body;
+
   if (!Array.isArray(items)) {
     throw new HTTPError(422, 'Expected "items" to be an array');
   }
 
-  const playlist = await req.user.getPlaylist(req.params.id);
+  const playlist = await user.getPlaylist(id);
+  if (!playlist) {
+    throw new PlaylistNotFoundError({ id });
+  }
 
   let afterID = after;
   if (at === 'start') {
@@ -184,11 +259,18 @@ export async function movePlaylistItems(req) {
   }
 
   const result = await playlist.moveItems(items, { afterID });
+
   return toItemResponse(result, { url: req.fullUrl });
 }
 
 export async function shufflePlaylistItems(req) {
-  const playlist = await req.user.getPlaylist(req.params.id);
+  const { user } = req;
+  const { id } = req.params;
+
+  const playlist = await user.getPlaylist(id);
+  if (!playlist) {
+    throw new PlaylistNotFoundError({ id });
+  }
 
   await playlist.shuffle();
 
@@ -196,32 +278,56 @@ export async function shufflePlaylistItems(req) {
 }
 
 export async function getPlaylistItem(req) {
-  const playlist = await req.user.getPlaylist(req.params.id);
+  const { user } = req;
+  const { id, itemID } = req.params;
 
-  const item = await playlist.getItem(req.params.itemID);
+  const playlist = await user.getPlaylist(id);
+  if (!playlist) {
+    throw new PlaylistNotFoundError({ id });
+  }
+
+  const item = await playlist.getItem(itemID);
+  if (!item) {
+    throw new PlaylistItemNotFoundError({ playlist, id: itemID });
+  }
 
   return toItemResponse(item, { url: req.fullUrl });
 }
 
 export async function updatePlaylistItem(req) {
+  const { user } = req;
+  const { id, itemID } = req.params;
+  const {
+    artist, title, start, end,
+  } = req.body;
+
   const patch = {
-    artist: req.body.artist,
-    title: req.body.title,
-    start: req.body.start,
-    end: req.body.end,
+    artist,
+    title,
+    start,
+    end,
   };
 
-  const playlist = await req.user.getPlaylist(req.params.id);
+  const playlist = await user.getPlaylist(id);
+  if (!playlist) {
+    throw new PlaylistNotFoundError({ id });
+  }
 
-  const item = await playlist.updateItem(req.params.itemID, patch);
+  const item = await playlist.updateItem(itemID, patch);
 
   return toItemResponse(item, { url: req.fullUrl });
 }
 
 export async function removePlaylistItem(req) {
-  const playlist = await req.user.getPlaylist(req.params.id);
+  const { user } = req;
+  const { id, itemID } = req.params;
 
-  const result = await playlist.removeItem(req.params.itemID);
+  const playlist = await user.getPlaylist(id);
+  if (!playlist) {
+    throw new PlaylistNotFoundError('Playlist not found.');
+  }
+
+  const result = await playlist.removeItem(itemID);
 
   return toItemResponse(result, { url: req.fullUrl });
 }

@@ -27,7 +27,7 @@ function serializeError(err) {
   if (err instanceof APIError) {
     return [{
       status: err.status || 500,
-      code: 'api-error',
+      code: err.code || 'api-error',
       title: err.message,
     }];
   }

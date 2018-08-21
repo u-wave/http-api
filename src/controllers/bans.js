@@ -1,16 +1,16 @@
+import { UserNotFoundError } from '../errors';
 import getOffsetPagination from '../utils/getOffsetPagination';
 import toItemResponse from '../utils/toItemResponse';
 import toPaginatedResponse from '../utils/toPaginatedResponse';
 
 export async function getBans(req) {
-  const uw = req.uwave;
-
+  const { bans } = req.uwave;
   const { filter } = req.query;
   const pagination = getOffsetPagination(req.query);
 
-  const bans = await uw.bans.getBans(filter, pagination);
+  const bansList = await bans.getBans(filter, pagination);
 
-  return toPaginatedResponse(bans, {
+  return toPaginatedResponse(bansList, {
     included: {
       user: ['user'],
     },
@@ -19,8 +19,8 @@ export async function getBans(req) {
 }
 
 export async function addBan(req) {
-  const uw = req.uwave;
-
+  const { user: moderator } = req;
+  const { users, bans } = req.uwave;
   const {
     duration = 0,
     userID,
@@ -28,8 +28,13 @@ export async function addBan(req) {
     reason = '',
   } = req.body;
 
-  const ban = await uw.bans.ban(userID, {
-    moderator: req.user,
+  const user = await users.getUser(userID);
+  if (!user) {
+    throw new UserNotFoundError({ id: userID });
+  }
+
+  const ban = await bans.ban(user, {
+    moderator,
     duration,
     permanent,
     reason,
@@ -41,13 +46,11 @@ export async function addBan(req) {
 }
 
 export async function removeBan(req) {
-  const uw = req.uwave;
-
+  const { user: moderator } = req;
+  const { bans } = req.uwave;
   const { userID } = req.params;
 
-  await uw.bans.unban(userID, {
-    moderator: req.user,
-  });
+  await bans.unban(userID, { moderator });
 
   return toItemResponse({}, {
     url: req.fullUrl,

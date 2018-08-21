@@ -38,6 +38,10 @@ export const login = joi.object({
   }),
   body: joi.object({
     email: userEmail.required(),
+    // This is less strict than the password validation used in `register`,
+    // because we check this against the DB anyway, and an error message
+    // about mismatching passwords makes more sense when logging in than an
+    // error message about the password being too short.
     password: joi.string().required(),
   }),
 });
@@ -54,6 +58,23 @@ export const passwordReset = joi.object({
   }),
   body: joi.object({
     password: userPassword.required(),
+  }),
+});
+
+// Validations for ACL routes:
+
+export const createAclRole = joi.object({
+  params: joi.object({
+    name: joi.string().required(),
+  }),
+  body: joi.object({
+    permissions: joi.array().items(joi.string()).required(),
+  }),
+});
+
+export const deleteAclRole = joi.object({
+  params: joi.object({
+    name: joi.string().required(),
   }),
 });
 
@@ -117,6 +138,17 @@ const playlistItemParams = joi.object({
   itemID: objectID.required(),
 });
 
+const playlistItem = joi.object({
+  sourceType: joi.string().required(),
+  sourceID: joi.string().required(),
+  artist: joi.string(),
+  title: joi.string(),
+  start: joi.number().min(0),
+  end: joi.number().min(0),
+});
+const playlistItemIDs = joi.array().items(objectID);
+const playlistItems = joi.array().items(playlistItem);
+
 export const createPlaylist = joi.object({
   body: joi.object({
     name: joi.string().required(),
@@ -162,21 +194,21 @@ export const getPlaylistItems = joi.object({
 export const addPlaylistItems = joi.object({
   params: playlistParams,
   body: joi.object({
-    items: joi.array().required(),
+    items: playlistItems.required(),
   }),
 });
 
 export const removePlaylistItems = joi.object({
   params: playlistParams,
   body: joi.object({
-    items: joi.array().required(),
+    items: playlistItemIDs.required(),
   }),
 });
 
 export const movePlaylistItems = joi.object({
   params: playlistParams,
   body: joi.object({
-    items: joi.array().required(),
+    items: playlistItemIDs.required(),
     after: [
       objectID, // Insert after ID
       joi.number().valid(-1), // Old-style prepend (use at=start instead)

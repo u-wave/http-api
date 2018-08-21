@@ -6,9 +6,9 @@ import got from 'got';
 import ms from 'ms';
 import {
   HTTPError,
-  NotFoundError,
   PermissionError,
   TokenError,
+  UserNotFoundError,
 } from '../errors';
 import sendEmail from '../email';
 import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
@@ -30,8 +30,10 @@ export function getCurrentUser(req) {
 export function getAuthStrategies(req) {
   const { passport } = req.uwaveHttp;
 
+  const strategies = passport.strategies();
+
   return toListResponse(
-    passport.strategies(),
+    strategies,
     { url: req.fullUrl },
   );
 }
@@ -65,7 +67,9 @@ export async function refreshSession(res, api, user, options) {
  */
 export async function login(options, req, res) {
   const { user } = req;
-  const sessionType = req.query.session === 'cookie' ? 'cookie' : 'token';
+  const { session } = req.query;
+
+  const sessionType = session === 'cookie' ? 'cookie' : 'token';
 
   if (await user.isBanned()) {
     throw new PermissionError('You have been banned.');
@@ -112,9 +116,11 @@ export async function socialLoginCallback(options, req, res) {
 }
 
 export async function getSocketToken(req) {
+  const { user } = req;
   const { authRegistry } = req.uwaveHttp;
 
-  const socketToken = await authRegistry.createAuthToken(req.user);
+  const socketToken = await authRegistry.createAuthToken(user);
+
   return toItemResponse({ socketToken }, {
     url: req.fullUrl,
   });
@@ -146,7 +152,7 @@ async function verifyCaptcha(responseString, options) {
 }
 
 export async function register(options, req) {
-  const uw = req.uwave;
+  const { users } = req.uwave;
   const {
     grecaptcha, email, username, password,
   } = req.body;
@@ -158,7 +164,7 @@ export async function register(options, req) {
   try {
     await verifyCaptcha(grecaptcha, options);
 
-    const user = await uw.createUser({
+    const user = await users.createUser({
       email,
       username,
       password,
@@ -172,14 +178,15 @@ export async function register(options, req) {
 
 export async function reset(options, req) {
   const uw = req.uwave;
-  const Authentication = uw.model('Authentication');
+  const { Authentication } = uw.models;
   const { email } = req.body;
+  const { mailTransport, createPasswordResetEmail } = options;
 
   const auth = await Authentication.findOne({
     email: email.toLowerCase(),
   });
   if (!auth) {
-    throw new NotFoundError('User not found.');
+    throw new UserNotFoundError({ email });
   }
 
   const token = randomString({ length: 35, special: false });
@@ -187,51 +194,60 @@ export async function reset(options, req) {
   await uw.redis.set(`reset:${token}`, auth.user.toString());
   await uw.redis.expire(`reset:${token}`, 24 * 60 * 60);
 
+  const message = await createPasswordResetEmail({
+    token,
+    requestUrl: req.fullUrl,
+  });
+
   await sendEmail(email, {
-    mailTransport: options.mailTransport,
-    email: options.createPasswordResetEmail({
-      token,
-      requestUrl: req.fullUrl,
-    }),
+    mailTransport,
+    email: message,
   });
 
   return toItemResponse({});
 }
 
 export async function changePassword(req) {
-  const uw = req.uwave;
-  const resetToken = req.params.reset;
+  const { users, redis } = req.uwave;
+  const { reset: resetToken } = req.params;
   const { password } = req.body;
 
-  const userId = await uw.redis.get(`reset:${resetToken}`);
+  const userId = await redis.get(`reset:${resetToken}`);
   if (!userId) {
     throw new TokenError('That reset token is invalid. Please double-check your reset '
       + 'token or request a new password reset.');
   }
 
-  await uw.users.updatePassword(userId, password);
+  const user = await users.getUser(userId);
+  if (!user) {
+    throw new UserNotFoundError({ id: userId });
+  }
 
-  await uw.redis.del(`reset:${resetToken}`);
+  await users.updatePassword(user.id, password);
+
+  await redis.del(`reset:${resetToken}`);
 
   return toItemResponse({}, {
     meta: {
-      message: `Updated password for ${userId}`,
+      message: `Updated password for ${user.username}`,
     },
   });
 }
 
 export async function logout(options, req, res) {
+  const { user, cookies } = req;
+  const { cookieSecure, cookiePath } = options;
   const uw = req.uwave;
 
   uw.publish('user:logout', {
-    userID: req.user.id,
+    userID: user.id,
   });
 
-  if (req.cookies && req.cookies.uwsession) {
+  if (cookies && cookies.uwsession) {
     const serialized = cookie.serialize('uwsession', '', {
       httpOnly: true,
-      secure: !!options.cookieSecure,
-      path: options.cookiePath || '/',
+      secure: !!cookieSecure,
+      path: cookiePath || '/',
       maxAge: 0,
     });
     res.setHeader('Set-Cookie', serialized);

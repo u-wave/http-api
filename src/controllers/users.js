@@ -2,6 +2,7 @@ import createDebug from 'debug';
 import {
   HTTPError,
   PermissionError,
+  UserNotFoundError,
 } from '../errors';
 import skipIfCurrentDJ from '../utils/skipIfCurrentDJ';
 import removeFromWaitlist from '../utils/removeFromWaitlist';
@@ -16,27 +17,30 @@ export { muteUser, unmuteUser } from './chat';
 const debug = createDebug('uwave:http:users');
 
 export async function getUsers(req) {
-  const uw = req.uwave;
   const { filter } = req.query;
   const pagination = getOffsetPagination(req.query, {
     defaultSize: 50,
   });
+  const { users } = req;
 
   debug('getUsers', filter, pagination);
 
-  const users = await uw.getUsers(filter, pagination);
+  const userList = await users.getUsers(filter, pagination);
 
-  return toPaginatedResponse(users, {
+  return toPaginatedResponse(userList, {
     baseUrl: req.fullUrl,
     filter,
   });
 }
 
 export async function getUser(req) {
-  const uw = req.uwave;
-  const userID = req.params.id;
+  const { users } = req.uwave;
+  const { id: userID } = req.params;
 
-  const user = await uw.getUser(userID);
+  const user = await users.getUser(userID);
+  if (!user) {
+    throw new UserNotFoundError({ id: userID });
+  }
 
   return toItemResponse(user, {
     url: req.fullUrl,
@@ -44,10 +48,14 @@ export async function getUser(req) {
 }
 
 export async function getUserRoles(req) {
-  const uw = req.uwave;
+  const { users } = req.uwave;
   const { id } = req.params;
 
-  const user = await uw.getUser(id);
+  const user = await users.getUser(id);
+  if (!user) {
+    throw new UserNotFoundError({ id });
+  }
+
   const roles = await user.getPermissions();
 
   return toListResponse(roles, {
@@ -56,15 +64,19 @@ export async function getUserRoles(req) {
 }
 
 export async function addUserRole(req) {
-  const uw = req.uwave;
+  const { user: moderator } = req;
   const { id, role } = req.params;
+  const { users } = req.uwave;
 
-  const selfHasRole = await req.user.can(role);
+  const selfHasRole = await moderator.can(role);
   if (!selfHasRole) {
     throw new PermissionError('You cannot assign roles you do not have');
   }
 
-  const user = await uw.getUser(id);
+  const user = await users.getUser(id);
+  if (!user) {
+    throw new UserNotFoundError({ id });
+  }
 
   await user.allow([role]);
 
@@ -74,15 +86,19 @@ export async function addUserRole(req) {
 }
 
 export async function removeUserRole(req) {
-  const uw = req.uwave;
+  const { user: moderator } = req;
   const { id, role } = req.params;
+  const { users } = req.uwave;
 
-  const selfHasRole = await req.user.can(role);
+  const selfHasRole = await moderator.can(role);
   if (!selfHasRole) {
     throw new PermissionError('You cannot remove roles you do not have');
   }
 
-  const user = await uw.getUser(id);
+  const user = await users.getUser(id);
+  if (!user) {
+    throw new UserNotFoundError({ id });
+  }
 
   await user.disallow([role]);
 
@@ -92,15 +108,16 @@ export async function removeUserRole(req) {
 }
 
 export async function changeUsername(req) {
-  const uw = req.uwave;
+  const { user: moderator } = req;
   const { id } = req.params;
   const { username } = req.body;
+  const { users } = req.uwave;
 
   try {
-    const user = await uw.updateUser(
+    const user = await users.updateUser(
       id,
       { username },
-      { moderator: req.user },
+      { moderator },
     );
 
     return toItemResponse(user);
@@ -130,14 +147,18 @@ export async function disconnectUser(uw, user) {
 }
 
 export async function getHistory(req) {
-  const uw = req.uwave;
   const { id } = req.params;
   const pagination = getOffsetPagination(req.query, {
     defaultSize: 25,
     maxSize: 100,
   });
+  const { users } = req.uwave;
 
-  const user = await uw.getUser(id);
+  const user = await users.getUser(id);
+  if (!user) {
+    throw new UserNotFoundError({ id });
+  }
+
   const history = await user.getHistory(pagination);
 
   return toPaginatedResponse(history, {

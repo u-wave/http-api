@@ -5,6 +5,7 @@ import protect from '../middleware/protect';
 import checkFields from '../middleware/checkFields';
 import rateLimit from '../middleware/rateLimit';
 import * as controller from '../controllers/users';
+import { NameChangeRateLimitError } from '../errors';
 
 export default function userRoutes() {
   return router()
@@ -62,7 +63,7 @@ export default function userRoutes() {
       rateLimit('change-username', {
         max: 5,
         duration: 60 * 60 * 1000,
-        error: (_, retryAfter) => `You can only change your username five times per hour. Try again in ${retryAfter}.`,
+        error: NameChangeRateLimitError,
       }),
       route(controller.changeUsername),
     )

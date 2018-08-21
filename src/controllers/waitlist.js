@@ -5,61 +5,63 @@ export async function getWaitlist(req) {
   const { waitlist } = req.uwave;
 
   const list = await waitlist.getUserIDs();
+
   return toListResponse(list, { url: req.fullUrl });
 }
 
 // POST waitlist/ entry point: used both for joining the waitlist,  and for
 // adding someone else to the waitlist.
 export async function addToWaitlist(req) {
-  const { waitlist } = req.uwave;
-
-  const moderator = req.user;
+  const { user: moderator } = req;
   const { userID } = req.body;
+  const { waitlist } = req.uwave;
 
   await waitlist.addUser(userID, { moderator });
 
   const updated = await waitlist.getUserIDs();
+
   return toListResponse(updated, { url: req.fullUrl });
 }
 
 export async function moveWaitlist(req) {
-  const { waitlist } = req.uwave;
-
-  const moderator = req.user;
+  const { user: moderator } = req;
   const { userID, position } = req.body;
+  const { waitlist } = req.uwave;
 
   await waitlist.moveUser(userID, position, { moderator });
 
   const updated = await waitlist.getUserIDs();
+
   return toListResponse(updated, { url: req.fullUrl });
 }
 
 export async function removeFromWaitlist(req) {
+  const { user: moderator } = req;
+  const { id: userID } = req.params;
   const { waitlist } = req.uwave;
-  const moderator = req.user;
-  const userID = req.params.id;
 
   await waitlist.removeUser(userID, { moderator });
 
   const updated = await waitlist.getUserIDs();
+
   return toListResponse(updated, { url: req.fullUrl });
 }
 
 export async function clearWaitlist(req) {
+  const { user: moderator } = req;
   const { waitlist } = req.uwave;
-  const moderator = req.user;
 
   await waitlist.clear({ moderator });
 
   const updated = await waitlist.getUserIDs();
+
   return toListResponse(updated, { url: req.fullUrl });
 }
 
 export async function lockWaitlist(req) {
-  const { waitlist } = req.uwave;
-  const moderator = req.user;
-
+  const { user: moderator } = req;
   const { lock } = req.body;
+  const { waitlist } = req.uwave;
 
   if (lock) {
     await waitlist.lock({ moderator });
