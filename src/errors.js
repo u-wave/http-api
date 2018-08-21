@@ -74,7 +74,7 @@ function createErrorClass(name, {
     ? (() => string)
     : string;
 
-  return class extends BaseError {
+  return class extends base {
     name = name;
 
     code = code;

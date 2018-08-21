@@ -132,15 +132,15 @@ export default class SocketServer {
   }
 
   onSocketError(socket, error) {
-    debug('socket error:', err);
+    debug('socket error:', error);
 
-    this.options.onError(socket, err);
+    this.options.onError(socket, error);
   }
 
-  onError(err) {
-    debug('server error:', err);
+  onError(error) {
+    debug('server error:', error);
 
-    this.options.onError(null, err);
+    this.options.onError(null, error);
   }
 
   /**
