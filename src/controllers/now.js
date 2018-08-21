@@ -49,7 +49,7 @@ export async function getState(req) {
 
   const motd = uw.getMotd();
   const users = getOnlineUsers(uw);
-  const guests = uw.redis.get('http-api:guests').then(toInt);
+  const guests = getGuestsCount(uw);
   const roles = uw.acl.getAllRoles();
   const booth = getBoothData(uw);
   const waitlist = uw.redis.lrange('waitlist', 0, -1);
