@@ -56,7 +56,7 @@
     "@babel/plugin-syntax-object-rest-spread": "7.0.0-rc.3",
     "@babel/plugin-transform-flow-comments": "7.0.0-rc.1",
     "@babel/plugin-transform-modules-commonjs": "7.0.0-rc.1",
-    "@babel/register": "7.0.0-rc.1",
+    "@babel/register": "7.0.0-rc.3",
     "babel-eslint": "^8.0.0",
     "clarify": "^2.1.0",
     "concat-stream": "^1.6.0",
