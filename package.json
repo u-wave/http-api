@@ -50,12 +50,12 @@
     "yaml": "^1.0.0-rc.7"
   },
   "devDependencies": {
-    "@babel/core": "7.0.0-rc.1",
-    "@babel/plugin-proposal-class-properties": "7.0.0-rc.1",
+    "@babel/core": "7.0.0-rc.3",
+    "@babel/plugin-proposal-class-properties": "7.0.0-rc.3",
     "@babel/plugin-proposal-optional-catch-binding": "7.0.0-rc.3",
     "@babel/plugin-syntax-object-rest-spread": "7.0.0-rc.3",
-    "@babel/plugin-transform-flow-comments": "7.0.0-rc.1",
-    "@babel/plugin-transform-modules-commonjs": "7.0.0-rc.1",
+    "@babel/plugin-transform-flow-comments": "7.0.0-rc.3",
+    "@babel/plugin-transform-modules-commonjs": "7.0.0-rc.3",
     "@babel/register": "7.0.0-rc.3",
     "babel-eslint": "^8.0.0",
     "clarify": "^2.1.0",
