@@ -2,6 +2,7 @@ import createDebug from 'debug';
 import {
   APIError,
   CombinedError,
+  RateLimitError,
 } from '../errors';
 
 const debug = createDebug('uwave:http:error');
@@ -82,8 +83,9 @@ export default function errorHandler(options = {}) {
         ? new CombinedError(errors)
         : errors;
 
-      if (options.onError) {
-        options.onError(req, errors);
+      const isRateLimit = error instanceof RateLimitError;
+      if (options.onError && !isRateLimit) {
+        options.onError(req, error);
       }
 
       const responseErrors = serializeError(error);
