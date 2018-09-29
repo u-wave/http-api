@@ -16,7 +16,7 @@ import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import toItemResponse from '../utils/toItemResponse';
 import toListResponse from '../utils/toListResponse';
 
-const log = createDebug('uwave:http:auth');
+const debug = createDebug('uwave:http:auth');
 
 function seconds(str) {
   return Math.floor(ms(str) / 1000);
@@ -129,13 +129,14 @@ export async function getSocketToken(req) {
 
 async function verifyCaptcha(responseString, options) {
   if (!options.recaptcha) {
-    log('ReCaptcha validation is disabled');
+    debug('ReCaptcha validation is disabled');
     return null;
   }
   if (!responseString) {
     throw new Error('ReCaptcha validation failed. Please try again.');
   }
 
+  debug('recaptcha: sending siteverify request');
   const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
     method: 'post',
     headers: {
@@ -150,9 +151,12 @@ async function verifyCaptcha(responseString, options) {
   const body = await response.json();
 
   if (!body.success) {
-    log('recaptcha validation failure', body);
+    debug('recaptcha: validation failure', body);
     throw new Error('ReCaptcha validation failed. Please try again.');
+  } else {
+    debug('recaptcha: ok');
   }
+
   return null;
 }
 

@@ -92,6 +92,7 @@ export default class UwaveHttpApi extends Router {
       .use('/auth', authenticate(this, {
         secret: options.secret,
         mailTransport: options.mailTransport,
+        recaptcha: options.recaptcha,
         createPasswordResetEmail:
           options.createPasswordResetEmail || defaultCreatePasswordResetEmail,
       }))
