@@ -1,8 +1,9 @@
+import { URLSearchParams } from 'url';
 import cookie from 'cookie';
 import createDebug from 'debug';
 import jwt from 'jsonwebtoken';
 import randomString from 'random-string';
-import got from 'got';
+import fetch from 'node-fetch';
 import ms from 'ms';
 import {
   HTTPError,
@@ -15,7 +16,7 @@ import beautifyDuplicateKeyError from '../utils/beautifyDuplicateKeyError';
 import toItemResponse from '../utils/toItemResponse';
 import toListResponse from '../utils/toListResponse';
 
-const log = createDebug('uwave:http:auth');
+const debug = createDebug('uwave:http:auth');
 
 function seconds(str) {
   return Math.floor(ms(str) / 1000);
@@ -128,26 +129,34 @@ export async function getSocketToken(req) {
 
 async function verifyCaptcha(responseString, options) {
   if (!options.recaptcha) {
-    log('ReCaptcha validation is disabled');
+    debug('ReCaptcha validation is disabled');
     return null;
   }
   if (!responseString) {
     throw new Error('ReCaptcha validation failed. Please try again.');
   }
 
-  const response = await got.post('https://www.google.com/recaptcha/api/siteverify', {
-    json: true,
-    form: true,
-    body: {
+  debug('recaptcha: sending siteverify request');
+  const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+    method: 'post',
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      accept: 'application/json',
+    },
+    body: new URLSearchParams({
       response: responseString,
       secret: options.recaptcha.secret,
-    },
+    }),
   });
+  const body = await response.json();
 
-  if (!response.body.success) {
-    log('recaptcha validation failure', response.body);
+  if (!body.success) {
+    debug('recaptcha: validation failure', body);
     throw new Error('ReCaptcha validation failed. Please try again.');
+  } else {
+    debug('recaptcha: ok');
   }
+
   return null;
 }
 
