@@ -32,11 +32,18 @@ export default function configurePassport(uw, options) {
   }, callbackify(localLogin)));
 
   if (options.auth && options.auth.google) {
+    async function googleLogin(accessToken, refreshToken, profile) {
+      return socialLogin(accessToken, refreshToken, {
+        id: profile.id,
+        photos: profile.photos
+      });
+    }
+
     passport.use('google', new GoogleStrategy({
       callbackURL: '/auth/service/google/callback',
       ...options.auth.google,
       scope: ['profile'],
-    }, callbackify(socialLogin)));
+    }, callbackify(googleLogin)));
   }
 
   passport.use('jwt', new JWTStrategy(options.secret, user => uw.getUser(user.id)));
