@@ -102,7 +102,7 @@ export async function socialLoginCallback(options, service, req, res) {
       if (opener) {
         opener.postMessage({
           pending: true,
-          suggestedName: ${JSON.stringify(user.username)},
+          socialAvatar: ${JSON.stringify(user.avatar)},
           type: ${JSON.stringify(service)}
         }, '*');
       }
