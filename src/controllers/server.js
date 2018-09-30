@@ -17,6 +17,21 @@ export async function getAllConfig(req) {
   });
 }
 
+export async function getConfig(req) {
+  const { config } = req.uwave;
+  const { key } = req.params;
+  const includeSchema = 'schema' in req.query;
+
+  const values = await config.get(key);
+  const combinedSchema = config.getSchema();
+  const schema = combinedSchema.properties[key];
+
+  return toItemResponse(values, {
+    url: req.fullUrl,
+    meta: includeSchema ? { schema } : {},
+  });
+}
+
 export async function updateConfig(req) {
   const { config } = req.uwave;
   const { key } = req.params;

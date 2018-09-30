@@ -22,6 +22,12 @@ export default function serverRoutes() {
       protect('admin'),
       route(controller.getAllConfig),
     )
+    // GET /server/config:key
+    .get(
+      '/config/:key',
+      protect('admin'),
+      route(controller.getConfig),
+    )
     // PUT /server/config/:key - Update server configuration.
     .put(
       '/config/:key',
