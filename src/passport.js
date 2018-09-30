@@ -2,8 +2,11 @@ import { Passport } from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { callbackify } from 'util';
+import createDebug from 'debug';
 import JWTStrategy from './auth/JWTStrategy';
 import schema from './auth/schema';
+
+const debug = createDebug('uwave:http-api:passport');
 
 export default function configurePassport(uw, options) {
   uw.config.register('http-api:auth', schema);
@@ -28,19 +31,32 @@ export default function configurePassport(uw, options) {
     return uw.getUser(id);
   }
 
+  async function configureSocialAuth() {
+    const options = await uw.config.get('http-api:auth');
+    if (!options) return;
+
+    if (options.google && options.google.enabled) {
+      const googleOptions = {
+        callbackURL: '/auth/service/google/callback',
+        ...options.google,
+        scope: ['profile'],
+      };
+      delete googleOptions.enabled;
+      passport.use('google', new GoogleStrategy(googleOptions, callbackify(socialLogin)));
+    } else {
+      passport.unuse('google');
+    }
+  }
+
   passport.use('local', new LocalStrategy({
     usernameField: 'email',
     passwordField: 'password',
     session: false,
   }, callbackify(localLogin)));
 
-  if (options.auth && options.auth.google) {
-    passport.use('google', new GoogleStrategy({
-      callbackURL: '/auth/service/google/callback',
-      ...options.auth.google,
-      scope: ['profile'],
-    }, callbackify(socialLogin)));
-  }
+  configureSocialAuth().catch((err) => {
+    debug('social auth error', err);
+  });
 
   passport.use('jwt', new JWTStrategy(options.secret, user => uw.getUser(user.id)));
   passport.serializeUser(callbackify(serializeUser));

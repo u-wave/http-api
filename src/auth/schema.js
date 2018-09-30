@@ -12,6 +12,7 @@ export default {
         enabled: {
           type: 'boolean',
           title: 'Enabled',
+          default: false,
         },
         clientID: {
           type: 'string',
@@ -35,6 +36,8 @@ export default {
       dependencies: {
         enabled: ['clientID', 'clientSecret'],
       },
+      default: {}
     },
   },
+  required: ['google'],
 };
