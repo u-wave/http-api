@@ -32,15 +32,13 @@ uw.source(scSource, {
 uw.use(announce({
   name: 'üWave Demo',
   subtitle: '',
-  url: 'https://u-wave-web.netlify.com/',
+  url: 'https://demo.u-wave.net/',
   apiUrl: 'https://u-wave-demo.now.sh/api',
-  socketUrl: 'https://u-wave-demo.now.sh',
+  socketUrl: 'wss://u-wave-demo.now.sh',
   seed: Buffer.from(process.env.ANNOUNCE_SECRET, 'hex'),
 }));
 
-uw.on('ready', () => {
-  uw.motd.set('This is the demo server for üWave! Everything is much slower than on a real instance, because its databases run on free services across the world.');
-});
+uw.motd.set('This is the demo server for üWave! Everything is much slower than on a real instance, because its databases run on free services across the world.');
 
 const app = express();
 const server = app.listen(port, () => {
