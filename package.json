@@ -30,7 +30,7 @@
     "debug": "^4.0.0",
     "escape-string-regexp": "^1.0.5",
     "i18next": "^11.3.6",
-    "joi": "^13.0.2",
+    "joi": "^14.0.0",
     "jsonwebtoken": "^8.1.0",
     "lodash": "^4.16.1",
     "ms": "^2.0.0",
