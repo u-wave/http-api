@@ -10,8 +10,6 @@ set -o errexit
 set -o nounset
 set -o xtrace
 
-cd "$(dirname "$0")"
-
 npm install -g now now-alias
 
 now \

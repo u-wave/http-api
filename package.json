@@ -82,6 +82,7 @@
     "u-wave-source-youtube": "^1.2.0"
   },
   "now": {
+    "name": "u-wave-demo",
     "alias": "u-wave-demo.now.sh"
   }
 }
