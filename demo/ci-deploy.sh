@@ -25,5 +25,7 @@ now \
 now alias \
   --token $NOW_TOKEN
 
+# Remove old deploys (ok if it fails)
 now rm u-wave-demo --safe --yes \
-  --token $NOW_TOKEN
+  --token $NOW_TOKEN \
+  || true
