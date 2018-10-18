@@ -7,7 +7,7 @@ const scSource = require('u-wave-source-soundcloud');
 const recaptchaTestKeys = require('recaptcha-test-keys');
 const express = require('express');
 const cors = require('cors');
-const createWebApi = require('u-wave-http-api');
+const { createHttpApi, createSocketServer } = require('u-wave-http-api');
 const uwave = require('u-wave-core');
 const announce = require('u-wave-announce');
 
@@ -53,9 +53,14 @@ app.use(cors({
 app.set('json spaces', 2);
 
 const apiUrl = '/api';
+const apiSecret = Buffer.from(process.env.SECRET, 'hex');
 
-app.use(apiUrl, createWebApi(uw, {
-  recaptcha: { secret: recaptchaTestKeys.secret },
+createSocketServer(uw, {
   server,
-  secret: Buffer.from(process.env.SECRET, 'hex'),
+  secret: apiSecret,
+});
+
+app.use(apiUrl, createHttpApi(uw, {
+  recaptcha: { secret: recaptchaTestKeys.secret },
+  secret: apiSecret,
 }));
