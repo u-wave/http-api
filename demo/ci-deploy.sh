@@ -20,8 +20,10 @@ now \
   -e MONGO_URL \
   -e DEBUG \
   -e ANNOUNCE_SECRET \
-  --token $NOW_TOKEN \
-  -p
-now alias
+  -p \
+  --token $NOW_TOKEN
+now alias \
+  --token $NOW_TOKEN
 
-now rm u-wave-demo --safe --yes
+now rm u-wave-demo --safe --yes \
+  --token $NOW_TOKEN
