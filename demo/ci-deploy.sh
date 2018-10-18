@@ -23,3 +23,5 @@ now \
   --token $NOW_TOKEN \
   -p
 now alias
+
+now rm u-wave-demo --safe --yes
