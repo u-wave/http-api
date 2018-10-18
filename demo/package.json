@@ -1,0 +1,23 @@
+{
+  "private": true,
+  "name": "u-wave-demo",
+  "version": "0.0.0",
+  "description": "The API for the üWave demo.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/u-wave/http-api.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/u-wave/http-api/issues"
+  },
+  "homepage": "https://github.com/u-wave/http-api#readme",
+  "dependencies": {
+    "cors": "^2.8.4",
+    "express": "^4.16.3",
+    "recaptcha-test-keys": "^1.0.0",
+    "u-wave-announce": "^0.3.0"
+  }
+}
