@@ -4,7 +4,16 @@ if [ x"$TRAVIS_NODE_VERSION" != x"stable" ]; then
   echo "not doing deploy!"
   exit 0
 fi
-npm i -g now now-alias
+
+set -o pipefail
+set -o errexit
+set -o nounset
+set -o xtrace
+
+cd "$(dirname "$0")"
+
+npm install -g now now-alias
+
 now \
   -e SOUNDCLOUD_KEY \
   -e YOUTUBE_KEY \
@@ -14,9 +23,5 @@ now \
   -e DEBUG \
   -e ANNOUNCE_SECRET \
   --token $NOW_TOKEN \
-  -p \
-  -n u-wave-demo
-now-alias \
-  --name u-wave-demo \
-  --alias u-wave-demo.now.sh \
-  --token $NOW_TOKEN
+  -p
+now alias
