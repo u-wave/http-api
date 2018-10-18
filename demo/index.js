@@ -31,7 +31,7 @@ uw.source(scSource, {
 
 uw.use(announce({
   name: 'üWave Demo',
-  subtitle: '',
+  subtitle: 'Bleeding edge demo server',
   url: 'https://demo.u-wave.net/',
   apiUrl: 'https://u-wave-demo.now.sh/api',
   socketUrl: 'wss://u-wave-demo.now.sh',
