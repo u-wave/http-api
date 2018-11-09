@@ -71,7 +71,7 @@
     "minimist": "^1.2.0",
     "nodemon": "^1.17.5",
     "recaptcha-test-keys": "^1.0.0",
-    "rollup": "^0.66.0",
+    "rollup": "^0.67.0",
     "rollup-plugin-babel": "^4.0.2",
     "rollup-plugin-delete": "^0.1.2",
     "rollup-plugin-es-module-interop": "^1.0.0",
