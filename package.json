@@ -61,7 +61,7 @@
     "@babel/register": "^7.0.0",
     "babel-eslint": "^10.0.1",
     "clarify": "^2.1.0",
-    "concat-stream": "^1.6.0",
+    "concat-stream": "^2.0.0",
     "eslint": "^5.3.0",
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-plugin-import": "^2.14.0",
