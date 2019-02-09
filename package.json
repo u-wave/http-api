@@ -31,7 +31,7 @@
     "cookie-parser": "^1.4.3",
     "debug": "^4.0.0",
     "escape-string-regexp": "^1.0.5",
-    "i18next": "^14.0.0",
+    "i18next": "^15.0.0",
     "joi": "^14.0.0",
     "jsonwebtoken": "^8.1.0",
     "lodash": "^4.16.1",
