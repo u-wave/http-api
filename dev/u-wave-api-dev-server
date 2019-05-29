@@ -8,6 +8,7 @@ const path = require('path');
 const argv = require('minimist')(process.argv.slice(2));
 const concat = require('concat-stream');
 const explain = require('explain-error');
+const announce = require('u-wave-announce');
 const ytSource = require('u-wave-source-youtube');
 const scSource = require('u-wave-source-soundcloud');
 const recaptchaTestKeys = require('recaptcha-test-keys');
@@ -95,6 +96,14 @@ function start() {
   uw.on('redisError', (err) => {
     throw explain(err, 'Could not connect to the Redis server. Is it installed and running?');
   });
+
+  uw.use(announce({
+    seed: 'localhost', // Generate a random one in a real app!
+    name: 'localhost',
+    subtitle: 'Local dev server',
+    url: `http://localhost:${port}`,
+    hub: 'http://localhost:6451',
+  }));
 
   uw.source(ytSource, config.sources.youtube);
   uw.source(scSource, config.sources.soundcloud);
