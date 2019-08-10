@@ -18,6 +18,13 @@ export default function configurePassport(uw, options) {
     });
   }
 
+  async function googleLogin(accessToken, refreshToken, profile) {
+    return socialLogin(accessToken, refreshToken, {
+      id: profile.id,
+      photos: profile.photos,
+    });
+  }
+
   async function serializeUser(user) {
     return user.id;
   }
@@ -36,7 +43,7 @@ export default function configurePassport(uw, options) {
       callbackURL: '/auth/service/google/callback',
       ...options.auth.google,
       scope: ['profile'],
-    }, callbackify(socialLogin)));
+    }, callbackify(googleLogin)));
   }
 
   passport.use('jwt', new JWTStrategy(options.secret, user => uw.getUser(user.id)));
